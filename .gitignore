@@ -1,0 +1,74 @@
+# Maven target directory
+target/
+
+# IDE directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS generated files
+Thumbs.db
+.DS_Store
+
+# Log files
+logs/
+*.log
+*.pid
+*.seed
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test reports
+surefire-reports/
+test-results/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Maven
+.mvn/
+*.jar
+*.war
+*.ear
+
+# Gradle (if used)
+.gradle/
+build/
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Kubernetes
+*.yaml
+*.yml
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Node.js (if used)
+node_modules/
+package-lock.json
+
+# Python (if used)
+venv/
+*.pyc
+__pycache__/
+
+# Go (if used)
+vendor/
+*.exe
+
+# Ruby (if used)
+Gemfile.lock
+*.gem
