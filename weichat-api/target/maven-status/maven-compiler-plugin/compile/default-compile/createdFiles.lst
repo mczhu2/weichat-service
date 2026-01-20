@@ -1,1 +1,3 @@
+com\weichat\api\controller\WxWorkController.class
+com\weichat\api\entity\CallbackRequest.class
 com\weichat\api\ApiApplication.class
