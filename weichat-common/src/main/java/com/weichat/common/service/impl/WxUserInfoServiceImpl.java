@@ -63,7 +63,7 @@ public class WxUserInfoServiceImpl implements WxUserInfoService {
     }
 
     @Override
-    public WxUserInfo selectByUnionIdAndCorpId(String uuid, Long corpId) {
-        return wxUserInfoMapper.selectByUnionIdAndCorpId(uuid, corpId);
+    public WxUserInfo selectByUuid(String uuid) {
+        return wxUserInfoMapper.selectByUuid(uuid);
     }
 }

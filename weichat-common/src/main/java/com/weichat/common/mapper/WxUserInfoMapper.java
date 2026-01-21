@@ -74,10 +74,9 @@ public interface WxUserInfoMapper {
      */
     WxUserInfo selectByUserIdAndCorpId(@Param("userId") Long userId, @Param("corpId") Long corpId);
     /**
-     * 根据uuid和企业ID查询微信用户信息
+     * 根据uuid查询微信用户信息
      * @param uuid 用户ID
-     * @param corpId 企业ID
      * @return 微信用户信息
      */
-    WxUserInfo selectByUnionIdAndCorpId(@Param("uuid") String uuid, @Param("corpId") Long corpId);
+    WxUserInfo selectByUuid(@Param("uuid") String uuid);
 }

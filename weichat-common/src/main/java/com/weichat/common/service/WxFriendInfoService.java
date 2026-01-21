@@ -24,10 +24,11 @@ public interface WxFriendInfoService {
 
     /**
      * 根据UnionID查询微信好友信息
+     * @param ownerUserId
      * @param unionid 用户唯一标识
      * @return 微信好友信息
      */
-    WxFriendInfo selectByUnionid(String unionid);
+    WxFriendInfo selectByOwnerUserIdAndUnionid(Long ownerUserId, String unionid);
 
     /**
      * 根据用户ID查询微信好友信息

@@ -55,7 +55,7 @@ public class FriendChangeStrategy implements CallbackStrategy {
                 try {
                     // 从JSON中提取好友信息
                     WxFriendInfo wxFriendInfo = JSON.toJavaObject(friendJson, WxFriendInfo.class);
-                    WxUserInfo ownerUserInfo = wxUserInfoService.selectByUnionIdAndCorpId(callbackRequest.getUuid(), wxFriendInfo.getCorpId());
+                    WxUserInfo ownerUserInfo = wxUserInfoService.selectByUuid(callbackRequest.getUuid());
                     if(ownerUserInfo != null){
                         wxFriendInfo.setOwnerUserId(ownerUserInfo.getUserId());
                     }
@@ -85,7 +85,7 @@ public class FriendChangeStrategy implements CallbackStrategy {
         int status = wxFriendInfo.getStatus();
         
         // 先根据unionid查询是否存在
-        WxFriendInfo existingFriend = wxFriendInfoService.selectByUnionid(wxFriendInfo.getUnionid());
+        WxFriendInfo existingFriend = wxFriendInfoService.selectByOwnerUserIdAndUnionid(wxFriendInfo.getOwnerUserId(), wxFriendInfo.getUnionid());
         
         if (status == 2049 || status == 8) {
             // 2049 或 8 代表被删除

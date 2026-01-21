@@ -52,8 +52,8 @@
     </select>
 
     <!-- 根据UnionID查询微信好友信息 -->
-    <select id="selectByUnionid" parameterType="java.lang.String" resultType="com.weichat.common.entity.WxFriendInfo">
-        SELECT * FROM wx_friend_info WHERE unionid = #{unionid} and is_del=0 limit 1;
+    <select id="selectByOwnerUserIdAndUnionid" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info WHERE unionid = #{unionid} and owner_user_id = #{ownerUserId} and is_del=0 limit 1;
     </select>
 
     <!-- 根据用户ID查询微信好友信息 -->

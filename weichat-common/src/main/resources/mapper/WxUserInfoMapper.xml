@@ -107,8 +107,8 @@
         SELECT * FROM wx_user_info WHERE user_id = #{userId} AND corpid = #{corpId} and is_del=0 limit 1;
     </select>
 
-    <select id="selectByUnionIdAndCorpId" resultType="com.weichat.common.entity.WxUserInfo">
-        SELECT * FROM wx_user_info WHERE unionid = #{uuid} AND corpid = #{corpId} and is_del=0 limit 1;
+    <select id="selectByUuid" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE uuid = #{uuid} and is_del=0 limit 1;
     </select>
 
     <!-- 批量插入微信用户信息 -->
