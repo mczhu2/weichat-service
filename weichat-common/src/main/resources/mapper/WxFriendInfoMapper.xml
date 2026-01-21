@@ -21,7 +21,8 @@
             corp_id,
             remarks,
             seq,
-            status
+            status,
+            owner_user_id
         ) VALUES (
             #{unionid},
             #{createTime},
@@ -40,23 +41,24 @@
             #{corpId},
             #{remarks},
             #{seq},
-            #{status}
+            #{status},
+            #{ownerUserId}
         )
     </insert>
 
     <!-- 根据ID查询微信好友信息 -->
     <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
-        SELECT * FROM wx_friend_info WHERE id = #{id}
+        SELECT * FROM wx_friend_info WHERE id = #{id};
     </select>
 
     <!-- 根据UnionID查询微信好友信息 -->
     <select id="selectByUnionid" parameterType="java.lang.String" resultType="com.weichat.common.entity.WxFriendInfo">
-        SELECT * FROM wx_friend_info WHERE unionid = #{unionid}
+        SELECT * FROM wx_friend_info WHERE unionid = #{unionid} and is_del=0 limit 1;
     </select>
 
     <!-- 根据用户ID查询微信好友信息 -->
     <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
-        SELECT * FROM wx_friend_info WHERE user_id = #{userId}
+        SELECT * FROM wx_friend_info WHERE user_id = #{userId} and is_del=0 limit 1;
     </select>
 
     <!-- 查询所有微信好友信息 -->
@@ -84,14 +86,15 @@
             corp_id = #{corpId},
             remarks = #{remarks},
             seq = #{seq},
-            status = #{status}
+            status = #{status},
+            owner_user_id = #{ownerUserId}
         WHERE id = #{id}
     </update>
 
     <!-- 根据ID删除微信好友信息 -->
-    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        DELETE FROM wx_friend_info WHERE id = #{id}
-    </delete>
+    <update id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        update wx_friend_info set is_del=0 WHERE id = #{id};
+    </update>
 
     <!-- 根据状态查询微信好友信息 -->
     <select id="selectByStatus" parameterType="java.lang.Integer" resultType="com.weichat.common.entity.WxFriendInfo">
@@ -118,7 +121,8 @@
             corp_id,
             remarks,
             seq,
-            status
+            status,
+            owner_user_id
         ) VALUES
         <foreach collection="list" item="item" separator=",">
             (
@@ -139,7 +143,8 @@
                 #{item.corpId},
                 #{item.remarks},
                 #{item.seq},
-                #{item.status}
+                #{item.status},
+                #{item.ownerUserId}
             )
         </foreach>
     </insert>

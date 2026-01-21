@@ -23,7 +23,8 @@
             nickname,
             position,
             corp_desc,
-            corp_logo
+            corp_logo,
+            uuid
         ) VALUES (
             #{corpid},
             #{unionid},
@@ -44,7 +45,8 @@
             #{nickname},
             #{position},
             #{corpDesc},
-            #{corpLogo}
+            #{corpLogo},
+            #{uuid}
         )
     </insert>
 
@@ -85,23 +87,28 @@
             nickname = #{nickname},
             position = #{position},
             corp_desc = #{corpDesc},
-            corp_logo = #{corpLogo}
+            corp_logo = #{corpLogo},
+            uuid = #{uuid}
         WHERE id = #{id}
     </update>
 
     <!-- 根据ID删除微信用户信息 -->
-    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
-        DELETE FROM wx_user_info WHERE id = #{id}
-    </delete>
+    <update id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        update  wx_user_info set is_del=1 WHERE id = #{id}
+    </update>
 
     <!-- 根据用户ID查询微信用户信息 -->
     <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxUserInfo">
-        SELECT * FROM wx_user_info WHERE user_id = #{userId}
+        SELECT * FROM wx_user_info WHERE user_id = #{userId} and is_del=0 limit 1;
     </select>
 
     <!-- 根据用户ID和企业ID查询微信用户信息 -->
     <select id="selectByUserIdAndCorpId" resultType="com.weichat.common.entity.WxUserInfo">
-        SELECT * FROM wx_user_info WHERE user_id = #{userId} AND corpid = #{corpId}
+        SELECT * FROM wx_user_info WHERE user_id = #{userId} AND corpid = #{corpId} and is_del=0 limit 1;
+    </select>
+
+    <select id="selectByUnionIdAndCorpId" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE unionid = #{uuid} AND corpid = #{corpId} and is_del=0 limit 1;
     </select>
 
     <!-- 批量插入微信用户信息 -->
@@ -126,7 +133,8 @@
             nickname,
             position,
             corp_desc,
-            corp_logo
+            corp_logo,
+            uuid
         ) VALUES
         <foreach collection="list" item="item" separator=",">
             (
@@ -149,7 +157,8 @@
                 #{item.nickname},
                 #{item.position},
                 #{item.corpDesc},
-                #{item.corpLogo}
+                #{item.corpLogo},
+                #{item.uuid}
             )
         </foreach>
     </insert>

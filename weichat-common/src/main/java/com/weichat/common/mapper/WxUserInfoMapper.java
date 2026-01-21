@@ -65,7 +65,7 @@ public interface WxUserInfoMapper {
      * @return 影响行数
      */
     int batchInsert(@Param("list") List<WxUserInfo> list);
-    
+
     /**
      * 根据用户ID和企业ID查询微信用户信息
      * @param userId 用户ID
@@ -73,4 +73,11 @@ public interface WxUserInfoMapper {
      * @return 微信用户信息
      */
     WxUserInfo selectByUserIdAndCorpId(@Param("userId") Long userId, @Param("corpId") Long corpId);
+    /**
+     * 根据uuid和企业ID查询微信用户信息
+     * @param uuid 用户ID
+     * @param corpId 企业ID
+     * @return 微信用户信息
+     */
+    WxUserInfo selectByUnionIdAndCorpId(@Param("uuid") String uuid, @Param("corpId") Long corpId);
 }

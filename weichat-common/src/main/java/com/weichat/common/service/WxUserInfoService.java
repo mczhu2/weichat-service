@@ -70,4 +70,12 @@ public interface WxUserInfoService {
      * @return 微信用户信息
      */
     WxUserInfo selectByUserIdAndCorpId(Long userId, Long corpId);
+
+    /**
+     * 根据unionID和企业ID查询微信用户信息
+     * @param uuid 用户ID
+     * @param corpId 企业ID
+     * @return 微信用户信息
+     */
+    WxUserInfo selectByUnionIdAndCorpId(String uuid, Long corpId);
 }

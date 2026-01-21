@@ -18,6 +18,11 @@ public class WxFriendInfo implements Serializable {
     private Long id;
 
     /**
+     * 所有者用户ID
+     */
+    private Long ownerUserId;
+
+    /**
      * 用户唯一标识
      */
     private String unionid;

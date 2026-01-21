@@ -34,7 +34,7 @@ public class UserLoginStrategy implements CallbackStrategy {
             JSONObject jsonObject = JSON.parseObject(callbackRequest.getJson());
             Long userId = jsonObject.getLong("user_id");
             Long corpId = jsonObject.getLong("corp_id");
-            
+            wxUserInfo.setUuid(callbackRequest.getUuid());
             // 查询用户是否存在
             WxUserInfo existingUser = wxUserInfoService.selectByUserIdAndCorpId(userId, corpId);
             

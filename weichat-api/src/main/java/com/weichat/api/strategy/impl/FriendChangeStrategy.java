@@ -6,7 +6,9 @@ import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.CallbackRequest;
 import com.weichat.api.strategy.CallbackStrategy;
 import com.weichat.common.entity.WxFriendInfo;
+import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.service.WxFriendInfoService;
+import com.weichat.common.service.WxUserInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +23,10 @@ import java.util.List;
 public class FriendChangeStrategy implements CallbackStrategy {
 
     private static final Logger logger = LoggerFactory.getLogger(FriendChangeStrategy.class);
-    
+
+
+    @Autowired
+    private WxUserInfoService wxUserInfoService;
     @Autowired
     private WxFriendInfoService wxFriendInfoService;
 
@@ -50,7 +55,10 @@ public class FriendChangeStrategy implements CallbackStrategy {
                 try {
                     // 从JSON中提取好友信息
                     WxFriendInfo wxFriendInfo = JSON.toJavaObject(friendJson, WxFriendInfo.class);
-                    
+                    WxUserInfo ownerUserInfo = wxUserInfoService.selectByUnionIdAndCorpId(callbackRequest.getUuid(), wxFriendInfo.getCorpId());
+                    if(ownerUserInfo != null){
+                        wxFriendInfo.setOwnerUserId(ownerUserInfo.getUserId());
+                    }
                     // 处理好友变更
                     handleFriendChange(wxFriendInfo);
                     successCount++;

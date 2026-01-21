@@ -127,4 +127,8 @@ public class WxUserInfo implements Serializable {
      */
     private Date updateTime;
 
+    /**
+     * 注册设备uuid
+     */
+    private String uuid;
 }

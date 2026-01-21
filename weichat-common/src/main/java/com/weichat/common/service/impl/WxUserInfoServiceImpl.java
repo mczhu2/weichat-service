@@ -61,4 +61,9 @@ public class WxUserInfoServiceImpl implements WxUserInfoService {
     public WxUserInfo selectByUserIdAndCorpId(Long userId, Long corpId) {
         return wxUserInfoMapper.selectByUserIdAndCorpId(userId, corpId);
     }
+
+    @Override
+    public WxUserInfo selectByUnionIdAndCorpId(String uuid, Long corpId) {
+        return wxUserInfoMapper.selectByUnionIdAndCorpId(uuid, corpId);
+    }
 }
