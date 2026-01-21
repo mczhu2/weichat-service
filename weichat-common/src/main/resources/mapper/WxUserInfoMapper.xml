@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.WxUserInfoMapper">
+    <!-- 新增微信用户信息 -->
+    <insert id="insert" parameterType="com.weichat.common.entity.WxUserInfo">
+        INSERT INTO wx_user_info (
+            corpid,
+            unionid,
+            create_time,
+            admin_vid,
+            sex,
+            mobile,
+            corp_full_name,
+            acctid,
+            avatar,
+            corp_name,
+            english_name,
+            realname,
+            vid,
+            mail,
+            ownername,
+            user_id,
+            nickname,
+            position,
+            corp_desc,
+            corp_logo
+        ) VALUES (
+            #{corpid},
+            #{unionid},
+            #{createTime},
+            #{adminVid},
+            #{sex},
+            #{mobile},
+            #{corpFullName},
+            #{acctid},
+            #{avatar},
+            #{corpName},
+            #{englishName},
+            #{realname},
+            #{vid},
+            #{mail},
+            #{ownername},
+            #{userId},
+            #{nickname},
+            #{position},
+            #{corpDesc},
+            #{corpLogo}
+        )
+    </insert>
+
+    <!-- 根据ID查询微信用户信息 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE id = #{id}
+    </select>
+
+    <!-- 根据UnionID查询微信用户信息 -->
+    <select id="selectByUnionid" parameterType="java.lang.String" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE unionid = #{unionid}
+    </select>
+
+    <!-- 查询所有微信用户信息 -->
+    <select id="selectAll" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info
+    </select>
+
+    <!-- 根据ID更新微信用户信息 -->
+    <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxUserInfo">
+        UPDATE wx_user_info SET
+            corpid = #{corpid},
+            unionid = #{unionid},
+            create_time = #{createTime},
+            admin_vid = #{adminVid},
+            sex = #{sex},
+            mobile = #{mobile},
+            corp_full_name = #{corpFullName},
+            acctid = #{acctid},
+            avatar = #{avatar},
+            corp_name = #{corpName},
+            english_name = #{englishName},
+            realname = #{realname},
+            vid = #{vid},
+            mail = #{mail},
+            ownername = #{ownername},
+            user_id = #{userId},
+            nickname = #{nickname},
+            position = #{position},
+            corp_desc = #{corpDesc},
+            corp_logo = #{corpLogo}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除微信用户信息 -->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM wx_user_info WHERE id = #{id}
+    </delete>
+
+    <!-- 根据用户ID查询微信用户信息 -->
+    <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE user_id = #{userId}
+    </select>
+
+    <!-- 根据用户ID和企业ID查询微信用户信息 -->
+    <select id="selectByUserIdAndCorpId" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE user_id = #{userId} AND corpid = #{corpId}
+    </select>
+
+    <!-- 批量插入微信用户信息 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO wx_user_info (
+            corpid,
+            unionid,
+            create_time,
+            admin_vid,
+            sex,
+            mobile,
+            corp_full_name,
+            acctid,
+            avatar,
+            corp_name,
+            english_name,
+            realname,
+            vid,
+            mail,
+            ownername,
+            user_id,
+            nickname,
+            position,
+            corp_desc,
+            corp_logo
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.corpid},
+                #{item.unionid},
+                #{item.createTime},
+                #{item.adminVid},
+                #{item.sex},
+                #{item.mobile},
+                #{item.corpFullName},
+                #{item.acctid},
+                #{item.avatar},
+                #{item.corpName},
+                #{item.englishName},
+                #{item.realname},
+                #{item.vid},
+                #{item.mail},
+                #{item.ownername},
+                #{item.userId},
+                #{item.nickname},
+                #{item.position},
+                #{item.corpDesc},
+                #{item.corpLogo}
+            )
+        </foreach>
+    </insert>
+</mapper>

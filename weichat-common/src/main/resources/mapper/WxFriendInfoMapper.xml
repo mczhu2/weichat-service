@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.WxFriendInfoMapper">
+    <!-- 新增微信好友信息 -->
+    <insert id="insert" parameterType="com.weichat.common.entity.WxFriendInfo">
+        INSERT INTO wx_friend_info (
+            unionid,
+            create_time,
+            sex,
+            mobile,
+            company_remark,
+            acctid,
+            avatar,
+            english_name,
+            remark_phone,
+            realname,
+            real_remarks,
+            user_id,
+            nickname,
+            position,
+            corp_id,
+            remarks,
+            seq,
+            status
+        ) VALUES (
+            #{unionid},
+            #{createTime},
+            #{sex},
+            #{mobile},
+            #{companyRemark},
+            #{acctid},
+            #{avatar},
+            #{englishName},
+            #{remarkPhone},
+            #{realname},
+            #{realRemarks},
+            #{userId},
+            #{nickname},
+            #{position},
+            #{corpId},
+            #{remarks},
+            #{seq},
+            #{status}
+        )
+    </insert>
+
+    <!-- 根据ID查询微信好友信息 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info WHERE id = #{id}
+    </select>
+
+    <!-- 根据UnionID查询微信好友信息 -->
+    <select id="selectByUnionid" parameterType="java.lang.String" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info WHERE unionid = #{unionid}
+    </select>
+
+    <!-- 根据用户ID查询微信好友信息 -->
+    <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info WHERE user_id = #{userId}
+    </select>
+
+    <!-- 查询所有微信好友信息 -->
+    <select id="selectAll" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info
+    </select>
+
+    <!-- 根据ID更新微信好友信息 -->
+    <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxFriendInfo">
+        UPDATE wx_friend_info SET
+            unionid = #{unionid},
+            create_time = #{createTime},
+            sex = #{sex},
+            mobile = #{mobile},
+            company_remark = #{companyRemark},
+            acctid = #{acctid},
+            avatar = #{avatar},
+            english_name = #{englishName},
+            remark_phone = #{remarkPhone},
+            realname = #{realname},
+            real_remarks = #{realRemarks},
+            user_id = #{userId},
+            nickname = #{nickname},
+            position = #{position},
+            corp_id = #{corpId},
+            remarks = #{remarks},
+            seq = #{seq},
+            status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除微信好友信息 -->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM wx_friend_info WHERE id = #{id}
+    </delete>
+
+    <!-- 根据状态查询微信好友信息 -->
+    <select id="selectByStatus" parameterType="java.lang.Integer" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info WHERE status = #{status}
+    </select>
+
+    <!-- 批量插入微信好友信息 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO wx_friend_info (
+            unionid,
+            create_time,
+            sex,
+            mobile,
+            company_remark,
+            acctid,
+            avatar,
+            english_name,
+            remark_phone,
+            realname,
+            real_remarks,
+            user_id,
+            nickname,
+            position,
+            corp_id,
+            remarks,
+            seq,
+            status
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.unionid},
+                #{item.createTime},
+                #{item.sex},
+                #{item.mobile},
+                #{item.companyRemark},
+                #{item.acctid},
+                #{item.avatar},
+                #{item.englishName},
+                #{item.remarkPhone},
+                #{item.realname},
+                #{item.realRemarks},
+                #{item.userId},
+                #{item.nickname},
+                #{item.position},
+                #{item.corpId},
+                #{item.remarks},
+                #{item.seq},
+                #{item.status}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据企业ID查询微信好友信息列表 -->
+    <select id="selectByCorpId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info WHERE corp_id = #{corpId}
+    </select>
+</mapper>

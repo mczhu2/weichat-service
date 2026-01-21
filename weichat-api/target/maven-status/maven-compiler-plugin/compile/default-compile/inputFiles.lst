@@ -1,3 +1,13 @@
-D:\soft\trae\wechat-service\weichat-api\src\main\java\com\weichat\api\ApiApplication.java
-D:\soft\trae\wechat-service\weichat-api\src\main\java\com\weichat\api\entity\CallbackRequest.java
-D:\soft\trae\wechat-service\weichat-api\src\main\java\com\weichat\api\controller\WxWorkController.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/controller/WxWorkController.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/impl/MessageStrategy.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/impl/GroupMemberAddStrategy.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/controller/WxDataController.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/CallbackStrategyFactory.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/ApiApplication.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/impl/GroupUpdateStrategy.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/impl/UserLoginStrategy.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/CallbackStrategy.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/impl/GroupCreateStrategy.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/entity/CallbackRequest.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/config/AsyncConfig.java
+/Users/mczhu/Documents/trae_projects/wechat-service/weichat-api/src/main/java/com/weichat/api/strategy/impl/FriendChangeStrategy.java

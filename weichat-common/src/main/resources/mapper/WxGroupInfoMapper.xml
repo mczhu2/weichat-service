@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.WxGroupInfoMapper">
+    <!-- 新增微信群信息 -->
+    <insert id="insert" parameterType="com.weichat.common.entity.WxGroupInfo">
+        INSERT INTO wx_group_info (
+            room_id,
+            create_user_id,
+            total,
+            notice_sendervid,
+            flag,
+            create_time,
+            notice_content,
+            nickname,
+            new_flag,
+            notice_time,
+            managers
+        ) VALUES (
+            #{roomId},
+            #{createUserId},
+            #{total},
+            #{noticeSendervid},
+            #{flag},
+            #{createTime},
+            #{noticeContent},
+            #{nickname},
+            #{newFlag},
+            #{noticeTime},
+            #{managers}
+        )
+    </insert>
+
+    <!-- 根据ID查询微信群信息 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info WHERE id = #{id}
+    </select>
+
+    <!-- 根据群ID查询微信群信息 -->
+    <select id="selectByRoomId" parameterType="java.lang.String" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info WHERE room_id = #{roomId}
+    </select>
+
+    <!-- 查询所有微信群信息 -->
+    <select id="selectAll" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info
+    </select>
+
+    <!-- 根据ID更新微信群信息 -->
+    <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxGroupInfo">
+        UPDATE wx_group_info SET
+            room_id = #{roomId},
+            create_user_id = #{createUserId},
+            total = #{total},
+            notice_sendervid = #{noticeSendervid},
+            flag = #{flag},
+            create_time = #{createTime},
+            notice_content = #{noticeContent},
+            nickname = #{nickname},
+            new_flag = #{newFlag},
+            notice_time = #{noticeTime},
+            managers = #{managers}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除微信群信息 -->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM wx_group_info WHERE id = #{id}
+    </delete>
+
+    <!-- 根据创建者ID查询微信群信息 -->
+    <select id="selectByCreateUserId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info WHERE create_user_id = #{createUserId}
+    </select>
+
+    <!-- 批量插入微信群信息 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO wx_group_info (
+            room_id,
+            create_user_id,
+            total,
+            notice_sendervid,
+            flag,
+            create_time,
+            notice_content,
+            nickname,
+            new_flag,
+            notice_time,
+            managers
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.roomId},
+                #{item.createUserId},
+                #{item.total},
+                #{item.noticeSendervid},
+                #{item.flag},
+                #{item.createTime},
+                #{item.noticeContent},
+                #{item.nickname},
+                #{item.newFlag},
+                #{item.noticeTime},
+                #{item.managers}
+            )
+        </foreach>
+    </insert>
+</mapper>

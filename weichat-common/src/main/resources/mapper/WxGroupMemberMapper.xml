@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.WxGroupMemberMapper">
+    <!-- 该Mapper文件用于微信群成员相关操作 -->
+    
+    <!-- 根据ID查询 -->
+    <select id="selectByPrimaryKey" resultType="com.weichat.common.entity.WxGroupMember" parameterType="java.lang.Long">
+        SELECT * FROM wx_group_member WHERE id = #{id}
+    </select>
+    
+    <!-- 根据roomId和uin查询 -->
+    <select id="selectByRoomIdAndUin" resultType="com.weichat.common.entity.WxGroupMember">
+        SELECT * FROM wx_group_member WHERE room_id = #{roomId} AND uin = #{uin}
+    </select>
+    
+    <!-- 根据ID更新 -->
+    <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxGroupMember">
+        UPDATE wx_group_member 
+        SET room_id = #{roomId}, 
+            unionid = #{unionid}, 
+            uin = #{uin}, 
+            corp_id = #{corpId}, 
+            nickname = #{nickname}, 
+            realname = #{realname}, 
+            english_name = #{englishName}, 
+            sex = #{sex}, 
+            avatar = #{avatar}, 
+            mobile = #{mobile}, 
+            position = #{position}, 
+            room_nickname = #{roomNickname}, 
+            room_notes = #{roomNotes}, 
+            join_scene = #{joinScene}, 
+            join_time = #{jointime}, 
+            invite_user_id = #{inviteUserId}, 
+            update_time = NOW() 
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 插入 -->
+    <insert id="insert" parameterType="com.weichat.common.entity.WxGroupMember">
+        INSERT INTO wx_group_member (room_id, unionid, uin, corp_id, nickname, realname, english_name, sex, avatar, mobile, position, room_nickname, room_notes, join_scene, join_time, invite_user_id, create_time, update_time) 
+        VALUES (#{roomId}, #{unionid}, #{uin}, #{corpId}, #{nickname}, #{realname}, #{englishName}, #{sex}, #{avatar}, #{mobile}, #{position}, #{roomNickname}, #{roomNotes}, #{joinScene}, #{jointime}, #{inviteUserId}, NOW(), NOW())
+    </insert>
+    
+    <!-- 根据roomId查询列表 -->
+    <select id="selectByRoomId" resultType="com.weichat.common.entity.WxGroupMember" parameterType="java.lang.String">
+        SELECT * FROM wx_group_member WHERE room_id = #{roomId}
+    </select>
+    
+    <!-- 批量插入 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO wx_group_member (room_id, unionid, uin, corp_id, nickname, realname, english_name, sex, avatar, mobile, position, room_nickname, room_notes, join_scene, join_time, invite_user_id, create_time, update_time) 
+        VALUES 
+        <foreach collection="list" item="item" separator=",">
+            (#{item.roomId}, #{item.unionid}, #{item.uin}, #{item.corpId}, #{item.nickname}, #{item.realname}, #{item.englishName}, #{item.sex}, #{item.avatar}, #{item.mobile}, #{item.position}, #{item.roomNickname}, #{item.roomNotes}, #{item.joinScene}, #{item.jointime}, #{item.inviteUserId}, NOW(), NOW())
+        </foreach>
+    </insert>
+</mapper>

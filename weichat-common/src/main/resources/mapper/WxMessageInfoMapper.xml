@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.WxMessageInfoMapper">
+    <!-- 新增微信消息信息 -->
+    <insert id="insert" parameterType="com.weichat.common.entity.WxMessageInfo">
+        INSERT INTO wx_message_info (
+            msg_id,
+            msgtype,
+            flag,
+            receiver,
+            sender,
+            sender_name,
+            is_room,
+            server_id,
+            send_time,
+            referid,
+            app_info,
+            readuinscount,
+            kf_id,
+            content,
+            issync,
+            at_list,
+            url,
+            width,
+            height,
+            emotion_type,
+            thumb_file_id,
+            title,
+            app_name,
+            thumb_md5,
+            pagepath,
+            size,
+            appid,
+            thumb_aes_key,
+            username,
+            weapp_icon_url,
+            `desc`,
+            file_size,
+            file_id,
+            openim_cdn_authkey,
+            aes_key,
+            md5
+        ) VALUES (
+            #{msgId},
+            #{msgtype},
+            #{flag},
+            #{receiver},
+            #{sender},
+            #{senderName},
+            #{isRoom},
+            #{serverId},
+            #{sendTime},
+            #{referid},
+            #{appInfo},
+            #{readuinscount},
+            #{kfId},
+            #{content},
+            #{issync},
+            #{atList},
+            #{url},
+            #{width},
+            #{height},
+            #{emotionType},
+            #{thumbFileId},
+            #{title},
+            #{appName},
+            #{thumbMd5},
+            #{pagepath},
+            #{size},
+            #{appid},
+            #{thumbAesKey},
+            #{username},
+            #{weappIconUrl},
+            #{desc},
+            #{fileSize},
+            #{fileId},
+            #{openimCdnAuthkey},
+            #{aesKey},
+            #{md5}
+        )
+    </insert>
+
+    <!-- 根据ID查询微信消息信息 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info WHERE id = #{id}
+    </select>
+
+    <!-- 根据消息ID查询微信消息信息 -->
+    <select id="selectByMsgId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info WHERE msg_id = #{msgId}
+    </select>
+
+    <!-- 查询所有微信消息信息 -->
+    <select id="selectAll" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info
+    </select>
+
+    <!-- 根据ID更新微信消息信息 -->
+    <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxMessageInfo">
+        UPDATE wx_message_info SET
+            msg_id = #{msgId},
+            msgtype = #{msgtype},
+            flag = #{flag},
+            receiver = #{receiver},
+            sender = #{sender},
+            sender_name = #{senderName},
+            is_room = #{isRoom},
+            server_id = #{serverId},
+            send_time = #{sendTime},
+            referid = #{referid},
+            app_info = #{appInfo},
+            readuinscount = #{readuinscount},
+            kf_id = #{kfId},
+            content = #{content},
+            issync = #{issync},
+            at_list = #{atList},
+            url = #{url},
+            width = #{width},
+            height = #{height},
+            emotion_type = #{emotionType},
+            thumb_file_id = #{thumbFileId},
+            title = #{title},
+            app_name = #{appName},
+            thumb_md5 = #{thumbMd5},
+            pagepath = #{pagepath},
+            size = #{size},
+            appid = #{appid},
+            thumb_aes_key = #{thumbAesKey},
+            username = #{username},
+            weapp_icon_url = #{weappIconUrl},
+            `desc` = #{desc},
+            file_size = #{fileSize},
+            file_id = #{fileId},
+            openim_cdn_authkey = #{openimCdnAuthkey},
+            aes_key = #{aesKey},
+            md5 = #{md5}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID删除微信消息信息 -->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
+        DELETE FROM wx_message_info WHERE id = #{id}
+    </delete>
+
+    <!-- 根据接收人ID查询微信消息信息 -->
+    <select id="selectByReceiver" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info WHERE receiver = #{receiver}
+    </select>
+
+    <!-- 根据发送人ID查询微信消息信息 -->
+    <select id="selectBySender" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info WHERE sender = #{sender}
+    </select>
+
+    <!-- 根据消息类型查询微信消息信息 -->
+    <select id="selectByMsgtype" parameterType="java.lang.Integer" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info WHERE msgtype = #{msgtype}
+    </select>
+
+    <!-- 批量插入微信消息信息 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO wx_message_info (
+            msg_id,
+            msgtype,
+            flag,
+            receiver,
+            sender,
+            sender_name,
+            is_room,
+            server_id,
+            send_time,
+            referid,
+            app_info,
+            readuinscount,
+            kf_id,
+            content,
+            issync,
+            at_list,
+            url,
+            width,
+            height,
+            emotion_type,
+            thumb_file_id,
+            title,
+            app_name,
+            thumb_md5,
+            pagepath,
+            size,
+            appid,
+            thumb_aes_key,
+            username,
+            weapp_icon_url,
+            `desc`,
+            file_size,
+            file_id,
+            openim_cdn_authkey,
+            aes_key,
+            md5
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.msgId},
+                #{item.msgtype},
+                #{item.flag},
+                #{item.receiver},
+                #{item.sender},
+                #{item.senderName},
+                #{item.isRoom},
+                #{item.serverId},
+                #{item.sendTime},
+                #{item.referid},
+                #{item.appInfo},
+                #{item.readuinscount},
+                #{item.kfId},
+                #{item.content},
+                #{item.issync},
+                #{item.atList},
+                #{item.url},
+                #{item.width},
+                #{item.height},
+                #{item.emotionType},
+                #{item.thumbFileId},
+                #{item.title},
+                #{item.appName},
+                #{item.thumbMd5},
+                #{item.pagepath},
+                #{item.size},
+                #{item.appid},
+                #{item.thumbAesKey},
+                #{item.username},
+                #{item.weappIconUrl},
+                #{item.desc},
+                #{item.fileSize},
+                #{item.fileId},
+                #{item.openimCdnAuthkey},
+                #{item.aesKey},
+                #{item.md5}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据发送时间范围查询微信消息信息 -->
+    <select id="selectBySendTimeRange" resultType="com.weichat.common.entity.WxMessageInfo">
+        SELECT * FROM wx_message_info 
+        WHERE send_time BETWEEN #{startTime} AND #{endTime}
+    </select>
+</mapper>
