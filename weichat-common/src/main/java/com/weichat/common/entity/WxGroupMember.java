@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  * 微信群成员信息实体类
@@ -91,6 +92,11 @@ public class WxGroupMember implements Serializable {
      * 职位
      */
     private String position;
+
+    /**
+     * 群成员列表
+     */
+    private List<String> memberList;
 
     /**
      * 用户ID
