@@ -1,7 +1,7 @@
 package com.weichat.api.strategy;
 
-import com.weichat.api.strategy.impl.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -15,17 +15,14 @@ public class CallbackStrategyFactory {
 
     private final Map<String, CallbackStrategy> strategyMap = new HashMap<>();
 
-    /**
-     * 构造函数，注入所有策略
-     */
     @Autowired
-    public CallbackStrategyFactory(UserLoginStrategy userLoginStrategy,
-                                   MessageStrategy messageStrategy,
-                                   GroupCreateStrategy groupCreateStrategy,
-                                   GroupMemberAddStrategy groupMemberAddStrategy,
-                                   GroupUpdateStrategy groupUpdateStrategy,
-                                   FriendChangeStrategy friendChangeStrategy) {
-        // 注册策略
+    public CallbackStrategyFactory(
+            @Qualifier("userLoginStrategy") CallbackStrategy userLoginStrategy,
+            @Qualifier("messageStrategy") CallbackStrategy messageStrategy,
+            @Qualifier("groupCreateStrategy") CallbackStrategy groupCreateStrategy,
+            @Qualifier("groupMemberAddStrategy") CallbackStrategy groupMemberAddStrategy,
+            @Qualifier("groupUpdateStrategy") CallbackStrategy groupUpdateStrategy,
+            @Qualifier("friendChangeStrategy") CallbackStrategy friendChangeStrategy) {
         strategyMap.put("104001", userLoginStrategy);
         strategyMap.put("102000", messageStrategy);
         strategyMap.put("115001", groupCreateStrategy);

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.WxCallbackTaskMapper">
+
+    <insert id="insert" parameterType="com.weichat.common.entity.WxCallbackTask" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO wx_callback_task (uuid, json_content, type, status, retry_count, max_retry_count, create_time)
+        VALUES (#{uuid}, #{jsonContent}, #{type}, #{status}, #{retryCount}, #{maxRetryCount}, NOW())
+    </insert>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxCallbackTask">
+        SELECT * FROM wx_callback_task WHERE id = #{id}
+    </select>
+
+    <select id="selectPendingTasks" resultType="com.weichat.common.entity.WxCallbackTask">
+        SELECT * FROM wx_callback_task 
+        WHERE status = 0 AND retry_count &lt; max_retry_count
+        ORDER BY create_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE wx_callback_task 
+        SET status = #{status}, error_message = #{errorMessage}, update_time = NOW(), process_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="incrementRetryCount">
+        UPDATE wx_callback_task SET retry_count = retry_count + 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateStatusToProcessing">
+        UPDATE wx_callback_task SET status = 1, update_time = NOW() WHERE id = #{id} AND status = #{oldStatus}
+    </update>
+
+</mapper>

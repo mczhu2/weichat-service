@@ -591,7 +591,7 @@ CREATE TABLE `wx_group_member` (
   "nickname": "xxxx",
   "room_nickname": "",
   "position": "",
-  "uin": 168xxx199881,
+  "uin": "168xxx199881",
   "invite_user_id": 7881302555913738,
   "corp_id": 1970324968093920
 }
@@ -779,5 +779,76 @@ CREATE TABLE `wx_friend_info` (
 - 定期清理无效好友数据，优化存储空间
 - 添加好友备注历史记录功能
 - 支持好友消息免打扰设置
+
+---
+
+# 回调任务表设计文档
+
+## 1. 需求背景
+设计回调任务表`wx_callback_task`，用于存储微信回调请求参数和处理状态，支持异步处理和重试机制。
+
+## 2. 设计原则
+- 支持回调请求的持久化存储
+- 支持任务状态管理和重试机制
+- 添加必要的索引以提高查询性能
+- 字段命名规范，使用下划线命名法
+
+## 3. 建表语句
+
+```sql
+CREATE TABLE `wx_callback_task` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `uuid` VARCHAR(64) NOT NULL COMMENT '运行实例ID',
+  `json_content` TEXT NOT NULL COMMENT '回调消息内容JSON',
+  `type` VARCHAR(64) NOT NULL COMMENT '消息类型',
+  `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0-待处理,1-处理中,2-成功,3-失败',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+  `max_retry_count` INT NOT NULL DEFAULT 3 COMMENT '最大重试次数',
+  `error_message` VARCHAR(1024) DEFAULT NULL COMMENT '错误信息',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `process_time` DATETIME DEFAULT NULL COMMENT '处理时间',
+  PRIMARY KEY (`id`),
+  INDEX `idx_status_retry` (`status`, `retry_count`),
+  INDEX `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='回调任务表';
+```
+
+## 4. 字段说明
+
+| 字段名 | 数据类型 | 默认值 | 是否必填 | 注释 |
+|-------|---------|-------|----------|------|
+| id | BIGINT | 自增 | 是 | 主键ID |
+| uuid | VARCHAR(64) | - | 是 | 运行实例ID |
+| json_content | TEXT | - | 是 | 回调消息内容JSON |
+| type | VARCHAR(64) | - | 是 | 消息类型 |
+| status | TINYINT | 0 | 是 | 状态:0-待处理,1-处理中,2-成功,3-失败 |
+| retry_count | INT | 0 | 是 | 重试次数 |
+| max_retry_count | INT | 3 | 是 | 最大重试次数 |
+| error_message | VARCHAR(1024) | NULL | 否 | 错误信息 |
+| create_time | DATETIME | CURRENT_TIMESTAMP | 是 | 创建时间 |
+| update_time | DATETIME | NULL | 否 | 更新时间 |
+| process_time | DATETIME | NULL | 否 | 处理时间 |
+
+## 5. 索引设计
+
+| 索引名称 | 索引类型 | 索引字段 | 作用 |
+|---------|---------|---------|------|
+| PRIMARY | 主键索引 | id | 唯一标识记录 |
+| idx_status_retry | 联合索引 | status, retry_count | 加速待处理任务查询 |
+| idx_create_time | 普通索引 | create_time | 加速按时间查询 |
+
+## 6. 状态流转
+
+```
+待处理(0) -> 处理中(1) -> 成功(2)
+                      -> 失败(3) -> 待处理(0) [重试]
+```
+
+## 7. 设计说明
+
+1. **异步处理**：Controller接收请求后立即入库返回，由定时任务异步处理
+2. **重试机制**：失败后自动重试，达到最大重试次数后标记为失败
+3. **乐观锁**：通过status字段实现任务锁定，防止重复处理
 
 ---

@@ -113,11 +113,6 @@ public class WxUserInfo implements Serializable {
     private String corpDesc;
 
     /**
-     * 企业ID
-     */
-    private Long corpId;
-
-    /**
      * 企业LOGO
      */
     private String corpLogo;

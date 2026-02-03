@@ -104,7 +104,7 @@ public class GroupMemberAddStrategy implements CallbackStrategy {
                         userInfo.setUuid(callbackRequest.getUuid());
                         
                         // 检查数据库中是否已存在该用户
-                        WxUserInfo existingUserInfo = wxUserInfoService.selectByUserIdAndCorpId(userInfo.getUserId(), userInfo.getCorpId());
+                        WxUserInfo existingUserInfo = wxUserInfoService.selectByUserIdAndCorpId(userInfo.getUserId(), userInfo.getCorpid());
                         if (existingUserInfo != null) {
                             // 更新现有用户信息
                             userInfo.setId(existingUserInfo.getId());
@@ -183,7 +183,7 @@ public class GroupMemberAddStrategy implements CallbackStrategy {
                             userInfo.setAcctid(userJson.getString("acctid"));
                             userInfo.setAvatar(userJson.getString("avatar"));
                             userInfo.setPosition(userJson.getString("position"));
-                            userInfo.setCorpId(userJson.getLong("corp_id"));
+                            userInfo.setCorpid(userJson.getLong("corp_id"));
                             userInfo.setEnglishName(userJson.getString("english_name"));
                             userInfo.setRealname(userJson.getString("realname"));
                             
