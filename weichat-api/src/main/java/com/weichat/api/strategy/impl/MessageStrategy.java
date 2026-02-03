@@ -1,6 +1,7 @@
 package com.weichat.api.strategy.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.CallbackRequest;
 import com.weichat.api.strategy.CallbackStrategy;
 import com.weichat.common.entity.WxMessageInfo;
@@ -26,8 +27,11 @@ public class MessageStrategy implements CallbackStrategy {
         logger.info("处理消息回调，type: {}", callbackRequest.getType());
         
         try {
-            // 解析JSON并保存消息
-            WxMessageInfo wxMessageInfo = JSON.parseObject(callbackRequest.getJson(), WxMessageInfo.class);
+            JSONObject json = JSON.parseObject(callbackRequest.getJson());
+            WxMessageInfo wxMessageInfo = json.toJavaObject(WxMessageInfo.class);
+            if (wxMessageInfo.getIsRoom() != null && wxMessageInfo.getIsRoom() == 1) {
+                wxMessageInfo.setRoomId(json.getString("room_conversation_id"));
+            }
             wxMessageInfoService.insert(wxMessageInfo);
             
             logger.info("消息处理成功");
