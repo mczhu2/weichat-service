@@ -56,7 +56,7 @@ public class WxWorkApiClient {
         params.put("uuid", uuid);
         params.put("limit", limit);
         params.put("seq", seq);
-        return post("/wxwork/SyncMsg", params);
+        return post("/wxwork/SyncAllData", params);
     }
     
     private JSONObject post(String path, JSONObject params) {

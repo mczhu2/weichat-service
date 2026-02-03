@@ -153,6 +153,7 @@ CREATE TABLE `wx_message_info` (
   `sender` BIGINT(20) DEFAULT NULL COMMENT '发送人ID',
   `sender_name` VARCHAR(255) DEFAULT NULL COMMENT '发送人名称',
   `is_room` TINYINT(1) DEFAULT NULL COMMENT '是否为群聊：0-否，1-是',
+  `room_id` VARCHAR(100) DEFAULT NULL COMMENT '群会话ID，群消息时存储room_conversation_id',
   `server_id` BIGINT(20) DEFAULT NULL COMMENT '服务器ID',
   `send_time` BIGINT(20) DEFAULT NULL COMMENT '发送时间戳',
   `referid` BIGINT(20) DEFAULT NULL COMMENT '参考ID',
@@ -201,7 +202,8 @@ CREATE TABLE `wx_message_info` (
   KEY `idx_sender` (`sender`),
   KEY `idx_send_time` (`send_time`),
   KEY `idx_msgtype` (`msgtype`),
-  KEY `idx_server_id` (`server_id`)
+  KEY `idx_server_id` (`server_id`),
+  KEY `idx_room_id` (`room_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='微信消息信息表';
 ```
 
@@ -217,6 +219,7 @@ CREATE TABLE `wx_message_info` (
 | sender | BIGINT | 20 | NULL | 否 | 发送人ID |
 | sender_name | VARCHAR | 255 | NULL | 否 | 发送人名称 |
 | is_room | TINYINT | 1 | NULL | 否 | 是否为群聊：0-否，1-是 |
+| room_id | VARCHAR | 100 | NULL | 否 | 群会话ID，群消息时存储room_conversation_id |
 | server_id | BIGINT | 20 | NULL | 否 | 服务器ID |
 | send_time | BIGINT | 20 | NULL | 否 | 发送时间戳 |
 | referid | BIGINT | 20 | NULL | 否 | 参考ID |
@@ -260,6 +263,7 @@ CREATE TABLE `wx_message_info` (
 | idx_send_time | 普通索引 | send_time | 加速时间维度的查询 |
 | idx_msgtype | 普通索引 | msgtype | 加速消息类型维度的查询 |
 | idx_server_id | 普通索引 | server_id | 加速服务器ID维度的查询 |
+| idx_room_id | 普通索引 | room_id | 加速群会话维度的查询 |
 
 ## 6. 数据示例
 

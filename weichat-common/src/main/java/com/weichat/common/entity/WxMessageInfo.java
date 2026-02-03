@@ -58,6 +58,11 @@ public class WxMessageInfo implements Serializable {
     private Integer isRoom;
 
     /**
+     * 群会话ID，群消息时存储room_conversation_id
+     */
+    private String roomId;
+
+    /**
      * 服务器ID
      */
     private Long serverId;
