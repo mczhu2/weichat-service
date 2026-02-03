@@ -40,7 +40,7 @@ public class GroupMemberInitHandler extends AbstractInitHandler {
     
     @Override
     protected void doHandle(InitContext context) {
-        List<WxGroupInfo> groups = groupInfoService.selectAll();
+        List<WxGroupInfo> groups = groupInfoService.selectByCreateUserId(context.getUserId());
         int totalMembers = 0;
         
         for (WxGroupInfo group : groups) {
