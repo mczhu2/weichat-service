@@ -59,7 +59,7 @@ public class WxWorkApiClient {
         return post("/wxwork/SyncAllData", params);
     }
     
-    private JSONObject post(String path, JSONObject params) {
+    public JSONObject post(String path, JSONObject params) {
         String url = apiConfig.getApiBaseUrl() + path;
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
