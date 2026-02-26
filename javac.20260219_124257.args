@@ -1,0 +1,4 @@
+-proc:none
+-sourcepath
+/dev/null
+/Users/mczhu/Documents/myProject/weichat-service/weichat-api/src/main/java/com/weichat/api/controller/CdnController.java
