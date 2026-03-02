@@ -1,41 +1,87 @@
 package com.weichat.api.entity;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
 
-public class ApiResult {
+import java.util.Collections;
+import java.util.List;
 
+/**
+ * 统一API响应结果（泛型版）
+ *
+ * @param <T> 响应数据类型
+ * @author weichat
+ */
+@Data
+@ApiModel(description = "统一API响应结果")
+public class ApiResult<T> {
+
+    @ApiModelProperty(value = "响应码，0表示成功，非0表示失败", example = "0")
     private int code;
-    private String msg;
-    private Object data;
 
-    public static ApiResult success(Object data) {
-        ApiResult r = new ApiResult();
+    @ApiModelProperty(value = "响应消息", example = "ok")
+    private String msg;
+
+    @ApiModelProperty(value = "响应数据")
+    private T data;
+
+    public static <T> ApiResult<T> success(T data) {
+        ApiResult<T> r = new ApiResult<>();
         r.code = 0;
         r.msg = "ok";
         r.data = data;
         return r;
     }
 
-    public static ApiResult fail(String msg) {
-        ApiResult r = new ApiResult();
+    public static <T> ApiResult<T> fail(String msg) {
+        ApiResult<T> r = new ApiResult<>();
         r.code = -1;
         r.msg = msg;
         return r;
     }
 
-    public static ApiResult from(JSONObject resp) {
+    @SuppressWarnings("unchecked")
+    public static <T> ApiResult<T> from(JSONObject resp) {
         if (resp == null) return fail("API调用失败");
-        ApiResult r = new ApiResult();
+        ApiResult<T> r = new ApiResult<>();
         r.code = resp.getIntValue("errcode");
         r.msg = resp.getString("errmsg");
-        r.data = resp.get("data");
+        r.data = (T) resp.get("data");
         return r;
     }
 
-    public int getCode() { return code; }
-    public void setCode(int code) { this.code = code; }
-    public String getMsg() { return msg; }
-    public void setMsg(String msg) { this.msg = msg; }
-    public Object getData() { return data; }
-    public void setData(Object data) { this.data = data; }
+    /**
+     * 从JSON响应转换，并指定data类型（单个对象）
+     */
+    public static <T> ApiResult<T> from(JSONObject resp, Class<T> clazz) {
+        if (resp == null) return fail("API调用失败");
+        ApiResult<T> r = new ApiResult<>();
+        r.code = resp.getIntValue("errcode");
+        r.msg = resp.getString("errmsg");
+        Object data = resp.get("data");
+        if (data != null && data instanceof JSONObject) {
+            r.data = ((JSONObject) data).toJavaObject(clazz);
+        }
+        return r;
+    }
+
+    /**
+     * 从JSON响应转换，data为列表类型
+     */
+    public static <E> ApiResult<List<E>> fromList(JSONObject resp, Class<E> elementClass) {
+        if (resp == null) return fail("API调用失败");
+        ApiResult<List<E>> r = new ApiResult<>();
+        r.code = resp.getIntValue("errcode");
+        r.msg = resp.getString("errmsg");
+        Object data = resp.get("data");
+        if (data != null && data instanceof JSONArray) {
+            r.data = ((JSONArray) data).toJavaList(elementClass);
+        } else {
+            r.data = Collections.emptyList();
+        }
+        return r;
+    }
 }

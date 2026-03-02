@@ -10,13 +10,14 @@ import com.weichat.common.service.WxGroupInfoService;
 import com.weichat.common.service.WxGroupMemberService;
 import com.weichat.common.service.WxMessageInfoService;
 import com.weichat.common.service.WxUserInfoService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 微信数据处理Controller
  * 提供对五张表的数据新增接口
  */
+@Api(tags = "数据管理")
 @RestController
 @RequestMapping("/api/v1/wx")
 public class WxDataController {
@@ -45,11 +47,7 @@ public class WxDataController {
     @Autowired
     private WxFriendInfoService wxFriendInfoService;
 
-    /**
-     * 新增微信用户信息
-     * @param wxUserInfo 微信用户信息
-     * @return 响应结果
-     */
+    @ApiOperation("新增微信用户信息")
     @PostMapping("/user")
     public ResponseEntity<String> addWxUser(@RequestBody WxUserInfo wxUserInfo) {
         try {
@@ -64,15 +62,10 @@ public class WxDataController {
         }
     }
 
-    /**
-     * 新增微信消息信息
-     * @param wxMessageInfo 微信消息信息
-     * @return 响应结果
-     */
+    @ApiOperation("新增微信消息信息")
     @PostMapping("/message")
     public ResponseEntity<String> addWxMessage(@RequestBody WxMessageInfo wxMessageInfo) {
         try {
-            // 插入消息
             int result = wxMessageInfoService.insert(wxMessageInfo);
             if (result > 0) {
                 return ResponseEntity.ok("微信消息信息新增成功");
@@ -84,11 +77,7 @@ public class WxDataController {
         }
     }
 
-    /**
-     * 新增微信群信息
-     * @param wxGroupInfo 微信群信息
-     * @return 响应结果
-     */
+    @ApiOperation("新增微信群信息")
     @PostMapping("/group")
     public ResponseEntity<String> addWxGroup(@RequestBody WxGroupInfo wxGroupInfo) {
         try {
@@ -103,11 +92,7 @@ public class WxDataController {
         }
     }
 
-    /**
-     * 新增微信群成员信息
-     * @param wxGroupMember 微信群成员信息
-     * @return 响应结果
-     */
+    @ApiOperation("新增微信群成员信息")
     @PostMapping("/group-member")
     public ResponseEntity<String> addWxGroupMember(@RequestBody WxGroupMember wxGroupMember) {
         try {
@@ -122,11 +107,7 @@ public class WxDataController {
         }
     }
 
-    /**
-     * 新增微信好友信息
-     * @param wxFriendInfo 微信好友信息
-     * @return 响应结果
-     */
+    @ApiOperation("新增微信好友信息")
     @PostMapping("/friend")
     public ResponseEntity<String> addWxFriend(@RequestBody WxFriendInfo wxFriendInfo) {
         try {
@@ -140,11 +121,8 @@ public class WxDataController {
             return ResponseEntity.badRequest().body("微信好友信息新增失败: " + e.getMessage());
         }
     }
-    
-    /**
-     * 查询所有微信消息信息
-     * @return 响应结果
-     */
+
+    @ApiOperation("查询所有微信消息")
     @GetMapping("/messages")
     public ResponseEntity<String> getAllWxMessages() {
         try {
