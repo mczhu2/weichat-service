@@ -43,9 +43,9 @@ public class UserLoginStrategy implements CallbackStrategy {
             wxUserInfo.setUuid(callbackRequest.getUuid());
             // 查询用户是否存在
             WxUserInfo existingUser = wxUserInfoService.selectByUserIdAndCorpId(userId, corpId);
-            
             if (existingUser != null) {
-                wxUserInfoService.updateByPrimaryKey(wxUserInfo);
+                existingUser.setUuid(callbackRequest.getUuid());
+                wxUserInfoService.updateByPrimaryKey(existingUser);
                 logger.info("用户已存在，更新用户信息");
             } else {
                 wxUserInfoService.insert(wxUserInfo);
