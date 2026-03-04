@@ -23,5 +23,5 @@ import lombok.experimental.SuperBuilder;
 public class CdnUploadImgRequest extends BaseRequest {
 
     @ApiModelProperty(value = "图片URL", required = true, example = "https://example.com/image.jpg")
-    private String imgUrl;
+    private String url;
 }
