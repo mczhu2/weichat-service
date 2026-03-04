@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import java.util.List;
 
 /**
  * 发送文本+表情消息请求
@@ -29,5 +30,5 @@ public class SendTextAndExpRequest extends BaseRequest {
     private Boolean isRoom;
 
     @ApiModelProperty(value = "消息内容数组[{msgtype:0,msg:'文本'},{msgtype:3,msg:'[微笑]'}]", required = true, example = "[{\"msgtype\":0,\"msg\":\"文本\"},{\"msgtype\":3,\"msg\":\"[微笑]\"}]")
-    private String content;
+    private List<MessageContentItem> content;
 }
