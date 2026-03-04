@@ -6,6 +6,7 @@ import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.initializer.AbstractInitHandler;
 import com.weichat.api.initializer.InitContext;
 import com.weichat.common.entity.WxFriendInfo;
+import com.weichat.common.enums.FriendTypeEnum;
 import com.weichat.common.service.WxFriendInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
@@ -120,6 +121,7 @@ public class FriendListInitHandler extends AbstractInitHandler {
             friend.setCorpId(item.getLong("corp_id"));
             friend.setCreateTime(item.getLong("create_time"));
             friend.setSeq(item.getLong("seq"));
+            friend.setIsExternal(FriendTypeEnum.EXTERNAL.getCode()); // 外部微信好友
             friends.add(friend);
         }
         return friends;
@@ -144,6 +146,7 @@ public class FriendListInitHandler extends AbstractInitHandler {
             friend.setCorpId(item.getLong("corp_id"));
             friend.setAcctid(item.getString("acctid"));
             friend.setPosition(item.getString("position"));
+            friend.setIsExternal(FriendTypeEnum.ENTERPRISE.getCode()); // 企业微信好友
             friends.add(friend);
         }
         return friends;
@@ -152,7 +155,7 @@ public class FriendListInitHandler extends AbstractInitHandler {
     private void saveFriends(List<WxFriendInfo> friends) {
         for (WxFriendInfo friend : friends) {
             WxFriendInfo existing = friendInfoService.selectByOwnerUserIdAndUnionid(
-                friend.getOwnerUserId(), friend.getUnionid());
+                friend.getOwnerUserId(), friend.getUnionid(), friend.getIsExternal());
             if (existing != null) {
                 friend.setId(existing.getId());
                 friendInfoService.updateByPrimaryKey(friend);

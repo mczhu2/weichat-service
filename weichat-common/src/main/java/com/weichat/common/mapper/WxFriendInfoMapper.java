@@ -31,7 +31,7 @@ public interface WxFriendInfoMapper {
      * @param unionid 用户唯一标识
      * @return 微信好友信息
      */
-    WxFriendInfo selectByOwnerUserIdAndUnionid(@Param("ownerUserId") Long ownerUserId, @Param("unionid") String unionid);
+    WxFriendInfo selectByOwnerUserIdAndUnionid(@Param("ownerUserId") Long ownerUserId, @Param("unionid") String unionid,@Param("isExternal") Integer isExternal);
 
     /**
      * 根据用户ID查询微信好友信息

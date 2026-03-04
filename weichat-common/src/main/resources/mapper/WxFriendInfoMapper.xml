@@ -22,7 +22,8 @@
             remarks,
             seq,
             status,
-            owner_user_id
+            owner_user_id,
+            is_external
         ) VALUES (
             #{unionid},
             #{createTime},
@@ -42,7 +43,8 @@
             #{remarks},
             #{seq},
             #{status},
-            #{ownerUserId}
+            #{ownerUserId},
+            #{isExternal}
         )
     </insert>
 
@@ -53,7 +55,7 @@
 
     <!-- 根据UnionID查询微信好友信息 -->
     <select id="selectByOwnerUserIdAndUnionid" resultType="com.weichat.common.entity.WxFriendInfo">
-        SELECT * FROM wx_friend_info WHERE unionid = #{unionid} and owner_user_id = #{ownerUserId} and is_del=0 limit 1;
+        SELECT * FROM wx_friend_info WHERE unionid = #{unionid} and owner_user_id = #{ownerUserId} and is_external in(-1,#{isExternal}) and is_del=0 limit 1;
     </select>
 
     <!-- 根据用户ID查询微信好友信息 -->
@@ -87,7 +89,8 @@
             remarks = #{remarks},
             seq = #{seq},
             status = #{status},
-            owner_user_id = #{ownerUserId}
+            owner_user_id = #{ownerUserId},
+            is_external = #{isExternal}
         WHERE id = #{id}
     </update>
 
@@ -122,7 +125,8 @@
             remarks,
             seq,
             status,
-            owner_user_id
+            owner_user_id,
+            is_external
         ) VALUES
         <foreach collection="list" item="item" separator=",">
             (
@@ -144,7 +148,8 @@
                 #{item.remarks},
                 #{item.seq},
                 #{item.status},
-                #{item.ownerUserId}
+                #{item.ownerUserId},
+                #{item.isExternal}
             )
         </foreach>
     </insert>

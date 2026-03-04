@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.CallbackRequest;
 import com.weichat.api.strategy.CallbackStrategy;
 import com.weichat.common.entity.WxFriendInfo;
+import com.weichat.common.enums.FriendTypeEnum;
 import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.WxUserInfoService;
@@ -59,6 +60,8 @@ public class FriendChangeStrategy implements CallbackStrategy {
                     if(ownerUserInfo != null){
                         wxFriendInfo.setOwnerUserId(ownerUserInfo.getUserId());
                     }
+                    // 设置为外部微信好友
+                    wxFriendInfo.setIsExternal(FriendTypeEnum.EXTERNAL.getCode());
                     // 处理好友变更
                     handleFriendChange(wxFriendInfo);
                     successCount++;

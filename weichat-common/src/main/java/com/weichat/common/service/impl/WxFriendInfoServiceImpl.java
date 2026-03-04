@@ -28,8 +28,8 @@ public class WxFriendInfoServiceImpl implements WxFriendInfoService {
     }
 
     @Override
-    public WxFriendInfo selectByOwnerUserIdAndUnionid(Long ownerUserId, String unionid) {
-        return wxFriendInfoMapper.selectByOwnerUserIdAndUnionid(ownerUserId, unionid);
+    public WxFriendInfo selectByOwnerUserIdAndUnionid(Long ownerUserId, String unionid, Integer isExternal) {
+        return wxFriendInfoMapper.selectByOwnerUserIdAndUnionid(ownerUserId, unionid, isExternal);
     }
 
     @Override

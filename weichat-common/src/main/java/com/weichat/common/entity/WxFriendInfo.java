@@ -117,4 +117,9 @@ public class WxFriendInfo implements Serializable {
      */
     private Date updateTime;
 
-}
+    /**
+     * 是否外部微信好友：0-企业微信好友，1-外部微信好友
+     */
+    private Integer isExternal;
+
+} 
