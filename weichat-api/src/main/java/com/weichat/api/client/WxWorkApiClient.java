@@ -69,6 +69,7 @@ public class WxWorkApiClient {
         try {
             ResponseEntity<String> response = restTemplate.exchange(
                 url, HttpMethod.POST, entity, String.class);
+            logger.info("API调用成功: {},返回结果{}", path, response.getBody());
             return JSONObject.parseObject(response.getBody());
         } catch (Exception e) {
             logger.error("API调用失败: {}", path, e);
