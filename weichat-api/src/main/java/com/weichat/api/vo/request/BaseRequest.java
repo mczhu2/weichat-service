@@ -22,6 +22,8 @@ public class BaseRequest {
 
     @ApiModelProperty(value = "实例唯一标识", required = true, example = "uuid-xxxx-xxxx")
     private String uuid;
+    @ApiModelProperty(value = "登陆二维码key", required = true, example = "xxxtttkkk")
+    private String qrcodeKey;
     @ApiModelProperty(value = "短信验证码", required = true, example = "254361")
     private String code;
 }
