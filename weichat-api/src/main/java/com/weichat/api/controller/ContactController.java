@@ -8,6 +8,7 @@ import com.weichat.api.vo.request.BaseRequest;
 import com.weichat.api.vo.request.contact.*;
 import com.weichat.api.vo.response.contact.ContactInfo;
 import com.weichat.api.vo.response.contact.ContactListResponse;
+import com.weichat.api.vo.response.contact.InnerContactListResponse;
 import com.weichat.api.vo.response.contact.SessionInfo;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -37,8 +38,8 @@ public class ContactController {
 
     @ApiOperation("获取内部联系人列表")
     @PostMapping("/getInnerContacts")
-    public ApiResult<ContactListResponse> getInnerContacts(@RequestBody GetInnerContactsRequest request) {
-        return ApiResult.from(client.post("/wxwork/GetInnerContacts", toJson(request)), ContactListResponse.class);
+    public ApiResult<InnerContactListResponse> getInnerContacts(@RequestBody GetInnerContactsRequest request) {
+        return ApiResult.from(client.post("/wxwork/GetInnerContacts", toJson(request)), InnerContactListResponse.class);
     }
 
     @ApiOperation("根据VID获取用户信息")
@@ -175,8 +176,8 @@ public class ContactController {
 
     @ApiOperation("获取互联内部联系人")
     @PostMapping("/getHuLianInnerContacts")
-    public ApiResult<ContactListResponse> getHuLianInnerContacts(@RequestBody BaseRequest request) {
-        return ApiResult.from(client.post("/wxwork/GetHuLianInnerContacts", toJson(request)), ContactListResponse.class);
+    public ApiResult<InnerContactListResponse> getHuLianInnerContacts(@RequestBody GetHuLianInnerContactsRequest request) {
+        return ApiResult.from(client.post("/wxwork/GetHuLianInnerContacts", toJson(request)), InnerContactListResponse.class);
     }
 
     @ApiOperation("获取群组ID列表")
