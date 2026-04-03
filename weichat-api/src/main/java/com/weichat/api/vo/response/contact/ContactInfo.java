@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,6 +38,10 @@ public class ContactInfo {
     @JSONField(name = "avatar", alternateNames = {"headImg"})
     private String avatar;
 
+    @ApiModelProperty(value = "排序值", example = "100000000")
+    @JSONField(name = "disp_order", alternateNames = {"dispOrder"})
+    private Long dispOrder;
+
     @ApiModelProperty(value = "性别(0:未知, 1:男, 2:女)", example = "1")
     private Integer sex;
 
@@ -50,8 +55,31 @@ public class ContactInfo {
     @JSONField(name = "corp_name", alternateNames = {"corpName"})
     private String corpName;
 
+    @ApiModelProperty(value = "企业ID", example = "1970324998039140")
+    @JSONField(name = "corpid", alternateNames = {"corp_id", "corpId"})
+    private Long corpId;
+
     @ApiModelProperty(value = "职位", example = "工程师")
     private String position;
+
+    @ApiModelProperty(value = "部门名称", example = "微盟行政内测")
+    @JSONField(name = "party_name", alternateNames = {"partyName"})
+    private String partyName;
+
+    @ApiModelProperty(value = "部门ID", example = "1688853293326024")
+    @JSONField(name = "partyid", alternateNames = {"partyId"})
+    private Long partyId;
+
+    @ApiModelProperty(value = "父级部门ID", example = "1688853293326024")
+    @JSONField(name = "parentid", alternateNames = {"parentId"})
+    private Long parentId;
+
+    @ApiModelProperty(value = "是否部门(0:否, 1:是)", example = "1")
+    @JSONField(name = "is_Department", alternateNames = {"isDepartment"})
+    private Integer isDepartment;
+
+    @ApiModelProperty(value = "节点类型", example = "0")
+    private Integer type;
 
     @ApiModelProperty(value = "联系人类型(1:内部, 2:外部)", example = "2")
     @JSONField(name = "state", alternateNames = {"contactType"})
@@ -96,10 +124,6 @@ public class ContactInfo {
     @JSONField(name = "real_remarks", alternateNames = {"realRemarks"})
     private String realRemarks;
 
-    @ApiModelProperty(value = "企业ID", example = "1970325134026788")
-    @JSONField(name = "corp_id", alternateNames = {"corpId"})
-    private Long corpId;
-
     @ApiModelProperty(value = "openid", example = "orFrbsjn3TUv6HTzWlZqNQ54VOUM")
     private String openid;
 
@@ -122,6 +146,10 @@ public class ContactInfo {
 
     @ApiModelProperty(value = "时间戳", example = "1683268963")
     private Long timestamp;
+
+    @ApiModelProperty(value = "自定义属性列表")
+    @JSONField(name = "SelfAttrInfo", alternateNames = {"selfAttrInfo"})
+    private List<JSONObject> selfAttrInfo = new ArrayList<>();
 
     @ApiModelProperty(value = "条目标识", example = "2")
     @JSONField(name = "item_flag", alternateNames = {"ItemFlag", "itemFlag"})
