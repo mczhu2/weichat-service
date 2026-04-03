@@ -7,6 +7,7 @@ import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.request.BaseRequest;
 import com.weichat.api.vo.request.contact.*;
 import com.weichat.api.vo.response.contact.ContactInfo;
+import com.weichat.api.vo.response.contact.ContactListResponse;
 import com.weichat.api.vo.response.contact.InnerContactListResponse;
 import com.weichat.api.vo.response.contact.SessionInfo;
 import io.swagger.annotations.Api;
@@ -31,8 +32,8 @@ public class ContactController {
 
     @ApiOperation("获取外部联系人列表")
     @PostMapping("/getExternalContacts")
-    public ApiResult<JSONObject> getExternalContacts(@RequestBody GetExternalContactsRequest request) {
-        return ApiResult.from(client.post("/wxwork/GetExternalContacts", toJson(request)));
+    public ApiResult<ContactListResponse> getExternalContacts(@RequestBody GetExternalContactsRequest request) {
+        return ApiResult.from(client.post("/wxwork/GetExternalContacts", toJson(request)), ContactListResponse.class);
     }
 
     @ApiOperation("获取内部联系人列表")

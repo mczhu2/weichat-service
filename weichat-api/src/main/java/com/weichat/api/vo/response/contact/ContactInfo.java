@@ -19,11 +19,11 @@ public class ContactInfo {
 
     @ApiModelProperty(value = "用户ID", example = "123456789")
     @JSONField(name = "user_id", alternateNames = {"vid"})
-    private Long vid;
+    private Long userId;
 
     @ApiModelProperty(value = "用户名", example = "wxid_xxx")
     @JSONField(name = "acctid")
-    private String userName;
+    private String acctId;
 
     @ApiModelProperty(value = "昵称", example = "张三")
     @JSONField(name = "nickname", alternateNames = {"name"})
@@ -31,11 +31,11 @@ public class ContactInfo {
 
     @ApiModelProperty(value = "备注名", example = "张三-客户")
     @JSONField(name = "remarks", alternateNames = {"remark"})
-    private String remark;
+    private String remarks;
 
     @ApiModelProperty(value = "头像URL", example = "https://example.com/avatar.jpg")
-    @JSONField(name = "headImg", alternateNames = {"avatar"})
-    private String headImg;
+    @JSONField(name = "avatar", alternateNames = {"headImg"})
+    private String avatar;
 
     @ApiModelProperty(value = "性别(0:未知, 1:男, 2:女)", example = "1")
     private Integer sex;
@@ -47,52 +47,57 @@ public class ContactInfo {
     private String email;
 
     @ApiModelProperty(value = "企业名称", example = "测试企业")
-    @JSONField(name = "corpName", alternateNames = {"corp_name"})
+    @JSONField(name = "corp_name", alternateNames = {"corpName"})
     private String corpName;
 
     @ApiModelProperty(value = "职位", example = "工程师")
     private String position;
 
     @ApiModelProperty(value = "联系人类型(1:内部, 2:外部)", example = "2")
-    @JSONField(name = "state")
-    private Integer contactType;
+    @JSONField(name = "state", alternateNames = {"contactType"})
+    private Integer state;
 
     @ApiModelProperty(value = "标签ID列表")
-    @JSONField(name = "labelid")
+    @JSONField(name = "labelid", alternateNames = {"labelIds"})
     private List<String> labelIds;
 
     @ApiModelProperty(value = "描述信息", example = "重要客户")
     @JSONField(name = "description", alternateNames = {"desc", "des"})
-    private String desc;
+    private String description;
 
-    @ApiModelProperty(value = "unionid", example = "ozynqsqC7yU4vcGRIYbl8cryOypE")
-    private String unionid;
+    @ApiModelProperty(value = "unionId", example = "ozynqsqC7yU4vcGRIYbl8cryOypE")
+    @JSONField(name = "unionid")
+    private String unionId;
 
     @ApiModelProperty(value = "创建时间", example = "1768975066")
-    @JSONField(name = "create_time")
+    @JSONField(name = "create_time", alternateNames = {"createTime"})
     private Long createTime;
 
     @ApiModelProperty(value = "添加客户时间", example = "1768975066")
-    @JSONField(name = "add_customer_time")
+    @JSONField(name = "add_customer_time", alternateNames = {"addCustomerTime"})
     private Long addCustomerTime;
 
     @ApiModelProperty(value = "企业备注", example = "测试企业备注")
-    @JSONField(name = "company_remark")
+    @JSONField(name = "company_remark", alternateNames = {"companyRemark"})
     private String companyRemark;
 
+    @ApiModelProperty(value = "来源类型", example = "51")
+    private Integer source;
+
     @ApiModelProperty(value = "英文名", example = "Tom")
-    @JSONField(name = "english_name")
+    @JSONField(name = "english_name", alternateNames = {"englishName"})
     private String englishName;
 
     @ApiModelProperty(value = "真实姓名", example = "张三")
-    private String realname;
+    @JSONField(name = "realname")
+    private String realName;
 
     @ApiModelProperty(value = "真实备注", example = "重要客户")
-    @JSONField(name = "real_remarks")
+    @JSONField(name = "real_remarks", alternateNames = {"realRemarks"})
     private String realRemarks;
 
     @ApiModelProperty(value = "企业ID", example = "1970325134026788")
-    @JSONField(name = "corp_id")
+    @JSONField(name = "corp_id", alternateNames = {"corpId"})
     private Long corpId;
 
     @ApiModelProperty(value = "openid", example = "orFrbsjn3TUv6HTzWlZqNQ54VOUM")
@@ -108,25 +113,25 @@ public class ContactInfo {
     private Long seq;
 
     @ApiModelProperty(value = "申请创建时间", example = "1743647253")
-    @JSONField(name = "apply_create_time")
+    @JSONField(name = "apply_create_time", alternateNames = {"applyCreateTime"})
     private Long applyCreateTime;
 
     @ApiModelProperty(value = "申请更新时间", example = "1743647570")
-    @JSONField(name = "apply_update_time")
+    @JSONField(name = "apply_update_time", alternateNames = {"applyUpdateTime"})
     private Long applyUpdateTime;
 
     @ApiModelProperty(value = "时间戳", example = "1683268963")
     private Long timestamp;
 
     @ApiModelProperty(value = "条目标识", example = "2")
-    @JSONField(name = "item_flag", alternateNames = {"ItemFlag"})
+    @JSONField(name = "item_flag", alternateNames = {"ItemFlag", "itemFlag"})
     private Integer itemFlag;
 
     @ApiModelProperty(value = "来源信息")
-    @JSONField(name = "source_info")
+    @JSONField(name = "source_info", alternateNames = {"sourceInfo"})
     private JSONObject sourceInfo;
 
     @ApiModelProperty(value = "备注手机号列表")
-    @JSONField(name = "remark_phone")
+    @JSONField(name = "remark_phone", alternateNames = {"remarkPhones"})
     private List<String> remarkPhones;
 }
