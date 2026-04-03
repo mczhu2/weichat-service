@@ -31,13 +31,13 @@ public class ContactController {
 
     @ApiOperation("获取外部联系人列表")
     @PostMapping("/getExternalContacts")
-    public ApiResult<ContactListResponse> getExternalContacts(@RequestBody BaseRequest request) {
+    public ApiResult<ContactListResponse> getExternalContacts(@RequestBody GetExternalContactsRequest request) {
         return ApiResult.from(client.post("/wxwork/GetExternalContacts", toJson(request)), ContactListResponse.class);
     }
 
     @ApiOperation("获取内部联系人列表")
     @PostMapping("/getInnerContacts")
-    public ApiResult<ContactListResponse> getInnerContacts(@RequestBody BaseRequest request) {
+    public ApiResult<ContactListResponse> getInnerContacts(@RequestBody GetInnerContactsRequest request) {
         return ApiResult.from(client.post("/wxwork/GetInnerContacts", toJson(request)), ContactListResponse.class);
     }
 

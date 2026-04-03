@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
+import com.weichat.api.service.AsyncMessagePersistenceService;
 import com.weichat.api.vo.request.BaseRequest;
 import com.weichat.api.vo.request.message.*;
 import com.weichat.api.vo.response.message.SendMsgResponse;
@@ -26,10 +27,15 @@ public class MessageController {
     @Autowired
     private WxWorkApiClient client;
 
+    @Autowired
+    private AsyncMessagePersistenceService asyncMessagePersistenceService;
+
     @ApiOperation("发送文本消息")
     @PostMapping("/sendText")
     public ApiResult<SendMsgResponse> sendText(@RequestBody SendTextRequest request) {
-        return ApiResult.from(client.post("/wxwork/SendTextMsg", toJson(request)), SendMsgResponse.class);
+        JSONObject response = client.post("/wxwork/SendTextMsg", toJson(request));
+        asyncMessagePersistenceService.saveSentTextMessage(request, response);
+        return ApiResult.from(response, SendMsgResponse.class);
     }
 
     @ApiOperation("发送文本+表情消息")

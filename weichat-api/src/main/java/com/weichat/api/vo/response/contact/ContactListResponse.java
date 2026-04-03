@@ -18,6 +18,9 @@ public class ContactListResponse {
     @ApiModelProperty(value = "联系人总数", example = "100")
     private Integer total;
 
+    @ApiModelProperty(value = "下一次查询下标，首次传0，后续传上次返回的seq", example = "8052931")
+    private Long seq;
+
     @ApiModelProperty(value = "联系人列表")
     private List<ContactInfo> list;
 }

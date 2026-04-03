@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.request.BaseRequest;
+import com.weichat.api.vo.request.init.CheckCodeRequest;
 import com.weichat.api.vo.request.init.InitRequest;
 import com.weichat.api.vo.request.init.SetCallbackUrlRequest;
 import com.weichat.api.vo.request.init.SetProxyRequest;
@@ -73,7 +74,7 @@ public class InitController {
 
     @ApiOperation("检查验证码")
     @PostMapping("/checkCode")
-    public ApiResult<Void> checkCode(@RequestBody BaseRequest request) {
+    public ApiResult<Void> checkCode(@RequestBody CheckCodeRequest request) {
         return ApiResult.from(client.post("/wxwork/CheckCode", toJson(request)));
     }
 
