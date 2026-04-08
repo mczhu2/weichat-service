@@ -2,8 +2,12 @@ package com.weichat.api.strategy.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.weichat.api.entity.ApiResult;
 import com.weichat.api.entity.CallbackRequest;
+import com.weichat.api.service.MessageSendService;
 import com.weichat.api.strategy.CallbackStrategy;
+import com.weichat.api.vo.request.message.SendTextRequest;
+import com.weichat.api.vo.response.message.SendMsgResponse;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.service.WxMessageInfoService;
@@ -40,6 +44,9 @@ public class MessageStrategy implements CallbackStrategy {
     @Autowired
     private RestTemplate restTemplate;
 
+    @Autowired
+    private MessageSendService messageSendService;
+
     @Value("${bizSystem.wecom.callback.url:http://115.190.61.17:8081/api/wecom/callback}")
     private String wecomCallbackUrl;
 
@@ -54,6 +61,7 @@ public class MessageStrategy implements CallbackStrategy {
                 wxMessageInfo.setRoomId(json.getString("room_conversation_id"));
             }
             wxMessageInfoService.insert(wxMessageInfo);
+            // 调用下游业务处理层，进行业务兼容
             triggerWecomMessageCallback(wxMessageInfo);
             
             logger.info("消息处理成功");
@@ -100,6 +108,7 @@ public class MessageStrategy implements CallbackStrategy {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<String> requestEntity = new HttpEntity<>(JSON.toJSONString(payload), headers);
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(wecomCallbackUrl, requestEntity, String.class);
+            sendReplyToCustomer(wxMessageInfo, receiverUser, responseEntity.getBody());
             logger.info(
                     "企微消息回调完成，msgId: {}, receiver: {}, sender: {}, status: {}, body: {}",
                     wxMessageInfo.getMsgId(),
@@ -116,6 +125,78 @@ public class MessageStrategy implements CallbackStrategy {
                     wxMessageInfo.getSender(),
                     e
             );
+        }
+    }
+
+    private void sendReplyToCustomer(WxMessageInfo wxMessageInfo, WxUserInfo receiverUser, String callbackBody) {
+        if (!StringUtils.hasText(callbackBody)) {
+            logger.warn("企微消息回调返回为空，跳过客户回复，msgId: {}", wxMessageInfo.getMsgId());
+            return;
+        }
+        try {
+            JSONObject callbackResult = JSON.parseObject(callbackBody);
+            if (callbackResult == null || !callbackResult.getBooleanValue("ok")) {
+                logger.warn("企微消息回调未成功，跳过客户回复，msgId: {}, body: {}", wxMessageInfo.getMsgId(), callbackBody);
+                return;
+            }
+
+            String reply = callbackResult.getString("reply");
+            if (!StringUtils.hasText(reply)) {
+                logger.warn("企微消息回调无reply，跳过客户回复，msgId: {}, body: {}", wxMessageInfo.getMsgId(), callbackBody);
+                return;
+            }
+
+            boolean isRoomMessage = StringUtils.hasText(wxMessageInfo.getRoomId());
+            Long sendUserid = isRoomMessage
+                    ? parseLongSafely(wxMessageInfo.getRoomId())
+                    : wxMessageInfo.getSender();
+            if (sendUserid == null) {
+                logger.warn(
+                        "企微客户回复跳过，目标ID无效，msgId: {}, roomId: {}, sender: {}",
+                        wxMessageInfo.getMsgId(),
+                        wxMessageInfo.getRoomId(),
+                        wxMessageInfo.getSender()
+                );
+                return;
+            }
+
+            SendTextRequest request = SendTextRequest.builder()
+                    .uuid(receiverUser.getUuid())
+                    .send_userid(sendUserid)
+                    .isRoom(isRoomMessage)
+                    .content(reply)
+                    .kf_id(wxMessageInfo.getKfId())
+                    .build();
+            ApiResult<SendMsgResponse> sendResult = messageSendService.sendText(request);
+            logger.info(
+                    "企微客户回复发送完成，msgId: {}, receiver: {}, sender: {}, code: {}, msg: {}",
+                    wxMessageInfo.getMsgId(),
+                    wxMessageInfo.getReceiver(),
+                    wxMessageInfo.getSender(),
+                    sendResult == null ? null : sendResult.getCode(),
+                    sendResult == null ? null : sendResult.getMsg()
+            );
+        } catch (Exception e) {
+            logger.error(
+                    "企微客户回复发送失败，msgId: {}, receiver: {}, sender: {}, callbackBody: {}",
+                    wxMessageInfo.getMsgId(),
+                    wxMessageInfo.getReceiver(),
+                    wxMessageInfo.getSender(),
+                    callbackBody,
+                    e
+            );
+        }
+    }
+
+    private Long parseLongSafely(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            logger.warn("无法将roomId转换为Long: {}", value);
+            return null;
         }
     }
 
