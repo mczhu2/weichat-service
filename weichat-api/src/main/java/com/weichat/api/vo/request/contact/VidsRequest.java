@@ -9,6 +9,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 /**
  * 用户ID列表请求
  *
@@ -23,5 +25,5 @@ import lombok.experimental.SuperBuilder;
 public class VidsRequest extends BaseRequest {
 
     @ApiModelProperty(value = "用户ID列表", required = true, example = "[111,222,333]")
-    private String vids;
+    private List<Long> vids;
 }
