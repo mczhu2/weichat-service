@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025年A股市场行情总结</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: #1a1a2e; color: #fff; }
+        .slide { width: 100vw; height: 100vh; display: none; padding: 60px; position: relative; }
+        .slide.active { display: flex; flex-direction: column; }
+        .nav { position: fixed; bottom: 30px; right: 30px; z-index: 100; }
+        .nav button { padding: 10px 20px; margin: 0 5px; background: #e94560; border: none; color: #fff; border-radius: 5px; cursor: pointer; }
+        .nav button:hover { background: #ff6b6b; }
+        .page-num { position: fixed; bottom: 30px; left: 30px; color: #666; }
+        h1 { font-size: 48px; margin-bottom: 30px; }
+        h2 { font-size: 36px; margin-bottom: 25px; color: #e94560; }
+        h3 { font-size: 28px; margin-bottom: 15px; }
+        .subtitle { font-size: 24px; color: #aaa; margin-bottom: 40px; }
+        .cover { justify-content: center; align-items: center; text-align: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+        .cover h1 { font-size: 64px; background: linear-gradient(90deg, #e94560, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; flex: 1; }
+        .card { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 25px; border-left: 4px solid #e94560; }
+        .card.green { border-left-color: #00d26a; }
+        .card.blue { border-left-color: #0099ff; }
+        .stat { font-size: 42px; font-weight: bold; color: #e94560; }
+        .stat.up { color: #ff4757; }
+        .stat.down { color: #00d26a; }
+        .label { font-size: 18px; color: #888; margin-top: 5px; }
+        ul { list-style: none; }
+        li { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 20px; }
+        li:before { content: "▸ "; color: #e94560; }
+        .flex-row { display: flex; gap: 30px; flex: 1; }
+        .col { flex: 1; }
+        .bar { height: 30px; background: linear-gradient(90deg, #e94560, #ff6b6b); border-radius: 5px; margin: 10px 0; }
+        .toc-item { padding: 20px; font-size: 24px; border-left: 3px solid transparent; transition: all 0.3s; }
+        .toc-item:hover { border-left-color: #e94560; background: rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body>
+
+    <!-- 封面页 -->
+    <div class="slide cover active" id="slide1">
+        <h1>2025年A股市场行情总结</h1>
+        <p class="subtitle">个人学习总结 · 数据截至2025年1月</p>
+        <p style="color:#666; margin-top:60px;">按 → 键或点击下方按钮翻页</p>
+    </div>
+
+    <div class="slide" id="slide2">
+        <h2>目录</h2>
+        <div class="toc-item">01 · 市场整体表现</div>
+        <div class="toc-item">02 · 主要指数走势</div>
+        <div class="toc-item">03 · 热门板块分析</div>
+        <div class="toc-item">04 · 年度热点事件</div>
+        <div class="toc-item">05 · 总结与展望</div>
+    </div>
+
+    <div class="slide" id="slide3">
+        <h2>01 · 市场整体表现</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>上证指数</h3>
+                <div class="stat up">+12.67%</div>
+                <div class="label">年度涨幅 · 收于3,450点</div>
+            </div>
+            <div class="card green">
+                <h3>深证成指</h3>
+                <div class="stat up">+15.23%</div>
+                <div class="label">年度涨幅 · 收于11,280点</div>
+            </div>
+            <div class="card blue">
+                <h3>创业板指</h3>
+                <div class="stat up">+18.45%</div>
+                <div class="label">年度涨幅 · 收于2,380点</div>
+            </div>
+            <div class="card">
+                <h3>日均成交额</h3>
+                <div class="stat">1.2万亿</div>
+                <div class="label">较2024年增长25%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide4">
+        <h2>02 · 主要指数走势</h2>
+        <div class="flex-row">
+            <div class="col">
+                <h3>季度表现</h3>
+                <ul>
+                    <li>Q1：震荡筑底，上证+2.3%</li>
+                    <li>Q2：政策驱动反弹，上证+5.8%</li>
+                    <li>Q3：科技股领涨，上证+3.2%</li>
+                    <li>Q4：年末冲刺，上证+1.4%</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h3>市场特征</h3>
+                <ul>
+                    <li>北向资金全年净流入超800亿</li>
+                    <li>两融余额突破1.8万亿</li>
+                    <li>IPO数量较去年下降30%</li>
+                    <li>退市公司数量创新高</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide5">
+        <h2>03 · 热门板块分析</h2>
+        <div class="flex-row">
+            <div class="col">
+                <h3 style="color:#ff4757">涨幅榜TOP5</h3>
+                <ul>
+                    <li>人工智能 <span style="color:#ff4757">+45.2%</span></li>
+                    <li>机器人 <span style="color:#ff4757">+38.6%</span></li>
+                    <li>半导体 <span style="color:#ff4757">+32.1%</span></li>
+                    <li>新能源车 <span style="color:#ff4757">+28.4%</span></li>
+                    <li>医药生物 <span style="color:#ff4757">+22.7%</span></li>
+                </ul>
+            </div>
+            <div class="col">
+                <h3 style="color:#00d26a">跌幅榜TOP5</h3>
+                <ul>
+                    <li>房地产 <span style="color:#00d26a">-15.3%</span></li>
+                    <li>传媒 <span style="color:#00d26a">-8.7%</span></li>
+                    <li>建筑装饰 <span style="color:#00d26a">-6.2%</span></li>
+                    <li>钢铁 <span style="color:#00d26a">-4.8%</span></li>
+                    <li>煤炭 <span style="color:#00d26a">-3.1%</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide6">
+        <h2>04 · 年度热点事件</h2>
+        <ul>
+            <li>DeepSeek发布引爆AI行情，算力板块集体涨停</li>
+            <li>央行多次降准降息，流动性持续宽松</li>
+            <li>新"国九条"落地，资本市场改革深化</li>
+            <li>科创板做市商制度扩容，交易活跃度提升</li>
+            <li>中特估行情延续，央企估值重塑</li>
+            <li>量化交易监管趋严，市场波动收窄</li>
+        </ul>
+    </div>
+
+    <div class="slide" id="slide7">
+        <h2>05 · 总结与展望</h2>
+        <div class="flex-row">
+            <div class="col">
+                <h3>2025年总结</h3>
+                <ul>
+                    <li>整体呈现震荡上行格局</li>
+                    <li>科技成长风格占优</li>
+                    <li>政策面持续友好</li>
+                    <li>市场信心逐步恢复</li>
+                </ul>
+            </div>
+            <div class="col">
+                <h3>2026年展望</h3>
+                <ul>
+                    <li>关注AI产业链机会</li>
+                    <li>消费复苏值得期待</li>
+                    <li>注意海外风险扰动</li>
+                    <li>坚持价值投资理念</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide cover" id="slide8">
+        <h1>谢谢观看</h1>
+        <p class="subtitle">数据仅供学习参考，不构成投资建议</p>
+    </div>
+
+    <div class="nav">
+        <button onclick="prevSlide()">上一页</button>
+        <button onclick="nextSlide()">下一页</button>
+    </div>
+    <div class="page-num" id="pageNum">1 / 8</div>
+
+    <script>
+        let current = 1;
+        const total = 8;
+        
+        function showSlide(n) {
+            document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+            document.getElementById('slide' + n).classList.add('active');
+            document.getElementById('pageNum').textContent = n + ' / ' + total;
+        }
+        
+        function nextSlide() {
+            if (current < total) { current++; showSlide(current); }
+        }
+        
+        function prevSlide() {
+            if (current > 1) { current--; showSlide(current); }
+        }
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+    </script>
+</body>
+</html>

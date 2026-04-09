@@ -9,6 +9,8 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 /**
  * 创建群请求
  *
@@ -23,8 +25,8 @@ import lombok.experimental.SuperBuilder;
 public class CreateRoomRequest extends BaseRequest {
 
     @ApiModelProperty(value = "成员ID列表", required = true, example = "[111,222,333]")
-    private String vids;
+    private List<Long> vids;
 
     @ApiModelProperty(value = "群名称", example = "我的群聊")
-    private String name;
+    private String roomName;
 }
