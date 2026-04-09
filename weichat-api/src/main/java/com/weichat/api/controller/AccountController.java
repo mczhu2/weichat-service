@@ -9,6 +9,7 @@ import com.weichat.api.vo.request.account.*;
 import com.weichat.api.vo.response.account.CorpInfoResponse;
 import com.weichat.api.vo.response.account.ProfileResponse;
 import com.weichat.api.vo.response.init.QrCodeResponse;
+import com.weichat.api.vo.response.init.ThisQrCodeResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,8 +36,8 @@ public class AccountController {
 
     @ApiOperation("获取当前二维码")
     @PostMapping("/getThisQrCode")
-    public ApiResult<QrCodeResponse> getThisQrCode(@RequestBody BaseRequest request) {
-        return ApiResult.from(client.post("/wxwork/GetThisQrCode", toJson(request)), QrCodeResponse.class);
+    public ApiResult<ThisQrCodeResponse> getThisQrCode(@RequestBody BaseRequest request) {
+        return ApiResult.from(client.post("/wxwork/GetThisQrCode", toJson(request)), ThisQrCodeResponse.class);
     }
 
     @ApiOperation("获取外部名片")
