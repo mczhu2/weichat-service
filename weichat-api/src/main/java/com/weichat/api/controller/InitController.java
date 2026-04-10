@@ -11,6 +11,7 @@ import com.weichat.api.vo.request.init.SetCallbackUrlRequest;
 import com.weichat.api.vo.request.init.SetProxyRequest;
 import com.weichat.api.vo.response.init.InitResponse;
 import com.weichat.api.vo.response.init.QrCodeResponse;
+import com.weichat.api.vo.response.init.RunClientByUuidResponse;
 import com.weichat.api.vo.response.init.RunClientResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -50,8 +51,8 @@ public class InitController {
 
     @ApiOperation("根据UUID获取运行客户端")
     @PostMapping("/getRunClientByUuid")
-    public ApiResult<RunClientResponse> getRunClientByUuid(@RequestBody BaseRequest request) {
-        return ApiResult.from(client.post("/wxwork/GetRunClientByUuid", toJson(request)), RunClientResponse.class);
+    public ApiResult<RunClientByUuidResponse> getRunClientByUuid(@RequestBody BaseRequest request) {
+        return ApiResult.from(client.post("/wxwork/GetRunClientByUuid", toJson(request)), RunClientByUuidResponse.class);
     }
 
     @ApiOperation("关闭连接")

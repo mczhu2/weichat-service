@@ -5,7 +5,7 @@ import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 /**
- * 运行客户端响应
+ * 运行客户端响应（GetRunClient接口使用）
  *
  * @author weichat
  */
