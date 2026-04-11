@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
+import com.weichat.api.vo.callback.ReplyMediaItem;
 import com.weichat.api.vo.request.cdn.CdnUploadFileRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ public class CdnFileService {
     private WxWorkApiClient client;
 
     /**
-     * 通过网络文件地址上传到 CDN，语音文件可复用这条链路。
+     * Upload a file by remote URL.
      */
     public CdnUploadResponse uploadFileByUrl(String uuid, String fileUrl, String fileName) {
         CdnUploadFileRequest request = CdnUploadFileRequest.builder()
@@ -33,7 +34,7 @@ public class CdnFileService {
     }
 
     /**
-     * 通过 base64 文件内容上传到 CDN，适合语音等二进制媒体回复。
+     * Upload a file by base64 payload.
      */
     public CdnUploadResponse uploadFileByBase64(String uuid,
                                                 String base64Payload,
@@ -52,45 +53,28 @@ public class CdnFileService {
     }
 
     /**
-     * 兼容语音/文件回复的 URL 和 base64 两种载荷格式。
+     * Upload a normalized reply file or voice payload.
      */
-    public CdnUploadResponse uploadFile(String uuid, JSONObject filePayload) {
+    public CdnUploadResponse uploadFile(String uuid, ReplyMediaItem filePayload) {
         if (filePayload == null) {
             throw new IllegalArgumentException("Reply file payload is empty");
         }
-        String fileUrl = firstNonBlank(
-                filePayload.getString("url"),
-                filePayload.getString("fileUrl"),
-                filePayload.getString("voiceUrl"),
-                filePayload.getString("audioUrl")
-        );
-        if (StringUtils.hasText(fileUrl)) {
-            return uploadFileByUrl(
-                    uuid,
-                    fileUrl,
-                    firstNonBlank(filePayload.getString("filename"), filePayload.getString("fileName"))
-            );
+        if (StringUtils.hasText(filePayload.getUrl())) {
+            return uploadFileByUrl(uuid, filePayload.getUrl(), filePayload.getFilename());
         }
-
-        String base64Payload = firstNonBlank(
-                filePayload.getString("base64"),
-                filePayload.getString("data"),
-                filePayload.getString("content")
-        );
-        if (StringUtils.hasText(base64Payload)) {
+        if (StringUtils.hasText(filePayload.getBase64())) {
             return uploadFileByBase64(
                     uuid,
-                    base64Payload,
-                    firstNonBlank(filePayload.getString("filename"), filePayload.getString("fileName")),
-                    firstNonBlank(filePayload.getString("contentType"), filePayload.getString("mimeType"))
+                    filePayload.getBase64(),
+                    filePayload.getFilename(),
+                    filePayload.getContentType()
             );
         }
-
         throw new IllegalArgumentException("Reply file must contain url or base64 data");
     }
 
     /**
-     * 上传成功后统一抽取 data，并把下游错误转成明确异常。
+     * Extract the upload response body and convert API errors to exceptions.
      */
     private CdnUploadResponse extractUploadResponse(JSONObject response, String sourceType) {
         ApiResult<CdnUploadResponse> result = ApiResult.from(response, CdnUploadResponse.class);
@@ -107,7 +91,7 @@ public class CdnFileService {
     }
 
     /**
-     * 兼容 data:...;base64 前缀和裸 base64 两种格式。
+     * Support both data:...;base64 and raw base64 payloads.
      */
     private Base64FileData decodeBase64Payload(String base64Payload, String filename, String contentType) {
         String trimmed = base64Payload == null ? "" : base64Payload.trim();
@@ -139,7 +123,7 @@ public class CdnFileService {
     }
 
     /**
-     * 当调用方未提供文件名时，按 MIME 类型生成默认扩展名。
+     * Build a fallback filename from MIME type.
      */
     private String buildFilename(String contentType) {
         String extension = "bin";
@@ -153,21 +137,6 @@ public class CdnFileService {
             extension = "bin";
         }
         return "reply-" + UUID.randomUUID().toString().replace("-", "") + "." + extension;
-    }
-
-    /**
-     * 从多个候选字段里取第一个非空值，减少不同回调协议字段名差异带来的判断分支。
-     */
-    private String firstNonBlank(String... values) {
-        if (values == null) {
-            return null;
-        }
-        for (String value : values) {
-            if (StringUtils.hasText(value)) {
-                return value;
-            }
-        }
-        return null;
     }
 
     private static class Base64FileData {

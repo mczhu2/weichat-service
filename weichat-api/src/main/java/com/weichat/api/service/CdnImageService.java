@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
+import com.weichat.api.vo.callback.ReplyMediaItem;
 import com.weichat.api.vo.request.cdn.CdnUploadImgRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ public class CdnImageService {
     private WxWorkApiClient client;
 
     /**
-     * 通过网络图片地址上传到 CDN，适合外部可访问的图片 URL。
+     * Upload an image by remote URL.
      */
     public CdnUploadResponse uploadImageByUrl(String uuid, String imageUrl) {
         CdnUploadImgRequest request = CdnUploadImgRequest.builder()
@@ -32,7 +33,7 @@ public class CdnImageService {
     }
 
     /**
-     * 通过 base64 图片内容上传到 CDN，内部会先解码再按 multipart 方式上传。
+     * Upload an image by base64 payload.
      */
     public CdnUploadResponse uploadImageByBase64(String uuid,
                                                  String base64Payload,
@@ -51,40 +52,28 @@ public class CdnImageService {
     }
 
     /**
-     * 兼容回复图片的多种载荷格式，优先识别 URL，其次识别 base64。
+     * Upload a normalized reply image.
      */
-    public CdnUploadResponse uploadImage(String uuid, JSONObject imagePayload) {
+    public CdnUploadResponse uploadImage(String uuid, ReplyMediaItem imagePayload) {
         if (imagePayload == null) {
             throw new IllegalArgumentException("Reply image payload is empty");
         }
-        String imageUrl = firstNonBlank(
-                imagePayload.getString("url"),
-                imagePayload.getString("imageUrl"),
-                imagePayload.getString("image_url")
-        );
-        if (StringUtils.hasText(imageUrl)) {
-            return uploadImageByUrl(uuid, imageUrl);
+        if (StringUtils.hasText(imagePayload.getUrl())) {
+            return uploadImageByUrl(uuid, imagePayload.getUrl());
         }
-
-        String base64Payload = firstNonBlank(
-                imagePayload.getString("base64"),
-                imagePayload.getString("data"),
-                imagePayload.getString("content")
-        );
-        if (StringUtils.hasText(base64Payload)) {
+        if (StringUtils.hasText(imagePayload.getBase64())) {
             return uploadImageByBase64(
                     uuid,
-                    base64Payload,
-                    firstNonBlank(imagePayload.getString("filename"), imagePayload.getString("fileName")),
-                    firstNonBlank(imagePayload.getString("contentType"), imagePayload.getString("mimeType"))
+                    imagePayload.getBase64(),
+                    imagePayload.getFilename(),
+                    imagePayload.getContentType()
             );
         }
-
         throw new IllegalArgumentException("Reply image must contain url or base64 data");
     }
 
     /**
-     * 上传成功后统一抽取 data，并把下游错误转成明确异常。
+     * Extract the upload response body and convert API errors to exceptions.
      */
     private CdnUploadResponse extractUploadResponse(JSONObject response, String sourceType) {
         ApiResult<CdnUploadResponse> result = ApiResult.from(response, CdnUploadResponse.class);
@@ -101,7 +90,7 @@ public class CdnImageService {
     }
 
     /**
-     * 兼容 data:image/...;base64 前缀和裸 base64 两种格式。
+     * Support both data:image/...;base64 and raw base64 payloads.
      */
     private Base64ImageData decodeBase64Payload(String base64Payload, String filename, String contentType) {
         String trimmed = base64Payload == null ? "" : base64Payload.trim();
@@ -133,7 +122,7 @@ public class CdnImageService {
     }
 
     /**
-     * 当调用方未提供文件名时，根据 MIME 类型生成一个可上传的默认文件名。
+     * Build a fallback filename from MIME type.
      */
     private String buildFilename(String contentType) {
         String extension = "png";
@@ -147,21 +136,6 @@ public class CdnImageService {
             extension = "png";
         }
         return "reply-" + UUID.randomUUID().toString().replace("-", "") + "." + extension;
-    }
-
-    /**
-     * 从多个候选字段里取第一个非空值，减少不同回调协议字段名差异带来的判断分支。
-     */
-    private String firstNonBlank(String... values) {
-        if (values == null) {
-            return null;
-        }
-        for (String value : values) {
-            if (StringUtils.hasText(value)) {
-                return value;
-            }
-        }
-        return null;
     }
 
     private static class Base64ImageData {

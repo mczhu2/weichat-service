@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.ApiResult;
+import com.weichat.api.vo.callback.CustomerReplyCallbackResult;
+import com.weichat.api.vo.callback.ReplyMediaItem;
 import com.weichat.api.vo.request.message.SendImageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.api.vo.request.message.SendVoiceRequest;
@@ -16,6 +18,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Service
 public class CustomerReplyService {
@@ -32,7 +38,7 @@ public class CustomerReplyService {
     private CdnFileService cdnFileService;
 
     /**
-     * 统一处理下游回调后的自动回复，当前兼容纯文本 reply 和图片集合 images。
+     * Handle downstream callback replies. Currently supports text, image and voice replies.
      */
     public void sendReplyToCustomer(WxMessageInfo wxMessageInfo, WxUserInfo receiverUser, String callbackBody) {
         if (!StringUtils.hasText(callbackBody)) {
@@ -40,8 +46,8 @@ public class CustomerReplyService {
             return;
         }
 
-        JSONObject callbackResult = parseCallbackResult(callbackBody);
-        if (callbackResult == null || !callbackResult.getBooleanValue("ok")) {
+        CustomerReplyCallbackResult callbackResult = parseCallbackResult(callbackBody);
+        if (callbackResult == null || !callbackResult.isSuccess()) {
             logger.warn("Callback result is not ok, skip reply. msgId={}, body={}", wxMessageInfo.getMsgId(), callbackBody);
             return;
         }
@@ -51,17 +57,27 @@ public class CustomerReplyService {
             return;
         }
 
-        sendTextReply(target, wxMessageInfo, callbackResult.getString("reply"));
-        sendImageReplies(target, wxMessageInfo, callbackResult);
-        sendVoiceReplies(target, wxMessageInfo, callbackResult);
+        sendTextReply(target, wxMessageInfo, callbackResult.getReply());
+        sendImageReplies(target, wxMessageInfo, callbackResult.getImages());
+        sendVoiceReplies(target, wxMessageInfo, callbackResult.getVoices());
     }
 
     /**
-     * 解析业务回调 JSON，解析失败直接跳过回复，避免影响主消息链路。
+     * Parse callback JSON into a typed result to avoid passing raw JSONObject in business flow.
      */
-    private JSONObject parseCallbackResult(String callbackBody) {
+    private CustomerReplyCallbackResult parseCallbackResult(String callbackBody) {
         try {
-            return JSON.parseObject(callbackBody);
+            JSONObject callbackJson = JSON.parseObject(callbackBody);
+            if (callbackJson == null) {
+                return null;
+            }
+
+            CustomerReplyCallbackResult callbackResult = new CustomerReplyCallbackResult();
+            callbackResult.setOk(callbackJson.getBoolean("ok"));
+            callbackResult.setReply(callbackJson.getString("reply"));
+            callbackResult.setImages(resolveReplyImages(callbackJson));
+            callbackResult.setVoices(resolveReplyVoices(callbackJson));
+            return callbackResult;
         } catch (Exception e) {
             logger.warn("Failed to parse callback body. body={}", callbackBody, e);
             return null;
@@ -69,8 +85,7 @@ public class CustomerReplyService {
     }
 
     /**
-     * 计算回复目标。
-     * 单聊回复发送给 sender，群聊回复发送给 roomId。
+     * Resolve the reply target. Direct chat replies sender, room chat replies roomId.
      */
     private ReplyTarget resolveReplyTarget(WxMessageInfo wxMessageInfo, WxUserInfo receiverUser) {
         boolean isRoomMessage = StringUtils.hasText(wxMessageInfo.getRoomId());
@@ -88,7 +103,7 @@ public class CustomerReplyService {
     }
 
     /**
-     * 处理纯文本 reply，保持现有文本自动回复逻辑兼容。
+     * Send plain text reply content.
      */
     private void sendTextReply(ReplyTarget target, WxMessageInfo wxMessageInfo, String reply) {
         if (!StringUtils.hasText(reply)) {
@@ -107,19 +122,16 @@ public class CustomerReplyService {
     }
 
     /**
-     * 处理图片集合回复。
-     * 每张图先上传 CDN，再拼装图片消息参数调用发送接口。
+     * Upload and send all callback images.
      */
-    private void sendImageReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, JSONObject callbackResult) {
-        JSONArray imageArray = resolveReplyImages(callbackResult);
-        if (imageArray == null || imageArray.isEmpty()) {
+    private void sendImageReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, List<ReplyMediaItem> imageItems) {
+        if (imageItems == null || imageItems.isEmpty()) {
             return;
         }
 
-        for (int i = 0; i < imageArray.size(); i++) {
-            Object item = imageArray.get(i);
+        for (int i = 0; i < imageItems.size(); i++) {
+            ReplyMediaItem imagePayload = imageItems.get(i);
             try {
-                JSONObject imagePayload = normalizeImagePayload(item);
                 CdnUploadResponse uploadResponse = cdnImageService.uploadImage(target.getUuid(), imagePayload);
                 SendImageRequest request = buildSendImageRequest(
                         target,
@@ -133,7 +145,7 @@ public class CustomerReplyService {
                         "Failed to send reply image. msgId={}, imageIndex={}, payload={}",
                         wxMessageInfo.getMsgId(),
                         i,
-                        item,
+                        imagePayload,
                         e
                 );
             }
@@ -141,19 +153,16 @@ public class CustomerReplyService {
     }
 
     /**
-     * 处理语音回复。
-     * 语音文件走文件 CDN 上传链路，文件内容兼容普通文件和 .silk 语音文件。
+     * Upload and send all callback voices.
      */
-    private void sendVoiceReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, JSONObject callbackResult) {
-        JSONArray voiceArray = resolveReplyVoices(callbackResult);
-        if (voiceArray == null || voiceArray.isEmpty()) {
+    private void sendVoiceReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, List<ReplyMediaItem> voiceItems) {
+        if (voiceItems == null || voiceItems.isEmpty()) {
             return;
         }
 
-        for (int i = 0; i < voiceArray.size(); i++) {
-            Object item = voiceArray.get(i);
+        for (int i = 0; i < voiceItems.size(); i++) {
+            ReplyMediaItem voicePayload = voiceItems.get(i);
             try {
-                JSONObject voicePayload = normalizeVoicePayload(item);
                 CdnUploadResponse uploadResponse = cdnFileService.uploadFile(target.getUuid(), voicePayload);
                 SendVoiceRequest request = buildSendVoiceRequest(
                         target,
@@ -167,7 +176,7 @@ public class CustomerReplyService {
                         "Failed to send reply voice. msgId={}, voiceIndex={}, payload={}",
                         wxMessageInfo.getMsgId(),
                         i,
-                        item,
+                        voicePayload,
                         e
                 );
             }
@@ -175,44 +184,22 @@ public class CustomerReplyService {
     }
 
     /**
-     * 兼容多种图片数组字段名，并兼容字符串化 JSON 数组。
+     * Read image aliases from callback body and normalize them into typed items.
      */
-    private JSONArray resolveReplyImages(JSONObject callbackResult) {
+    private List<ReplyMediaItem> resolveReplyImages(JSONObject callbackResult) {
         Object images = firstNonNull(
                 callbackResult.get("images"),
                 callbackResult.get("replyImages"),
                 callbackResult.get("reply_images"),
                 callbackResult.get("imageList")
         );
-        if (images instanceof JSONArray) {
-            return (JSONArray) images;
-        }
-        if (images instanceof JSONObject) {
-            JSONArray array = new JSONArray();
-            array.add(images);
-            return array;
-        }
-        if (images instanceof String && StringUtils.hasText((String) images)) {
-            String text = ((String) images).trim();
-            if (text.startsWith("[")) {
-                try {
-                    return JSON.parseArray(text);
-                } catch (Exception e) {
-                    logger.warn("Failed to parse image array string. text={}", text, e);
-                    return null;
-                }
-            }
-            JSONArray array = new JSONArray();
-            array.add(text);
-            return array;
-        }
-        return null;
+        return resolveReplyMediaItems(images, "image");
     }
 
     /**
-     * 兼容多种语音字段名，并兼容字符串化 JSON 数组。
+     * Read voice aliases from callback body and normalize them into typed items.
      */
-    private JSONArray resolveReplyVoices(JSONObject callbackResult) {
+    private List<ReplyMediaItem> resolveReplyVoices(JSONObject callbackResult) {
         Object voices = firstNonNull(
                 callbackResult.get("voice"),
                 callbackResult.get("voices"),
@@ -221,85 +208,137 @@ public class CustomerReplyService {
                 callbackResult.get("audio"),
                 callbackResult.get("audios")
         );
-        if (voices instanceof JSONArray) {
-            return (JSONArray) voices;
-        }
-        if (voices instanceof JSONObject) {
-            JSONArray array = new JSONArray();
-            array.add(voices);
-            return array;
-        }
-        if (voices instanceof String && StringUtils.hasText((String) voices)) {
-            String text = ((String) voices).trim();
-            if (text.startsWith("[")) {
-                try {
-                    return JSON.parseArray(text);
-                } catch (Exception e) {
-                    logger.warn("Failed to parse voice array string. text={}", text, e);
-                    return null;
-                }
-            }
-            JSONArray array = new JSONArray();
-            array.add(text);
-            return array;
-        }
-        return null;
+        return resolveReplyMediaItems(voices, "voice");
     }
 
     /**
-     * 将单个图片项归一化为 JSONObject，兼容纯字符串 URL、纯字符串 base64 和 JSON 对象三种输入。
+     * Normalize callback media payloads so the rest of the flow no longer depends on JSONObject.
      */
-    private JSONObject normalizeImagePayload(Object item) {
+    private List<ReplyMediaItem> resolveReplyMediaItems(Object mediaPayload, String mediaType) {
+        if (mediaPayload == null) {
+            return Collections.emptyList();
+        }
+        if (mediaPayload instanceof JSONArray) {
+            return normalizeMediaArray((JSONArray) mediaPayload, mediaType);
+        }
+        if (mediaPayload instanceof String && StringUtils.hasText((String) mediaPayload)) {
+            String text = ((String) mediaPayload).trim();
+            if (text.startsWith("[")) {
+                try {
+                    return normalizeMediaArray(JSON.parseArray(text), mediaType);
+                } catch (Exception e) {
+                    logger.warn("Failed to parse {} array string. text={}", mediaType, text, e);
+                    return Collections.emptyList();
+                }
+            }
+        }
+
+        ReplyMediaItem mediaItem = normalizeMediaPayload(mediaPayload, mediaType);
+        if (mediaItem == null) {
+            return Collections.emptyList();
+        }
+        List<ReplyMediaItem> mediaItems = new ArrayList<>(1);
+        mediaItems.add(mediaItem);
+        return mediaItems;
+    }
+
+    /**
+     * Normalize each media item independently so one bad item does not block the rest.
+     */
+    private List<ReplyMediaItem> normalizeMediaArray(JSONArray mediaArray, String mediaType) {
+        if (mediaArray == null || mediaArray.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<ReplyMediaItem> mediaItems = new ArrayList<>(mediaArray.size());
+        for (int i = 0; i < mediaArray.size(); i++) {
+            Object item = mediaArray.get(i);
+            try {
+                ReplyMediaItem mediaItem = normalizeMediaPayload(item, mediaType);
+                if (mediaItem != null) {
+                    mediaItems.add(mediaItem);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to normalize {} payload. index={}, payload={}", mediaType, i, item, e);
+            }
+        }
+        return mediaItems;
+    }
+
+    /**
+     * Normalize a single media item. Supported inputs are URL string, base64 string and JSON object.
+     */
+    private ReplyMediaItem normalizeMediaPayload(Object item, String mediaType) {
+        if (item == null) {
+            return null;
+        }
+
         if (item instanceof JSONObject) {
-            return (JSONObject) item;
+            return buildMediaItemFromJson((JSONObject) item, mediaType);
         }
         if (item instanceof String) {
             String value = ((String) item).trim();
-            if (value.startsWith("{")) {
-                return JSON.parseObject(value);
+            if (!StringUtils.hasText(value)) {
+                return null;
             }
-            JSONObject payload = new JSONObject();
+            if (value.startsWith("{")) {
+                return buildMediaItemFromJson(JSON.parseObject(value), mediaType);
+            }
+
+            ReplyMediaItem mediaItem = new ReplyMediaItem();
             if (value.startsWith("http://") || value.startsWith("https://")) {
-                payload.put("url", value);
+                mediaItem.setUrl(value);
             } else {
-                payload.put("base64", value);
+                mediaItem.setBase64(value);
             }
-            return payload;
+            enrichMediaItem(mediaItem, mediaType);
+            return mediaItem;
         }
-        throw new IllegalArgumentException("Unsupported image payload type: " + item);
+
+        throw new IllegalArgumentException("Unsupported " + mediaType + " payload type: " + item);
     }
 
     /**
-     * 将单个语音项归一化为 JSONObject，兼容纯字符串 URL、纯字符串 base64 和 JSON 对象三种输入。
+     * Map all currently used callback aliases into a single media VO.
      */
-    private JSONObject normalizeVoicePayload(Object item) {
-        JSONObject payload;
-        if (item instanceof JSONObject) {
-            payload = (JSONObject) item;
-        } else if (item instanceof String) {
-            String value = ((String) item).trim();
-            if (value.startsWith("{")) {
-                payload = JSON.parseObject(value);
-            } else {
-                payload = new JSONObject();
-                if (value.startsWith("http://") || value.startsWith("https://")) {
-                    payload.put("url", value);
-                } else {
-                    payload.put("base64", value);
-                }
-            }
-        } else {
-            throw new IllegalArgumentException("Unsupported voice payload type: " + item);
-        }
-
-        if (!StringUtils.hasText(payload.getString("filename")) && !StringUtils.hasText(payload.getString("fileName"))) {
-            payload.put("filename", "reply-" + System.currentTimeMillis() + ".silk");
-        }
-        return payload;
+    private ReplyMediaItem buildMediaItemFromJson(JSONObject payload, String mediaType) {
+        ReplyMediaItem mediaItem = new ReplyMediaItem();
+        mediaItem.setUrl(firstNonBlank(
+                payload.getString("url"),
+                payload.getString("imageUrl"),
+                payload.getString("image_url"),
+                payload.getString("fileUrl"),
+                payload.getString("voiceUrl"),
+                payload.getString("audioUrl")
+        ));
+        mediaItem.setBase64(firstNonBlank(
+                payload.getString("base64"),
+                payload.getString("data"),
+                payload.getString("content")
+        ));
+        mediaItem.setFilename(firstNonBlank(payload.getString("filename"), payload.getString("fileName")));
+        mediaItem.setContentType(firstNonBlank(payload.getString("contentType"), payload.getString("mimeType")));
+        mediaItem.setIsHd(firstNonNullInteger(payload.getInteger("is_hd"), payload.getInteger("isHd")));
+        mediaItem.setVoiceTime(firstNonNullInteger(
+                payload.getInteger("voice_time"),
+                payload.getInteger("voiceTime"),
+                payload.getInteger("duration")
+        ));
+        enrichMediaItem(mediaItem, mediaType);
+        return mediaItem;
     }
 
     /**
-     * 发送图片消息前校验 CDN 上传结果，缺少关键媒体字段时直接失败。
+     * Fill type specific defaults. Voice reply currently defaults to a silk filename.
+     */
+    private void enrichMediaItem(ReplyMediaItem mediaItem, String mediaType) {
+        if ("voice".equals(mediaType)) {
+            mediaItem.ensureFilename("reply-" + System.currentTimeMillis() + ".silk");
+        }
+    }
+
+    /**
+     * Validate the image CDN upload response before sending the image message.
      */
     private CdnUploadResponse validateUploadResponse(CdnUploadResponse uploadResponse) {
         if (uploadResponse == null) {
@@ -321,7 +360,7 @@ public class CustomerReplyService {
     }
 
     /**
-     * 发送语音消息前校验文件 CDN 上传结果。
+     * Validate the file CDN upload response before sending the voice message.
      */
     private CdnUploadResponse validateFileUploadResponse(CdnUploadResponse uploadResponse) {
         if (uploadResponse == null) {
@@ -343,10 +382,10 @@ public class CustomerReplyService {
     }
 
     /**
-     * 将 CDN 上传结果映射成 SendCDNImgMsg 所需的图片消息请求体。
+     * Map image upload response into SendCDNImgMsg request fields.
      */
     private SendImageRequest buildSendImageRequest(ReplyTarget target,
-                                                   JSONObject imagePayload,
+                                                   ReplyMediaItem imagePayload,
                                                    CdnUploadResponse uploadResponse) {
         return SendImageRequest.builder()
                 .uuid(target.getUuid())
@@ -368,10 +407,10 @@ public class CustomerReplyService {
     }
 
     /**
-     * 将 CDN 文件上传结果映射成 SendCDNVoiceMsg 所需的语音消息请求体。
+     * Map file upload response into SendCDNVoiceMsg request fields.
      */
     private SendVoiceRequest buildSendVoiceRequest(ReplyTarget target,
-                                                   JSONObject voicePayload,
+                                                   ReplyMediaItem voicePayload,
                                                    CdnUploadResponse uploadResponse) {
         return SendVoiceRequest.builder()
                 .uuid(target.getUuid())
@@ -387,7 +426,7 @@ public class CustomerReplyService {
     }
 
     /**
-     * 文件类 CDN 上传有时返回 cdn_key，有时只返回 fileid，这里统一兜底。
+     * File upload may return cdn_key or only fileid. Use the available one.
      */
     private String resolveCdnKey(CdnUploadResponse uploadResponse) {
         if (StringUtils.hasText(uploadResponse.getCdn_key())) {
@@ -397,29 +436,17 @@ public class CustomerReplyService {
     }
 
     /**
-     * 兼容 is_hd / isHd 两种字段名。
+     * Resolve optional image HD flag.
      */
-    private Integer resolveIsHd(JSONObject imagePayload) {
-        Integer isHd = imagePayload.getInteger("is_hd");
-        if (isHd != null) {
-            return isHd;
-        }
-        return imagePayload.getInteger("isHd");
+    private Integer resolveIsHd(ReplyMediaItem imagePayload) {
+        return imagePayload.getIsHd();
     }
 
     /**
-     * 兼容 voice_time / voiceTime / duration 三种字段名。
+     * Resolve required voice duration.
      */
-    private Integer resolveVoiceDuration(JSONObject voicePayload) {
-        Integer voiceTime = voicePayload.getInteger("voice_time");
-        if (voiceTime != null) {
-            return voiceTime;
-        }
-        voiceTime = voicePayload.getInteger("voiceTime");
-        if (voiceTime != null) {
-            return voiceTime;
-        }
-        voiceTime = voicePayload.getInteger("duration");
+    private Integer resolveVoiceDuration(ReplyMediaItem voicePayload) {
+        Integer voiceTime = voicePayload.getVoiceTime();
         if (voiceTime != null) {
             return voiceTime;
         }
@@ -427,7 +454,7 @@ public class CustomerReplyService {
     }
 
     /**
-     * 统一记录自动回复发送结果，便于排查文本和图片两类回复。
+     * Log reply sending result for troubleshooting.
      */
     private void logSendResult(String replyType, WxMessageInfo wxMessageInfo, ApiResult<SendMsgResponse> sendResult) {
         logger.info(
@@ -442,7 +469,7 @@ public class CustomerReplyService {
     }
 
     /**
-     * 群聊 roomId 在库里是字符串，这里安全转换为发送接口需要的 Long。
+     * Safely convert roomId into Long for send APIs.
      */
     private Long parseLongSafely(String value) {
         if (!StringUtils.hasText(value)) {
@@ -457,13 +484,43 @@ public class CustomerReplyService {
     }
 
     /**
-     * 从多个候选对象里取第一个非 null 值，兼容不同回调协议字段名。
+     * Return the first non-null value from alias candidates.
      */
     private Object firstNonNull(Object... values) {
         if (values == null) {
             return null;
         }
         for (Object value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return the first non-blank string from alias candidates.
+     */
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (StringUtils.hasText(value)) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return the first non-null integer from alias candidates.
+     */
+    private Integer firstNonNullInteger(Integer... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Integer value : values) {
             if (value != null) {
                 return value;
             }
