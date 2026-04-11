@@ -11,7 +11,9 @@ import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * CDN素材Controller
@@ -63,9 +65,13 @@ public class CdnController {
     }
 
     @ApiOperation("上传图片到CDN")
-    @PostMapping("/cdnUploadImg")
-    public ApiResult<CdnUploadResponse> cdnUploadImg(@RequestBody CdnUploadImgRequest request) {
-        return ApiResult.from(client.post("/wxwork/CdnUploadImg", toJson(request)), CdnUploadResponse.class);
+    @PostMapping(value = "/cdnUploadImg", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResult<CdnUploadResponse> cdnUploadImg(@RequestParam("uuid") String uuid,
+                                                     @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ApiResult.fail("file must not be empty");
+        }
+        return ApiResult.from(client.postMultipart("/wxwork/CdnUploadImg", uuid, file, "file"), CdnUploadResponse.class);
     }
 
     @ApiOperation("CDN上传视频链接")
