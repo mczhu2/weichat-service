@@ -6,6 +6,7 @@ import com.weichat.api.entity.CallbackRequest;
 import com.weichat.api.service.CustomerReplyService;
 import com.weichat.api.service.DownstreamMessageContentService;
 import com.weichat.api.strategy.CallbackStrategy;
+import com.weichat.api.vo.callback.DownstreamCallbackPayload;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.service.WxMessageInfoService;
@@ -88,15 +89,18 @@ public class MessageStrategy implements CallbackStrategy {
                 return;
             }
 
-            String content = downstreamMessageContentService.resolveCallbackContent(wxMessageInfo, receiverUser.getUuid());
-            if (!StringUtils.hasText(content)) {
-                logger.warn("Skip downstream callback because content is empty. msgId={}", wxMessageInfo.getMsgId());
+            DownstreamCallbackPayload callbackPayload = downstreamMessageContentService.resolveCallbackPayload(
+                    wxMessageInfo,
+                    receiverUser.getUuid()
+            );
+            if (callbackPayload == null || !callbackPayload.hasPayload()) {
+                logger.warn("Skip downstream callback because payload is empty. msgId={}", wxMessageInfo.getMsgId());
                 return;
             }
 
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
                     wecomCallbackUrl,
-                    buildCallbackEntity(wxMessageInfo, receiverUser, content),
+                    buildCallbackEntity(wxMessageInfo, receiverUser, callbackPayload),
                     String.class
             );
             customerReplyService.sendReplyToCustomer(wxMessageInfo, receiverUser, responseEntity.getBody());
@@ -142,13 +146,15 @@ public class MessageStrategy implements CallbackStrategy {
 
     /**
      * 组装发给下游业务系统的回调请求体。
-     * content 字段已经由 DownstreamMessageContentService 做过统一收口，
-     * 这里不再关心文本还是媒体消息，避免策略层继续膨胀。
+     * 文本内容和媒体内容分别落到 content / medias，避免把多种语义继续混塞到一个字段里。
      */
-    private HttpEntity<String> buildCallbackEntity(WxMessageInfo wxMessageInfo, WxUserInfo receiverUser, String content) {
+    private HttpEntity<String> buildCallbackEntity(WxMessageInfo wxMessageInfo,
+                                                   WxUserInfo receiverUser,
+                                                   DownstreamCallbackPayload callbackPayload) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("fromVid", String.valueOf(wxMessageInfo.getSender()));
-        payload.put("content", content);
+        payload.put("content", callbackPayload.getContent());
+        payload.put("medias", callbackPayload.getMedias());
         payload.put("uuid", receiverUser.getUuid());
         payload.put("msgType", wxMessageInfo.getMsgtype() == null ? 0 : wxMessageInfo.getMsgtype());
         payload.put("nickname", wxMessageInfo.getSenderName());

@@ -3,6 +3,8 @@ package com.weichat.api.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
+import com.weichat.api.vo.callback.DownstreamCallbackPayload;
+import com.weichat.api.vo.callback.DownstreamMediaVo;
 import com.weichat.api.vo.request.cdn.DownloadFileRequest;
 import com.weichat.api.vo.request.cdn.DownloadWeChatFileRequest;
 import com.weichat.common.entity.WxMessageInfo;
@@ -11,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.Collections;
 
 /**
  * 下游业务回调消息内容解析服务。
@@ -31,28 +35,28 @@ public class DownstreamMessageContentService {
     private WxWorkApiClient client;
 
     /**
-     * 统一解析发送给下游业务系统的 content 字段。
-     * 这里做协议收口，MessageStrategy 只负责编排，不直接关心媒体下载细节。
+     * 统一解析发给下游业务系统的消息载荷。
+     * 文本放 content，媒体放 medias，避免把所有消息都塞进 content 破坏字段语义。
      */
-    public String resolveCallbackContent(WxMessageInfo wxMessageInfo, String uuid) {
-        String plainContent = resolvePlainContent(wxMessageInfo);
-        if (StringUtils.hasText(plainContent)) {
-            return plainContent;
-        }
-        if (wxMessageInfo == null || !StringUtils.hasText(uuid)) {
-            return plainContent;
-        }
+    public DownstreamCallbackPayload resolveCallbackPayload(WxMessageInfo wxMessageInfo, String uuid) {
+        DownstreamCallbackPayload payload = new DownstreamCallbackPayload();
+        payload.setContent(resolvePlainContent(wxMessageInfo));
 
+        if (wxMessageInfo == null || !StringUtils.hasText(uuid)) {
+            return payload;
+        }
         if (isImageMessage(wxMessageInfo)) {
-            return resolveImageContent(wxMessageInfo, uuid);
+            payload.setMedias(Collections.singletonList(resolveImageMedia(wxMessageInfo, uuid)));
+            return payload;
         }
         if (isVideoMessage(wxMessageInfo)) {
-            return resolveVideoContent(wxMessageInfo, uuid);
+            payload.setMedias(Collections.singletonList(resolveVideoMedia(wxMessageInfo, uuid)));
+            return payload;
         }
         if (isVoiceMessage(wxMessageInfo)) {
-            return resolveVoiceContent(wxMessageInfo, uuid);
+            payload.setMedias(Collections.singletonList(resolveVoiceMedia(wxMessageInfo, uuid)));
         }
-        return buildFallbackContent(wxMessageInfo, "message");
+        return payload;
     }
 
     /**
@@ -78,10 +82,9 @@ public class DownstreamMessageContentService {
     }
 
     /**
-     * 图片消息解析：
-     * 优先把微信资源地址转成外部可访问 URL，再封装成给 AI 识别的 content 文本。
+     * 解析图片消息的结构化媒体信息。
      */
-    private String resolveImageContent(WxMessageInfo wxMessageInfo, String uuid) {
+    private DownstreamMediaVo resolveImageMedia(WxMessageInfo wxMessageInfo, String uuid) {
         String mediaUrl = downloadWeChatMedia(
                 uuid,
                 firstNonBlank(wxMessageInfo.getOpenimCdnLdurl(), wxMessageInfo.getFileId()),
@@ -92,14 +95,16 @@ public class DownstreamMessageContentService {
                 "image",
                 wxMessageInfo.getMsgId()
         );
-        return wrapMediaContent("image", mediaUrl, buildFallbackContent(wxMessageInfo, "image"));
+        DownstreamMediaVo media = buildBaseMedia(wxMessageInfo, "image", mediaUrl);
+        media.setWidth(wxMessageInfo.getWidth());
+        media.setHeight(wxMessageInfo.getHeight());
+        return media;
     }
 
     /**
-     * 视频消息解析：
-     * 使用外部联系人文件下载接口拿到临时 URL，失败时只回退占位内容。
+     * 解析视频消息的结构化媒体信息。
      */
-    private String resolveVideoContent(WxMessageInfo wxMessageInfo, String uuid) {
+    private DownstreamMediaVo resolveVideoMedia(WxMessageInfo wxMessageInfo, String uuid) {
         String mediaUrl = downloadWeChatMedia(
                 uuid,
                 wxMessageInfo.getFileId(),
@@ -110,15 +115,18 @@ public class DownstreamMessageContentService {
                 "video",
                 wxMessageInfo.getMsgId()
         );
-        return wrapMediaContent("video", mediaUrl, buildFallbackContent(wxMessageInfo, "video"));
+        DownstreamMediaVo media = buildBaseMedia(wxMessageInfo, "video", mediaUrl);
+        media.setDuration(wxMessageInfo.getVideoDuration());
+        media.setWidth(firstNonNullInteger(wxMessageInfo.getVideoWidth(), wxMessageInfo.getWidth()));
+        media.setHeight(firstNonNullInteger(wxMessageInfo.getVideoHeight(), wxMessageInfo.getHeight()));
+        media.setPreviewUrl(wxMessageInfo.getPreviewImgUrl());
+        return media;
     }
 
     /**
-     * 语音消息解析：
-     * 语音没有直接 file_url，这里走 DownloadFile(filetype=5) 拿下载地址。
-     * 即使下载失败，也不会抛异常影响主流程。
+     * 解析语音消息的结构化媒体信息。
      */
-    private String resolveVoiceContent(WxMessageInfo wxMessageInfo, String uuid) {
+    private DownstreamMediaVo resolveVoiceMedia(WxMessageInfo wxMessageInfo, String uuid) {
         String mediaUrl = downloadVoiceMedia(
                 uuid,
                 wxMessageInfo.getVoiceId(),
@@ -127,7 +135,9 @@ public class DownstreamMessageContentService {
                 buildVoiceFileName(wxMessageInfo),
                 wxMessageInfo.getMsgId()
         );
-        return wrapMediaContent("voice", mediaUrl, buildFallbackContent(wxMessageInfo, "voice"));
+        DownstreamMediaVo media = buildBaseMedia(wxMessageInfo, "voice", mediaUrl);
+        media.setDuration(wxMessageInfo.getVoiceTime());
+        return media;
     }
 
     /**
@@ -252,34 +262,65 @@ public class DownstreamMessageContentService {
     }
 
     /**
-     * 把媒资 URL 包成统一 content 文本。
-     * 约定格式为 [image]/[video]/[voice] + url，方便下游 AI 直接解析。
-     */
-    private String wrapMediaContent(String mediaType, String mediaUrl, String fallbackContent) {
-        if (StringUtils.hasText(mediaUrl)) {
-            return "[" + mediaType + "] " + mediaUrl;
-        }
-        return fallbackContent;
-    }
-
-    /**
      * 下载失败时的降级内容。
      * 优先带上 voiceId/fileId/messageId，保证下游至少还能拿到原始媒资标识。
      */
-    private String buildFallbackContent(WxMessageInfo wxMessageInfo, String mediaType) {
+    private String buildRawMediaId(WxMessageInfo wxMessageInfo) {
         if (wxMessageInfo == null) {
-            return "[" + mediaType + "]";
+            return null;
         }
         if (StringUtils.hasText(wxMessageInfo.getVoiceId())) {
-            return "[" + mediaType + "] " + wxMessageInfo.getVoiceId();
+            return wxMessageInfo.getVoiceId();
         }
         if (StringUtils.hasText(wxMessageInfo.getFileId())) {
-            return "[" + mediaType + "] " + wxMessageInfo.getFileId();
+            return wxMessageInfo.getFileId();
         }
-        if (StringUtils.hasText(wxMessageInfo.getMessageId())) {
-            return "[" + mediaType + "] " + wxMessageInfo.getMessageId();
+        return wxMessageInfo.getMessageId();
+    }
+
+    /**
+     * 构建媒体公共字段。
+     * mediaUrl 获取失败时保留 rawMediaId，不影响主流程，交给下游自行兜底。
+     */
+    private DownstreamMediaVo buildBaseMedia(WxMessageInfo wxMessageInfo, String mediaType, String mediaUrl) {
+        DownstreamMediaVo media = new DownstreamMediaVo();
+        media.setMediaType(mediaType);
+        media.setMediaUrl(mediaUrl);
+        media.setRawMediaId(buildRawMediaId(wxMessageInfo));
+        media.setFileName(resolveMediaFileName(mediaType, wxMessageInfo));
+        media.setSize(resolveMediaSize(wxMessageInfo));
+        return media;
+    }
+
+    /**
+     * 统一解析下游展示的媒体文件名。
+     */
+    private String resolveMediaFileName(String mediaType, WxMessageInfo wxMessageInfo) {
+        if ("image".equals(mediaType)) {
+            return buildImageFileName(wxMessageInfo);
         }
-        return "[" + mediaType + "]";
+        if ("video".equals(mediaType)) {
+            return buildVideoFileName(wxMessageInfo);
+        }
+        if ("voice".equals(mediaType)) {
+            return buildVoiceFileName(wxMessageInfo);
+        }
+        return buildFileName("media", wxMessageInfo, "bin");
+    }
+
+    /**
+     * 统一解析媒体大小字段。
+     */
+    private Integer resolveMediaSize(WxMessageInfo wxMessageInfo) {
+        if (wxMessageInfo == null) {
+            return null;
+        }
+        return firstNonNullInteger(
+                toInteger(wxMessageInfo.getVoiceSize()),
+                wxMessageInfo.getOpenimCdnLdSize(),
+                toInteger(wxMessageInfo.getFileSize()),
+                wxMessageInfo.getSize()
+        );
     }
 
     /**
