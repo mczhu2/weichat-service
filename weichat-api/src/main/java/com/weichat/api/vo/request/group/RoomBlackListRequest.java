@@ -9,24 +9,24 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 /**
- * 添加/移除群黑名单请求
- *
- * @author weichat
+ * 群黑名单操作请求参数。
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@ApiModel(description = "添加/移除群黑名单请求参数")
+@ApiModel(description = "群黑名单操作请求参数")
 public class RoomBlackListRequest extends BaseRequest {
 
-    @ApiModelProperty(value = "群ID", required = true, example = "123456789")
+    @ApiModelProperty(value = "群 ID", required = true, example = "123456789")
     private Long roomid;
 
-    @ApiModelProperty(value = "用户ID列表", required = true, example = "[111,222,333]")
-    private String vids;
+    @ApiModelProperty(value = "用户 ID 列表", required = true, example = "[111,222,333]")
+    private List<Long> vids;
 
     @ApiModelProperty(value = "操作类型(add/remove)", required = true, example = "add")
     private String action;
