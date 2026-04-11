@@ -45,7 +45,7 @@ public class MessageController {
     @ApiOperation("发送图片消息")
     @PostMapping("/sendImage")
     public ApiResult<SendMsgResponse> sendImage(@RequestBody SendImageRequest request) {
-        return ApiResult.from(client.post("/wxwork/SendCDNImgMsg", toJson(request)), SendMsgResponse.class);
+        return messageSendService.sendImage(request);
     }
 
     @ApiOperation("发送文件消息")
