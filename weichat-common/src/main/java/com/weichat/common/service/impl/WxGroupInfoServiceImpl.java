@@ -56,4 +56,19 @@ public class WxGroupInfoServiceImpl implements WxGroupInfoService {
     public int batchInsert(List<WxGroupInfo> list) {
         return wxGroupInfoMapper.batchInsert(list);
     }
+
+    @Override
+    public List<WxGroupInfo> selectAllWithPaging(int offset, int limit) {
+        return wxGroupInfoMapper.selectAllWithPaging(offset, limit);
+    }
+
+    @Override
+    public List<WxGroupInfo> selectByUuidWithPaging(String uuid, int offset, int limit) {
+        return wxGroupInfoMapper.selectByUuidWithPaging(uuid, offset, limit);
+    }
+
+    @Override
+    public List<WxGroupInfo> selectByFiltersWithPaging(Long corpId, String uuid, int offset, int limit) {
+        return wxGroupInfoMapper.selectByFiltersWithPaging(corpId, uuid, offset, limit);
+    }
 }

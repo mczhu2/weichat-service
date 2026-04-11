@@ -5,6 +5,7 @@
     <insert id="insert" parameterType="com.weichat.common.entity.WxGroupInfo">
         INSERT INTO wx_group_info (
             room_id,
+            corpid,
             create_user_id,
             total,
             notice_sendervid,
@@ -17,6 +18,7 @@
             managers
         ) VALUES (
             #{roomId},
+            #{corpid},
             #{createUserId},
             #{total},
             #{noticeSendervid},
@@ -49,6 +51,7 @@
     <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxGroupInfo">
         UPDATE wx_group_info SET
             room_id = #{roomId},
+            corpid = #{corpid},
             create_user_id = #{createUserId},
             total = #{total},
             notice_sendervid = #{noticeSendervid},
@@ -76,6 +79,7 @@
     <insert id="batchInsert" parameterType="java.util.List">
         INSERT INTO wx_group_info (
             room_id,
+            corpid,
             create_user_id,
             total,
             notice_sendervid,
@@ -90,6 +94,7 @@
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.roomId},
+                #{item.corpid},
                 #{item.createUserId},
                 #{item.total},
                 #{item.noticeSendervid},
@@ -103,4 +108,40 @@
             )
         </foreach>
     </insert>
+
+    <!-- 分页查询微信群信息 -->
+    <select id="selectAllWithPaging" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByUuidWithPaging" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info g
+        WHERE EXISTS (
+            SELECT 1
+            FROM wx_user_info u
+            WHERE u.user_id = g.create_user_id
+              AND u.uuid = #{uuid}
+              AND u.is_del = 0
+        )
+        ORDER BY g.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByFiltersWithPaging" resultType="com.weichat.common.entity.WxGroupInfo">
+        SELECT * FROM wx_group_info g
+        WHERE g.corpid = #{corpId}
+        <if test="uuid != null and uuid != ''">
+            AND EXISTS (
+                SELECT 1
+                FROM wx_user_info u
+                WHERE u.user_id = g.create_user_id
+                  AND u.uuid = #{uuid}
+                  AND u.is_del = 0
+            )
+        </if>
+        ORDER BY g.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
 </mapper>

@@ -77,4 +77,31 @@ public interface WxUserInfoService {
      * @return 微信用户信息
      */
     WxUserInfo selectByUuid(String uuid);
+
+    /**
+     * 分页查询微信用户信息
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信用户信息列表
+     */
+    List<WxUserInfo> selectAllWithPaging(int offset, int limit);
+
+    /**
+     * 根据uuid分页查询微信用户信息
+     * @param uuid 设备uuid
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信用户信息列表
+     */
+    List<WxUserInfo> selectByUuidWithPaging(String uuid, int offset, int limit);
+
+    /**
+     * 按条件分页查询微信用户信息
+     * @param uuid 设备uuid
+     * @param corpIds 企业ID列表
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信用户信息列表
+     */
+    List<WxUserInfo> selectByFiltersWithPaging(String uuid, List<Long> corpIds, int offset, int limit);
 }

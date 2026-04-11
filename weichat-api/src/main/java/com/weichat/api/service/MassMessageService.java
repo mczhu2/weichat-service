@@ -1,0 +1,214 @@
+package com.weichat.api.service;
+
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.weichat.api.client.WxWorkApiClient;
+import com.weichat.api.util.MessageTemplateUtil;
+import com.weichat.api.vo.request.message.SendTextRequest;
+import com.weichat.common.entity.MassTask;
+import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.entity.MessageTemplate;
+import com.weichat.common.entity.WxGroupInfo;
+import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.service.MassTaskDetailService;
+import com.weichat.common.service.MassTaskService;
+import com.weichat.common.service.MessageTemplateService;
+import com.weichat.common.service.WxGroupInfoService;
+import com.weichat.common.service.WxUserInfoService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Slf4j
+@Service
+public class MassMessageService {
+
+    @Autowired
+    private WxWorkApiClient wxWorkApiClient;
+
+    @Autowired
+    private MassTaskDetailService massTaskDetailService;
+
+    @Autowired
+    private MassTaskService massTaskService;
+
+    @Autowired
+    private MessageTemplateService messageTemplateService;
+
+    @Autowired
+    private WxUserInfoService wxUserInfoService;
+
+    @Autowired
+    private WxGroupInfoService wxGroupInfoService;
+
+    public boolean sendMassMessageToReceiver(MassTaskDetail detail) {
+        try {
+            if (detail.getReceiverType() == 1) {
+                return sendToExternalContact(detail);
+            }
+            if (detail.getReceiverType() == 2) {
+                return sendToGroup(detail);
+            }
+
+            log.error("未知的接收方类型: {}", detail.getReceiverType());
+            markFailure(detail, "未知的接收方类型");
+            return false;
+        } catch (Exception e) {
+            log.error("发送群发消息时发生异常，明细ID: {}", detail.getId(), e);
+            markFailure(detail, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean sendToExternalContact(MassTaskDetail detail) {
+        try {
+            MassTask task = massTaskService.getMassTaskById(detail.getTaskId());
+            if (task == null) {
+                markFailure(detail, "群发任务不存在");
+                return false;
+            }
+
+            WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(detail.getReceiverId());
+            if (userInfo == null) {
+                markFailure(detail, "接收用户不存在");
+                return false;
+            }
+
+            SendTextRequest request = SendTextRequest.builder()
+                    .send_userid(userInfo.getUserId())
+                    .isRoom(false)
+                    .content(resolveContent(task, detail.getReceiverName()))
+                    .build();
+
+            JSONObject result = wxWorkApiClient.post(
+                    "/wxwork/sendtext",
+                    JSON.parseObject(JSON.toJSONString(request))
+            );
+            log.info("向外部联系人发送消息，结果: {}", result);
+
+            Integer code = result.getInteger("code");
+            if (code != null && code == 0) {
+                markSuccess(detail);
+                return true;
+            }
+
+            String errorMsg = result.getString("msg");
+            log.error("向外部联系人发送消息失败，错误码: {}, 接收方ID: {}", code, userInfo.getUserId());
+            markFailure(detail, errorMsg != null ? errorMsg : "发送失败");
+            return false;
+        } catch (Exception e) {
+            log.error("向外部联系人发送消息失败，接收方ID: {}", detail.getReceiverId(), e);
+            markFailure(detail, e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean sendToGroup(MassTaskDetail detail) {
+        try {
+            MassTask task = massTaskService.getMassTaskById(detail.getTaskId());
+            if (task == null) {
+                markFailure(detail, "群发任务不存在");
+                return false;
+            }
+
+            WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(detail.getReceiverId());
+            if (groupInfo == null) {
+                markFailure(detail, "群聊不存在");
+                return false;
+            }
+
+            Long roomId = parseLongSafely(groupInfo.getRoomId());
+            if (roomId == null) {
+                log.error("群ID格式不正确，无法发送消息，groupId: {}, roomId: {}", detail.getReceiverId(), groupInfo.getRoomId());
+                markFailure(detail, "群ID格式不正确");
+                return false;
+            }
+
+            SendTextRequest request = SendTextRequest.builder()
+                    .send_userid(roomId)
+                    .isRoom(true)
+                    .content(resolveContent(task, groupInfo.getNickname()))
+                    .build();
+
+            JSONObject result = wxWorkApiClient.post(
+                    "/wxwork/sendtext",
+                    JSON.parseObject(JSON.toJSONString(request))
+            );
+            log.info("向群聊发送消息，结果: {}", result);
+
+            Integer code = result.getInteger("code");
+            if (code != null && code == 0) {
+                markSuccess(detail);
+                return true;
+            }
+
+            String errorMsg = result.getString("msg");
+            log.error("向群聊发送消息失败，错误码: {}, 群ID: {}", code, groupInfo.getRoomId());
+            markFailure(detail, errorMsg != null ? errorMsg : "发送失败");
+            return false;
+        } catch (Exception e) {
+            log.error("向群聊发送消息失败，群ID: {}", detail.getReceiverId(), e);
+            markFailure(detail, e.getMessage());
+            return false;
+        }
+    }
+
+    private String resolveContent(MassTask task, String receiverName) {
+        if (task.getTemplateId() == null) {
+            return task.getContent();
+        }
+
+        MessageTemplate template = messageTemplateService.getTemplateById(task.getTemplateId());
+        if (template == null) {
+            return task.getContent();
+        }
+
+        return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
+    }
+
+    private void markSuccess(MassTaskDetail detail) {
+        massTaskDetailService.updateSendSuccessStatus(detail.getId());
+        updateTaskStatistics(detail.getTaskId());
+    }
+
+    private void markFailure(MassTaskDetail detail, String message) {
+        massTaskDetailService.updateSendFailureStatus(detail.getId(), message != null ? message : "发送失败");
+        updateTaskStatistics(detail.getTaskId());
+    }
+
+    private void updateTaskStatistics(Long taskId) {
+        MassTask task = massTaskService.getMassTaskById(taskId);
+        if (task == null) {
+            return;
+        }
+
+        List<MassTaskDetail> details = massTaskDetailService.getDetailsByTaskId(taskId);
+        int sent = 0;
+        int success = 0;
+
+        for (MassTaskDetail detail : details) {
+            if (detail.getIsSent() == 1) {
+                sent++;
+                if (detail.getSendStatus() == 1) {
+                    success++;
+                }
+            }
+        }
+
+        massTaskService.updateTaskStatistics(taskId, sent, success);
+    }
+
+    private Long parseLongSafely(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            return Long.valueOf(value.trim());
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse roomId: {}", value);
+            return null;
+        }
+    }
+}

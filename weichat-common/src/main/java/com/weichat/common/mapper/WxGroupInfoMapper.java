@@ -65,4 +65,28 @@ public interface WxGroupInfoMapper {
      * @return 影响行数
      */
     int batchInsert(@Param("list") List<WxGroupInfo> list);
+
+    /**
+     * 分页查询微信群信息
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信群信息列表
+     */
+    List<WxGroupInfo> selectAllWithPaging(@Param("offset") int offset, @Param("limit") int limit);
+
+    /**
+     * 根据uuid分页查询微信群信息
+     * @param uuid 设备uuid
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信群信息列表
+     */
+    List<WxGroupInfo> selectByUuidWithPaging(@Param("uuid") String uuid,
+                                             @Param("offset") int offset,
+                                             @Param("limit") int limit);
+
+    List<WxGroupInfo> selectByFiltersWithPaging(@Param("corpId") Long corpId,
+                                                @Param("uuid") String uuid,
+                                                @Param("offset") int offset,
+                                                @Param("limit") int limit);
 }

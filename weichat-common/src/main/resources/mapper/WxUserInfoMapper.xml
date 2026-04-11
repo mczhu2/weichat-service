@@ -162,4 +162,36 @@
             )
         </foreach>
     </insert>
+
+    <!-- 分页查询微信用户信息 -->
+    <select id="selectAllWithPaging" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByUuidWithPaging" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info
+        WHERE uuid = #{uuid} AND is_del = 0
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectByFiltersWithPaging" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info
+        <where>
+            is_del = 0
+            <if test="uuid != null and uuid != ''">
+                AND uuid = #{uuid}
+            </if>
+            <if test="corpIds != null and corpIds.size() > 0">
+                AND corpid IN
+                <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
+                    #{corpId}
+                </foreach>
+            </if>
+        </where>
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
 </mapper>

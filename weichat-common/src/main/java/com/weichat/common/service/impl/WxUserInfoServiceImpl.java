@@ -66,4 +66,19 @@ public class WxUserInfoServiceImpl implements WxUserInfoService {
     public WxUserInfo selectByUuid(String uuid) {
         return wxUserInfoMapper.selectByUuid(uuid);
     }
+
+    @Override
+    public List<WxUserInfo> selectAllWithPaging(int offset, int limit) {
+        return wxUserInfoMapper.selectAllWithPaging(offset, limit);
+    }
+
+    @Override
+    public List<WxUserInfo> selectByUuidWithPaging(String uuid, int offset, int limit) {
+        return wxUserInfoMapper.selectByUuidWithPaging(uuid, offset, limit);
+    }
+
+    @Override
+    public List<WxUserInfo> selectByFiltersWithPaging(String uuid, List<Long> corpIds, int offset, int limit) {
+        return wxUserInfoMapper.selectByFiltersWithPaging(uuid, corpIds, offset, limit);
+    }
 }

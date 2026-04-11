@@ -79,4 +79,36 @@ public interface WxUserInfoMapper {
      * @return 微信用户信息
      */
     WxUserInfo selectByUuid(@Param("uuid") String uuid);
+
+    /**
+     * 分页查询微信用户信息
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信用户信息列表
+     */
+    List<WxUserInfo> selectAllWithPaging(@Param("offset") int offset, @Param("limit") int limit);
+
+    /**
+     * 根据uuid分页查询微信用户信息
+     * @param uuid 设备uuid
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信用户信息列表
+     */
+    List<WxUserInfo> selectByUuidWithPaging(@Param("uuid") String uuid,
+                                            @Param("offset") int offset,
+                                            @Param("limit") int limit);
+
+    /**
+     * 按条件分页查询微信用户信息
+     * @param uuid 设备uuid
+     * @param corpIds 企业ID列表
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 微信用户信息列表
+     */
+    List<WxUserInfo> selectByFiltersWithPaging(@Param("uuid") String uuid,
+                                               @Param("corpIds") List<Long> corpIds,
+                                               @Param("offset") int offset,
+                                               @Param("limit") int limit);
 }
