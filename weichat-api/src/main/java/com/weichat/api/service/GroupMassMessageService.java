@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 负责创建群发任务，并按明细逐条触发实际发送。
+ */
 @Slf4j
 @Service
 public class GroupMassMessageService {
@@ -46,6 +49,9 @@ public class GroupMassMessageService {
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
+    /**
+     * 创建面向外部联系人的文本群发任务。
+     */
     public Long sendMassMessageToUsers(String uuid, List<Long> userIds, String content) {
         MassTask massTask = new MassTask();
         massTask.setTaskName("人员群发任务-" + System.currentTimeMillis());
@@ -59,6 +65,9 @@ public class GroupMassMessageService {
         return massTaskService.createMassTask(massTask, buildUserDetails(userIds));
     }
 
+    /**
+     * 创建面向外部联系人的模板群发任务。
+     */
     public Long sendMassMessageToUsersWithTemplate(String uuid, List<Long> userIds, Long templateId, Map<String, Object> variables) {
         MessageTemplate template = messageTemplateService.getTemplateById(templateId);
         if (template == null) {
@@ -78,6 +87,9 @@ public class GroupMassMessageService {
         return massTaskService.createMassTask(massTask, buildUserDetails(userIds));
     }
 
+    /**
+     * 创建面向群聊的文本群发任务。
+     */
     public Long sendMassMessageToGroups(String uuid, List<Long> groupIds, String content) {
         MassTask massTask = new MassTask();
         massTask.setTaskName("群聊群发任务-" + System.currentTimeMillis());
@@ -91,6 +103,9 @@ public class GroupMassMessageService {
         return massTaskService.createMassTask(massTask, buildGroupDetails(groupIds));
     }
 
+    /**
+     * 创建面向群聊的模板群发任务。
+     */
     public Long sendMassMessageToGroupsWithTemplate(String uuid, List<Long> groupIds, Long templateId, Map<String, Object> variables) {
         MessageTemplate template = messageTemplateService.getTemplateById(templateId);
         if (template == null) {
@@ -110,6 +125,9 @@ public class GroupMassMessageService {
         return massTaskService.createMassTask(massTask, buildGroupDetails(groupIds));
     }
 
+    /**
+     * 顺序执行任务下的每条明细，并回写任务状态。
+     */
     public boolean triggerMassTask(Long taskId) {
         try {
             MassTask task = massTaskService.getMassTaskById(taskId);
@@ -143,6 +161,9 @@ public class GroupMassMessageService {
         }
     }
 
+    /**
+     * 根据用户 ID 列表构造待发送明细。
+     */
     private List<MassTaskDetail> buildUserDetails(List<Long> userIds) {
         List<MassTaskDetail> details = new ArrayList<>();
         for (Long userId : userIds) {
@@ -160,6 +181,9 @@ public class GroupMassMessageService {
         return details;
     }
 
+    /**
+     * 根据群聊 ID 列表构造待发送明细。
+     */
     private List<MassTaskDetail> buildGroupDetails(List<Long> groupIds) {
         List<MassTaskDetail> details = new ArrayList<>();
         for (Long groupId : groupIds) {
@@ -177,6 +201,9 @@ public class GroupMassMessageService {
         return details;
     }
 
+    /**
+     * 执行单条明细发送。
+     */
     private boolean sendSingleMassMessage(MassTaskDetail detail) {
         try {
             MassTask task = massTaskService.getMassTaskById(detail.getTaskId());
@@ -249,6 +276,9 @@ public class GroupMassMessageService {
         }
     }
 
+    /**
+     * 有模板时渲染模板内容，否则直接使用任务原始内容。
+     */
     private String resolveContent(MassTask task, String receiverName) {
         if (task.getTemplateId() == null) {
             return task.getContent();
@@ -262,6 +292,9 @@ public class GroupMassMessageService {
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
     }
 
+    /**
+     * 安全解析群聊 roomId。
+     */
     private Long parseLongSafely(String value) {
         if (value == null || value.trim().isEmpty()) {
             return null;

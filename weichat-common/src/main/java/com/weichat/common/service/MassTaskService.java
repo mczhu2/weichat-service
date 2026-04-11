@@ -10,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 群发任务服务，负责任务主表的创建、状态变更和统计维护。
+ */
 @Service
 public class MassTaskService {
 
@@ -19,6 +22,9 @@ public class MassTaskService {
     @Autowired
     private MassTaskDetailService massTaskDetailService;
 
+    /**
+     * 创建群发任务，并同步写入对应的任务明细。
+     */
     @Transactional
     public Long createMassTask(MassTask massTask, List<MassTaskDetail> details) {
         massTask.setCreateTime(LocalDateTime.now());
@@ -37,6 +43,9 @@ public class MassTaskService {
         return massTask.getId();
     }
 
+    /**
+     * 更新任务执行状态。
+     */
     public void updateTaskStatus(Long taskId, Integer status) {
         MassTask massTask = new MassTask();
         massTask.setId(taskId);
@@ -44,14 +53,23 @@ public class MassTaskService {
         massTaskMapper.updateByPrimaryKey(massTask);
     }
 
+    /**
+     * 分页查询任务列表。
+     */
     public List<MassTask> getMassTaskList(int offset, int limit) {
         return massTaskMapper.selectAllWithPaging(offset, limit);
     }
 
+    /**
+     * 根据任务 ID 查询任务详情。
+     */
     public MassTask getMassTaskById(Long taskId) {
         return massTaskMapper.selectByPrimaryKey(taskId);
     }
 
+    /**
+     * 更新任务的已发送数和成功数。
+     */
     public void updateTaskStatistics(Long taskId, Integer sentCount, Integer successCount) {
         MassTask massTask = new MassTask();
         massTask.setId(taskId);
@@ -66,6 +84,9 @@ public class MassTaskService {
         massTaskMapper.updateByPrimaryKey(massTask);
     }
 
+    /**
+     * 将任务标记为已取消。
+     */
     public void cancelMassTask(Long taskId) {
         MassTask massTask = new MassTask();
         massTask.setId(taskId);
@@ -73,10 +94,16 @@ public class MassTaskService {
         massTaskMapper.updateByPrimaryKey(massTask);
     }
 
+    /**
+     * 更新任务主表记录。
+     */
     public void updateById(MassTask massTask) {
         massTaskMapper.updateByPrimaryKey(massTask);
     }
 
+    /**
+     * 删除任务，并级联删除任务明细。
+     */
     @Transactional
     public boolean removeById(Long id) {
         massTaskDetailService.deleteByTaskId(id);

@@ -21,6 +21,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * 负责按单个接收对象执行群发任务，并回写发送结果。
+ */
 @Slf4j
 @Service
 public class MassMessageService {
@@ -43,6 +46,9 @@ public class MassMessageService {
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
+    /**
+     * 根据接收对象类型路由到对应的发送逻辑。
+     */
     public boolean sendMassMessageToReceiver(MassTaskDetail detail) {
         try {
             if (detail.getReceiverType() == 1) {
@@ -62,6 +68,9 @@ public class MassMessageService {
         }
     }
 
+    /**
+     * 向单个外部联系人发送消息。
+     */
     private boolean sendToExternalContact(MassTaskDetail detail) {
         try {
             MassTask task = massTaskService.getMassTaskById(detail.getTaskId());
@@ -105,6 +114,9 @@ public class MassMessageService {
         }
     }
 
+    /**
+     * 向单个群聊发送消息。
+     */
     private boolean sendToGroup(MassTaskDetail detail) {
         try {
             MassTask task = massTaskService.getMassTaskById(detail.getTaskId());
@@ -155,6 +167,9 @@ public class MassMessageService {
         }
     }
 
+    /**
+     * 有模板时渲染模板内容，否则直接使用任务内容。
+     */
     private String resolveContent(MassTask task, String receiverName) {
         if (task.getTemplateId() == null) {
             return task.getContent();
@@ -168,16 +183,25 @@ public class MassMessageService {
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
     }
 
+    /**
+     * 标记单条明细发送成功，并刷新任务统计。
+     */
     private void markSuccess(MassTaskDetail detail) {
         massTaskDetailService.updateSendSuccessStatus(detail.getId());
         updateTaskStatistics(detail.getTaskId());
     }
 
+    /**
+     * 标记单条明细发送失败，并刷新任务统计。
+     */
     private void markFailure(MassTaskDetail detail, String message) {
         massTaskDetailService.updateSendFailureStatus(detail.getId(), message != null ? message : "发送失败");
         updateTaskStatistics(detail.getTaskId());
     }
 
+    /**
+     * 重新统计任务的已发送数和成功数。
+     */
     private void updateTaskStatistics(Long taskId) {
         MassTask task = massTaskService.getMassTaskById(taskId);
         if (task == null) {
@@ -200,6 +224,9 @@ public class MassMessageService {
         massTaskService.updateTaskStatistics(taskId, sent, success);
     }
 
+    /**
+     * 安全解析群聊 roomId，避免非法值导致发送异常。
+     */
     private Long parseLongSafely(String value) {
         if (value == null || value.trim().isEmpty()) {
             return null;

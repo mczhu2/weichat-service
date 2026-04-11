@@ -20,9 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 群发功能控制器
- *
- * @author weichat
+ * 群发任务控制器，负责创建、触发和管理群发任务。
  */
 @Api(tags = "群发功能")
 @RestController
@@ -48,7 +46,7 @@ public class MassMessageController {
     private WxGroupInfoService wxGroupInfoService;
 
     /**
-     * 向多个用户群发消息
+     * 创建面向外部联系人的文本群发任务。
      */
     @ApiOperation("向多个用户群发消息")
     @PostMapping("/send-to-users")
@@ -60,7 +58,7 @@ public class MassMessageController {
     }
 
     /**
-     * 向多个用户群发消息（使用模板）
+     * 创建面向外部联系人的模板群发任务。
      */
     @ApiOperation("向多个用户群发消息（使用模板）")
     @PostMapping("/send-to-users-with-template")
@@ -73,7 +71,7 @@ public class MassMessageController {
     }
 
     /**
-     * 向多个群聊群发消息
+     * 创建面向群聊的文本群发任务。
      */
     @ApiOperation("向多个群聊群发消息")
     @PostMapping("/send-to-groups")
@@ -85,20 +83,20 @@ public class MassMessageController {
     }
 
     /**
-     * 向多个群聊群发消息（使用模板）
+     * 创建面向群聊的模板群发任务。
      */
     @ApiOperation("向多个群聊群发消息（使用模板）")
     @PostMapping("/send-to-groups-with-template")
     public ApiResult<Long> sendMassMessageToGroupsWithTemplate(@RequestParam String uuid,
-                                                              @RequestParam List<Long> groupIds,
-                                                              @RequestParam Long templateId,
-                                                              @RequestBody(required = false) Map<String, Object> variables) {
+                                                               @RequestParam List<Long> groupIds,
+                                                               @RequestParam Long templateId,
+                                                               @RequestBody(required = false) Map<String, Object> variables) {
         Long taskId = groupMassMessageService.sendMassMessageToGroupsWithTemplate(uuid, groupIds, templateId, variables);
         return ApiResult.success(taskId);
     }
 
     /**
-     * 手动触发群发任务
+     * 手动触发已创建的群发任务执行发送。
      */
     @ApiOperation("手动触发群发任务")
     @PostMapping("/trigger-task/{taskId}")
@@ -108,7 +106,7 @@ public class MassMessageController {
     }
 
     /**
-     * 获取群发任务列表
+     * 分页查询群发任务列表。
      */
     @ApiOperation("获取群发任务列表")
     @GetMapping("/tasks")
@@ -116,16 +114,14 @@ public class MassMessageController {
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
 
-        // 计算偏移量
         int offset = (pageNum - 1) * pageSize;
-        
         List<MassTask> tasks = massTaskService.getMassTaskList(offset, pageSize);
 
         return ApiResult.success(tasks);
     }
 
     /**
-     * 获取群发任务详情
+     * 查询单个群发任务及其统计信息。
      */
     @ApiOperation("获取群发任务详情")
     @GetMapping("/task/{taskId}")
@@ -135,7 +131,7 @@ public class MassMessageController {
     }
 
     /**
-     * 获取群发任务明细
+     * 查询任务下每个接收对象的发送明细。
      */
     @ApiOperation("获取群发任务明细")
     @GetMapping("/task-details/{taskId}")
@@ -145,7 +141,7 @@ public class MassMessageController {
     }
 
     /**
-     * 取消群发任务
+     * 取消群发任务。
      */
     @ApiOperation("取消群发任务")
     @PutMapping("/cancel-task/{taskId}")
@@ -155,27 +151,22 @@ public class MassMessageController {
     }
 
     /**
-     * 创建群发任务
+     * 保存自定义群发任务，并按接收对象展开明细记录。
      */
     @ApiOperation("创建群发任务")
     @PostMapping("/task")
     public ApiResult<Long> createMassTask(@RequestBody MassTask massTask,
                                           @RequestParam List<Long> receiverIds,
                                           @RequestParam Integer receiverType) {
-        // 创建任务明细
         List<MassTaskDetail> details = new java.util.ArrayList<>();
-        
+
         for (Long receiverId : receiverIds) {
             MassTaskDetail detail = new MassTaskDetail();
-            detail.setReceiverType(receiverType); // 1-外部联系人, 2-群聊
+            detail.setReceiverType(receiverType);
             detail.setReceiverId(receiverId);
-            
-            // 根据接收者类型和ID获取接收者名称
-            String receiverName = getReceiverName(receiverType, receiverId);
-            detail.setReceiverName(receiverName);
-            
-            detail.setIsSent(0); // 未发送
-            detail.setSendStatus(0); // 默认失败状态
+            detail.setReceiverName(getReceiverName(receiverType, receiverId));
+            detail.setIsSent(0);
+            detail.setSendStatus(0);
             detail.setCreateTime(java.time.LocalDateTime.now());
             details.add(detail);
         }
@@ -185,16 +176,13 @@ public class MassMessageController {
     }
 
     /**
-     * 根据接收者类型和ID获取接收者名称
-     * @param receiverType 接收者类型 (1-外部联系人, 2-群聊)
-     * @param receiverId 接收者ID
-     * @return 接收者名称
+     * 根据接收对象类型解析明细中展示的名称。
      */
     private String getReceiverName(Integer receiverType, Long receiverId) {
-        if (receiverType == 1) { // 外部联系人
+        if (receiverType == 1) {
             WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(receiverId);
             return userInfo != null ? userInfo.getRealname() : "未知用户";
-        } else if (receiverType == 2) { // 群聊
+        } else if (receiverType == 2) {
             WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(receiverId);
             return groupInfo != null ? groupInfo.getNickname() : "未知群聊";
         } else {
@@ -203,18 +191,16 @@ public class MassMessageController {
     }
 
     /**
-     * 更新群发任务
+     * 更新任务的可编辑字段，不覆盖发送状态和统计字段。
      */
     @ApiOperation("更新群发任务")
     @PutMapping("/task/{taskId}")
     public ApiResult<Void> updateMassTask(@PathVariable Long taskId, @RequestBody MassTask massTask) {
-        // 从数据库获取原任务数据
         MassTask existingTask = massTaskService.getMassTaskById(taskId);
         if (existingTask == null) {
             return ApiResult.fail("群发任务不存在");
         }
 
-        // 只更新允许更新的字段，避免更新关键字段如状态、统计信息等
         existingTask.setTaskName(massTask.getTaskName());
         existingTask.setTaskType(massTask.getTaskType());
         existingTask.setContent(massTask.getContent());
@@ -233,19 +219,18 @@ public class MassMessageController {
     }
 
     /**
-     * 删除群发任务
+     * 删除任务及其关联的发送明细。
      */
     @ApiOperation("删除群发任务")
     @DeleteMapping("/task/{taskId}")
     public ApiResult<Void> deleteMassTask(@PathVariable Long taskId) {
-        // 同时删除关联的明细记录
         massTaskDetailService.deleteByTaskId(taskId);
         massTaskService.removeById(taskId);
         return ApiResult.success(null);
     }
 
     /**
-     * 获取任务统计信息
+     * 查询任务统计信息。
      */
     @ApiOperation("获取任务统计信息")
     @GetMapping("/task-stats/{taskId}")

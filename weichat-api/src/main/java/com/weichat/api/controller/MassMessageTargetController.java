@@ -15,7 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Api(tags = "Mass Message Target")
+/**
+ * 群发目标查询控制器，分别提供圈人和圈群的筛选接口。
+ */
+@Api(tags = "群发目标查询")
 @RestController
 @RequestMapping({"/api/v1/mass-message-targets", "/api/v1/query"})
 public class MassMessageTargetController {
@@ -26,7 +29,11 @@ public class MassMessageTargetController {
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
-    @ApiOperation("List external contacts for mass messaging")
+    /**
+     * 分页查询圈人目标。
+     * uuid 和 corpIds 都是可选条件，corpIds 支持多选筛选。
+     */
+    @ApiOperation("分页查询圈人目标")
     @GetMapping("/external-contacts")
     public ApiResult<List<WxUserInfo>> listExternalContacts(
             @RequestParam(required = false) String uuid,
@@ -50,11 +57,15 @@ public class MassMessageTargetController {
         return ApiResult.success(contacts);
     }
 
-    @ApiOperation("List groups for mass messaging")
+    /**
+     * 分页查询圈群目标。
+     * corpIds 为必填条件，uuid 为可选条件，corpIds 支持多选筛选。
+     */
+    @ApiOperation("分页查询圈群目标")
     @GetMapping("/groups")
     public ApiResult<List<WxGroupInfo>> listGroups(
             @RequestParam(required = false) String uuid,
-            @RequestParam Long corpId,
+            @RequestParam List<Long> corpIds,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
 
@@ -62,8 +73,9 @@ public class MassMessageTargetController {
         int safePageSize = Math.max(pageSize, 1);
         int offset = (safePageNum - 1) * safePageSize;
 
+        List<Long> normalizedCorpIds = corpIds == null || corpIds.isEmpty() ? null : corpIds;
         List<WxGroupInfo> groups = wxGroupInfoService.selectByFiltersWithPaging(
-                corpId,
+                normalizedCorpIds,
                 normalize(uuid),
                 offset,
                 safePageSize
@@ -72,10 +84,16 @@ public class MassMessageTargetController {
         return ApiResult.success(groups);
     }
 
+    /**
+     * 统一处理空白字符串，避免把空串传入查询条件。
+     */
     private String normalize(String value) {
         return hasText(value) ? value.trim() : null;
     }
 
+    /**
+     * 判断字符串是否包含有效文本。
+     */
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
     }

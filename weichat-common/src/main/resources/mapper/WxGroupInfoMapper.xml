@@ -131,7 +131,10 @@
 
     <select id="selectByFiltersWithPaging" resultType="com.weichat.common.entity.WxGroupInfo">
         SELECT * FROM wx_group_info g
-        WHERE g.corpid = #{corpId}
+        WHERE g.corpid IN
+        <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
+            #{corpId}
+        </foreach>
         <if test="uuid != null and uuid != ''">
             AND EXISTS (
                 SELECT 1

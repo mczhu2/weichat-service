@@ -9,9 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 消息模板服务类
- *
- * @author weichat
+ * 消息模板服务，负责模板的增删改查。
  */
 @Service
 public class MessageTemplateService {
@@ -20,10 +18,7 @@ public class MessageTemplateService {
     private MessageTemplateMapper messageTemplateMapper;
 
     /**
-     * 创建消息模板
-     *
-     * @param template 消息模板对象
-     * @return 模板ID
+     * 创建消息模板。
      */
     public Long createTemplate(MessageTemplate template) {
         template.setCreateTime(LocalDateTime.now());
@@ -33,9 +28,7 @@ public class MessageTemplateService {
     }
 
     /**
-     * 更新消息模板
-     *
-     * @param template 消息模板对象
+     * 更新消息模板。
      */
     public void updateTemplate(MessageTemplate template) {
         template.setUpdateTime(LocalDateTime.now());
@@ -43,49 +36,35 @@ public class MessageTemplateService {
     }
 
     /**
-     * 删除消息模板
-     *
-     * @param templateId 模板ID
+     * 删除消息模板。
      */
     public void deleteTemplate(Long templateId) {
         messageTemplateMapper.deleteByPrimaryKey(templateId);
     }
 
     /**
-     * 根据ID获取消息模板
-     *
-     * @param templateId 模板ID
-     * @return 消息模板对象
+     * 根据模板 ID 查询模板详情。
      */
     public MessageTemplate getTemplateById(Long templateId) {
         return messageTemplateMapper.selectByPrimaryKey(templateId);
     }
 
     /**
-     * 获取所有消息模板
-     *
-     * @return 消息模板列表
+     * 查询全部消息模板。
      */
     public List<MessageTemplate> getAllTemplates() {
         return messageTemplateMapper.selectAll();
     }
 
     /**
-     * 根据创建人获取模板列表
-     *
-     * @param creator 创建人
-     * @return 模板列表
+     * 根据创建人查询模板列表。
      */
     public List<MessageTemplate> getTemplatesByCreator(String creator) {
         return messageTemplateMapper.selectByCreator(creator);
     }
 
     /**
-     * 根据偏移量和限制数量获取模板列表
-     *
-     * @param offset 偏移量
-     * @param limit 限制数量
-     * @return 模板列表
+     * 分页查询模板列表。
      */
     public List<MessageTemplate> getTemplatesByOffset(int offset, int limit) {
         return messageTemplateMapper.selectWithPaging(offset, limit);
