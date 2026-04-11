@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.request.message.SendImageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
+import com.weichat.api.vo.request.message.SendVoiceRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import com.weichat.api.vo.response.message.SendMsgResponse;
 import com.weichat.common.entity.WxMessageInfo;
@@ -26,6 +27,9 @@ public class CustomerReplyService {
 
     @Autowired
     private CdnImageService cdnImageService;
+
+    @Autowired
+    private CdnFileService cdnFileService;
 
     /**
      * 统一处理下游回调后的自动回复，当前兼容纯文本 reply 和图片集合 images。
@@ -49,6 +53,7 @@ public class CustomerReplyService {
 
         sendTextReply(target, wxMessageInfo, callbackResult.getString("reply"));
         sendImageReplies(target, wxMessageInfo, callbackResult);
+        sendVoiceReplies(target, wxMessageInfo, callbackResult);
     }
 
     /**
@@ -136,6 +141,40 @@ public class CustomerReplyService {
     }
 
     /**
+     * 处理语音回复。
+     * 语音文件走文件 CDN 上传链路，文件内容兼容普通文件和 .silk 语音文件。
+     */
+    private void sendVoiceReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, JSONObject callbackResult) {
+        JSONArray voiceArray = resolveReplyVoices(callbackResult);
+        if (voiceArray == null || voiceArray.isEmpty()) {
+            return;
+        }
+
+        for (int i = 0; i < voiceArray.size(); i++) {
+            Object item = voiceArray.get(i);
+            try {
+                JSONObject voicePayload = normalizeVoicePayload(item);
+                CdnUploadResponse uploadResponse = cdnFileService.uploadFile(target.getUuid(), voicePayload);
+                SendVoiceRequest request = buildSendVoiceRequest(
+                        target,
+                        voicePayload,
+                        validateFileUploadResponse(uploadResponse)
+                );
+                ApiResult<SendMsgResponse> sendResult = messageSendService.sendVoice(request);
+                logSendResult("voice", wxMessageInfo, sendResult);
+            } catch (Exception e) {
+                logger.error(
+                        "Failed to send reply voice. msgId={}, voiceIndex={}, payload={}",
+                        wxMessageInfo.getMsgId(),
+                        i,
+                        item,
+                        e
+                );
+            }
+        }
+    }
+
+    /**
      * 兼容多种图片数组字段名，并兼容字符串化 JSON 数组。
      */
     private JSONArray resolveReplyImages(JSONObject callbackResult) {
@@ -171,6 +210,43 @@ public class CustomerReplyService {
     }
 
     /**
+     * 兼容多种语音字段名，并兼容字符串化 JSON 数组。
+     */
+    private JSONArray resolveReplyVoices(JSONObject callbackResult) {
+        Object voices = firstNonNull(
+                callbackResult.get("voice"),
+                callbackResult.get("voices"),
+                callbackResult.get("replyVoice"),
+                callbackResult.get("reply_voice"),
+                callbackResult.get("audio"),
+                callbackResult.get("audios")
+        );
+        if (voices instanceof JSONArray) {
+            return (JSONArray) voices;
+        }
+        if (voices instanceof JSONObject) {
+            JSONArray array = new JSONArray();
+            array.add(voices);
+            return array;
+        }
+        if (voices instanceof String && StringUtils.hasText((String) voices)) {
+            String text = ((String) voices).trim();
+            if (text.startsWith("[")) {
+                try {
+                    return JSON.parseArray(text);
+                } catch (Exception e) {
+                    logger.warn("Failed to parse voice array string. text={}", text, e);
+                    return null;
+                }
+            }
+            JSONArray array = new JSONArray();
+            array.add(text);
+            return array;
+        }
+        return null;
+    }
+
+    /**
      * 将单个图片项归一化为 JSONObject，兼容纯字符串 URL、纯字符串 base64 和 JSON 对象三种输入。
      */
     private JSONObject normalizeImagePayload(Object item) {
@@ -194,6 +270,35 @@ public class CustomerReplyService {
     }
 
     /**
+     * 将单个语音项归一化为 JSONObject，兼容纯字符串 URL、纯字符串 base64 和 JSON 对象三种输入。
+     */
+    private JSONObject normalizeVoicePayload(Object item) {
+        JSONObject payload;
+        if (item instanceof JSONObject) {
+            payload = (JSONObject) item;
+        } else if (item instanceof String) {
+            String value = ((String) item).trim();
+            if (value.startsWith("{")) {
+                payload = JSON.parseObject(value);
+            } else {
+                payload = new JSONObject();
+                if (value.startsWith("http://") || value.startsWith("https://")) {
+                    payload.put("url", value);
+                } else {
+                    payload.put("base64", value);
+                }
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported voice payload type: " + item);
+        }
+
+        if (!StringUtils.hasText(payload.getString("filename")) && !StringUtils.hasText(payload.getString("fileName"))) {
+            payload.put("filename", "reply-" + System.currentTimeMillis() + ".silk");
+        }
+        return payload;
+    }
+
+    /**
      * 发送图片消息前校验 CDN 上传结果，缺少关键媒体字段时直接失败。
      */
     private CdnUploadResponse validateUploadResponse(CdnUploadResponse uploadResponse) {
@@ -211,6 +316,28 @@ public class CustomerReplyService {
         }
         if (uploadResponse.getSize() == null) {
             throw new IllegalStateException("CDN upload response is missing size");
+        }
+        return uploadResponse;
+    }
+
+    /**
+     * 发送语音消息前校验文件 CDN 上传结果。
+     */
+    private CdnUploadResponse validateFileUploadResponse(CdnUploadResponse uploadResponse) {
+        if (uploadResponse == null) {
+            throw new IllegalStateException("CDN file upload response is empty");
+        }
+        if (!StringUtils.hasText(resolveCdnKey(uploadResponse))) {
+            throw new IllegalStateException("CDN file upload response is missing cdn key");
+        }
+        if (!StringUtils.hasText(uploadResponse.getAes_key())) {
+            throw new IllegalStateException("CDN file upload response is missing aes_key");
+        }
+        if (!StringUtils.hasText(uploadResponse.getMd5())) {
+            throw new IllegalStateException("CDN file upload response is missing md5");
+        }
+        if (uploadResponse.getSize() == null) {
+            throw new IllegalStateException("CDN file upload response is missing size");
         }
         return uploadResponse;
     }
@@ -241,6 +368,35 @@ public class CustomerReplyService {
     }
 
     /**
+     * 将 CDN 文件上传结果映射成 SendCDNVoiceMsg 所需的语音消息请求体。
+     */
+    private SendVoiceRequest buildSendVoiceRequest(ReplyTarget target,
+                                                   JSONObject voicePayload,
+                                                   CdnUploadResponse uploadResponse) {
+        return SendVoiceRequest.builder()
+                .uuid(target.getUuid())
+                .send_userid(target.getSendUserid())
+                .kf_id(target.getKfId())
+                .isRoom(target.getRoomMessage())
+                .cdnkey(resolveCdnKey(uploadResponse))
+                .aeskey(uploadResponse.getAes_key())
+                .md5(uploadResponse.getMd5())
+                .voice_time(resolveVoiceDuration(voicePayload))
+                .fileSize(uploadResponse.getSize())
+                .build();
+    }
+
+    /**
+     * 文件类 CDN 上传有时返回 cdn_key，有时只返回 fileid，这里统一兜底。
+     */
+    private String resolveCdnKey(CdnUploadResponse uploadResponse) {
+        if (StringUtils.hasText(uploadResponse.getCdn_key())) {
+            return uploadResponse.getCdn_key();
+        }
+        return uploadResponse.getFileid();
+    }
+
+    /**
      * 兼容 is_hd / isHd 两种字段名。
      */
     private Integer resolveIsHd(JSONObject imagePayload) {
@@ -249,6 +405,25 @@ public class CustomerReplyService {
             return isHd;
         }
         return imagePayload.getInteger("isHd");
+    }
+
+    /**
+     * 兼容 voice_time / voiceTime / duration 三种字段名。
+     */
+    private Integer resolveVoiceDuration(JSONObject voicePayload) {
+        Integer voiceTime = voicePayload.getInteger("voice_time");
+        if (voiceTime != null) {
+            return voiceTime;
+        }
+        voiceTime = voicePayload.getInteger("voiceTime");
+        if (voiceTime != null) {
+            return voiceTime;
+        }
+        voiceTime = voicePayload.getInteger("duration");
+        if (voiceTime != null) {
+            return voiceTime;
+        }
+        throw new IllegalStateException("Reply voice is missing voice_time");
     }
 
     /**

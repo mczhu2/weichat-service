@@ -6,6 +6,7 @@ import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.request.message.SendImageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
+import com.weichat.api.vo.request.message.SendVoiceRequest;
 import com.weichat.api.vo.response.message.SendMsgResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,14 @@ public class MessageSendService {
      */
     public ApiResult<SendMsgResponse> sendImage(SendImageRequest request) {
         JSONObject response = client.post("/wxwork/SendCDNImgMsg", JSON.parseObject(JSON.toJSONString(request)));
+        return ApiResult.from(response, SendMsgResponse.class);
+    }
+
+    /**
+     * 发送 CDN 语音消息，调用方需提前完成语音上传并填充完整媒体信息。
+     */
+    public ApiResult<SendMsgResponse> sendVoice(SendVoiceRequest request) {
+        JSONObject response = client.post("/wxwork/SendCDNVoiceMsg", JSON.parseObject(JSON.toJSONString(request)));
         return ApiResult.from(response, SendMsgResponse.class);
     }
 }
