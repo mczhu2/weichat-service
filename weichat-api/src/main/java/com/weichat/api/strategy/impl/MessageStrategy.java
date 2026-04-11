@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.CallbackRequest;
 import com.weichat.api.service.CustomerReplyService;
+import com.weichat.api.service.DownstreamMessageContentService;
 import com.weichat.api.strategy.CallbackStrategy;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
@@ -43,6 +44,9 @@ public class MessageStrategy implements CallbackStrategy {
 
     @Autowired
     private CustomerReplyService customerReplyService;
+
+    @Autowired
+    private DownstreamMessageContentService downstreamMessageContentService;
 
     @Value("${bizSystem.wecom.callback.url:http://115.190.61.17:8081/api/wecom/callback}")
     private String wecomCallbackUrl;
@@ -84,7 +88,7 @@ public class MessageStrategy implements CallbackStrategy {
                 return;
             }
 
-            String content = resolveMessageContent(wxMessageInfo);
+            String content = downstreamMessageContentService.resolveCallbackContent(wxMessageInfo, receiverUser.getUuid());
             if (!StringUtils.hasText(content)) {
                 logger.warn("Skip downstream callback because content is empty. msgId={}", wxMessageInfo.getMsgId());
                 return;
@@ -136,6 +140,11 @@ public class MessageStrategy implements CallbackStrategy {
         return true;
     }
 
+    /**
+     * 组装发给下游业务系统的回调请求体。
+     * content 字段已经由 DownstreamMessageContentService 做过统一收口，
+     * 这里不再关心文本还是媒体消息，避免策略层继续膨胀。
+     */
     private HttpEntity<String> buildCallbackEntity(WxMessageInfo wxMessageInfo, WxUserInfo receiverUser, String content) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("fromVid", String.valueOf(wxMessageInfo.getSender()));
@@ -148,27 +157,5 @@ public class MessageStrategy implements CallbackStrategy {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new HttpEntity<>(JSON.toJSONString(payload), headers);
-    }
-
-    private String resolveMessageContent(WxMessageInfo wxMessageInfo) {
-        if (StringUtils.hasText(wxMessageInfo.getContent())) {
-            return wxMessageInfo.getContent();
-        }
-        if (StringUtils.hasText(wxMessageInfo.getTitle())) {
-            return wxMessageInfo.getTitle();
-        }
-        if (StringUtils.hasText(wxMessageInfo.getDesc())) {
-            return wxMessageInfo.getDesc();
-        }
-        if (StringUtils.hasText(wxMessageInfo.getUrl())) {
-            return wxMessageInfo.getUrl();
-        }
-        if (StringUtils.hasText(wxMessageInfo.getFileId())) {
-            return wxMessageInfo.getFileId();
-        }
-        if (StringUtils.hasText(wxMessageInfo.getMessageId())) {
-            return wxMessageInfo.getMessageId();
-        }
-        return "";
     }
 }

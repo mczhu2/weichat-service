@@ -201,9 +201,29 @@ public class WxMessageInfo implements Serializable {
     private String fileId;
 
     /**
+     * 文件名
+     */
+    private String fileName;
+
+    /**
      * 图片CDN授权密钥
      */
     private String openimCdnAuthkey;
+
+    /**
+     * 图片低清资源地址
+     */
+    private String openimCdnLdurl;
+
+    /**
+     * 图片低清资源大小
+     */
+    private Integer openimCdnLdSize;
+
+    /**
+     * 图片低清资源AES密钥
+     */
+    private String openimCdnLdAeskey;
 
     /**
      * 图片AES密钥
@@ -214,6 +234,41 @@ public class WxMessageInfo implements Serializable {
      * 图片MD5值
      */
     private String md5;
+
+    /**
+     * 语音文件ID
+     */
+    private String voiceId;
+
+    /**
+     * 语音时长
+     */
+    private Integer voiceTime;
+
+    /**
+     * 语音大小
+     */
+    private Long voiceSize;
+
+    /**
+     * 视频时长
+     */
+    private Integer videoDuration;
+
+    /**
+     * 视频宽度
+     */
+    private Integer videoWidth;
+
+    /**
+     * 视频高度
+     */
+    private Integer videoHeight;
+
+    /**
+     * 视频缩略图地址
+     */
+    private String previewImgUrl;
 
     /* 公共字段 */
 
