@@ -20,7 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -590,7 +592,262 @@ public class CustomerReplyService {
         if (voiceTime != null) {
             return voiceTime;
         }
+        Integer inferredDuration = inferVoiceDuration(voicePayload);
+        if (inferredDuration != null) {
+            voicePayload.setVoiceTime(inferredDuration);
+            return inferredDuration;
+        }
         throw new IllegalStateException("Reply voice is missing voice_time");
+    }
+
+    private Integer inferVoiceDuration(ReplyMediaItem voicePayload) {
+        if (voicePayload == null || !StringUtils.hasText(voicePayload.getBase64())) {
+            return null;
+        }
+        byte[] audioBytes = decodeBase64Bytes(voicePayload.getBase64());
+        if (audioBytes == null || audioBytes.length == 0) {
+            return null;
+        }
+
+        Integer wavDuration = inferWavDuration(audioBytes);
+        if (wavDuration != null) {
+            return wavDuration;
+        }
+
+        Integer mp3Duration = inferMp3Duration(audioBytes);
+        if (mp3Duration != null) {
+            return mp3Duration;
+        }
+        return null;
+    }
+
+    private byte[] decodeBase64Bytes(String base64Payload) {
+        String trimmed = base64Payload == null ? "" : base64Payload.trim();
+        String encoded = trimmed;
+        int commaIndex = trimmed.indexOf(',');
+        if (trimmed.startsWith("data:") && commaIndex > 0) {
+            encoded = trimmed.substring(commaIndex + 1);
+        }
+
+        String normalized = normalizeBase64(encoded);
+        try {
+            return Base64.getDecoder().decode(normalized);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Failed to decode base64 voice payload for duration inference", e);
+            return null;
+        }
+    }
+
+    private String normalizeBase64(String encoded) {
+        String normalized = encoded == null ? "" : encoded.replaceAll("\\s", "");
+        int remainder = normalized.length() % 4;
+        if (remainder == 0) {
+            return normalized;
+        }
+        StringBuilder builder = new StringBuilder(normalized);
+        for (int i = remainder; i < 4; i++) {
+            builder.append('=');
+        }
+        return builder.toString();
+    }
+
+    private Integer inferWavDuration(byte[] bytes) {
+        if (bytes.length < 44) {
+            return null;
+        }
+        if (!startsWith(bytes, "RIFF") || !matchesAt(bytes, 8, "WAVE")) {
+            return null;
+        }
+
+        int offset = 12;
+        Integer dataSize = null;
+        Integer byteRate = null;
+        while (offset + 8 <= bytes.length) {
+            String chunkId = new String(bytes, offset, 4, StandardCharsets.US_ASCII);
+            int chunkSize = readLittleEndianInt(bytes, offset + 4);
+            int nextOffset = offset + 8 + chunkSize + (chunkSize % 2);
+            if (chunkSize < 0 || nextOffset > bytes.length + 1) {
+                return null;
+            }
+
+            if ("fmt ".equals(chunkId) && chunkSize >= 16 && offset + 16 + 8 <= bytes.length) {
+                byteRate = readLittleEndianInt(bytes, offset + 16);
+            } else if ("data".equals(chunkId)) {
+                dataSize = chunkSize;
+            }
+
+            if (dataSize != null && byteRate != null && byteRate > 0) {
+                return Math.max(1, (int) Math.ceil((double) dataSize / (double) byteRate));
+            }
+            offset = nextOffset;
+        }
+        return null;
+    }
+
+    private Integer inferMp3Duration(byte[] bytes) {
+        int offset = skipId3v2Tag(bytes);
+        long totalSamples = 0L;
+        int frameCount = 0;
+
+        while (offset + 4 <= bytes.length) {
+            int header = readBigEndianInt(bytes, offset);
+            Mp3Frame frame = parseMp3Frame(header);
+            if (frame == null) {
+                offset++;
+                continue;
+            }
+
+            if (frame.frameLength <= 0 || offset + frame.frameLength > bytes.length) {
+                break;
+            }
+
+            totalSamples += frame.samplesPerFrame;
+            frameCount++;
+            offset += frame.frameLength;
+        }
+
+        if (frameCount == 0) {
+            return null;
+        }
+
+        int durationSeconds = (int) Math.ceil((double) totalSamples / (double) 44100D);
+        Mp3Frame firstFrame = findFirstMp3Frame(bytes, skipId3v2Tag(bytes));
+        if (firstFrame != null && firstFrame.sampleRate > 0) {
+            durationSeconds = (int) Math.ceil((double) totalSamples / (double) firstFrame.sampleRate);
+        }
+        return Math.max(1, durationSeconds);
+    }
+
+    private Mp3Frame findFirstMp3Frame(byte[] bytes, int startOffset) {
+        for (int offset = startOffset; offset + 4 <= bytes.length; offset++) {
+            Mp3Frame frame = parseMp3Frame(readBigEndianInt(bytes, offset));
+            if (frame != null) {
+                return frame;
+            }
+        }
+        return null;
+    }
+
+    private int skipId3v2Tag(byte[] bytes) {
+        if (bytes.length < 10 || !startsWith(bytes, "ID3")) {
+            return 0;
+        }
+        int size = ((bytes[6] & 0x7F) << 21)
+                | ((bytes[7] & 0x7F) << 14)
+                | ((bytes[8] & 0x7F) << 7)
+                | (bytes[9] & 0x7F);
+        int tagSize = 10 + size;
+        if (tagSize > bytes.length) {
+            return 0;
+        }
+        return tagSize;
+    }
+
+    private Mp3Frame parseMp3Frame(int header) {
+        if ((header & 0xFFE00000) != 0xFFE00000) {
+            return null;
+        }
+
+        int versionBits = (header >>> 19) & 0x3;
+        int layerBits = (header >>> 17) & 0x3;
+        int bitrateIndex = (header >>> 12) & 0xF;
+        int sampleRateIndex = (header >>> 10) & 0x3;
+        int paddingBit = (header >>> 9) & 0x1;
+
+        if (versionBits == 1 || layerBits != 1 || bitrateIndex == 0 || bitrateIndex == 15 || sampleRateIndex == 3) {
+            return null;
+        }
+
+        int sampleRate = resolveMp3SampleRate(versionBits, sampleRateIndex);
+        int bitrate = resolveMp3Bitrate(versionBits, bitrateIndex);
+        if (sampleRate <= 0 || bitrate <= 0) {
+            return null;
+        }
+
+        int frameLength;
+        int samplesPerFrame;
+        if (versionBits == 3) {
+            frameLength = (144 * bitrate * 1000) / sampleRate + paddingBit;
+            samplesPerFrame = 1152;
+        } else {
+            frameLength = (72 * bitrate * 1000) / sampleRate + paddingBit;
+            samplesPerFrame = 576;
+        }
+
+        if (frameLength <= 4) {
+            return null;
+        }
+        return new Mp3Frame(frameLength, sampleRate, samplesPerFrame);
+    }
+
+    private int resolveMp3SampleRate(int versionBits, int sampleRateIndex) {
+        int[] baseRates = new int[]{44100, 48000, 32000};
+        int sampleRate = baseRates[sampleRateIndex];
+        if (versionBits == 2) {
+            return sampleRate / 2;
+        }
+        if (versionBits == 0) {
+            return sampleRate / 4;
+        }
+        return sampleRate;
+    }
+
+    private int resolveMp3Bitrate(int versionBits, int bitrateIndex) {
+        int[] mpeg1Layer3 = new int[]{0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0};
+        int[] mpeg2Layer3 = new int[]{0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0};
+        if (versionBits == 3) {
+            return mpeg1Layer3[bitrateIndex];
+        }
+        return mpeg2Layer3[bitrateIndex];
+    }
+
+    private boolean startsWith(byte[] bytes, String value) {
+        return matchesAt(bytes, 0, value);
+    }
+
+    private boolean matchesAt(byte[] bytes, int offset, String value) {
+        byte[] ascii = value.getBytes(StandardCharsets.US_ASCII);
+        if (offset < 0 || bytes.length < offset + ascii.length) {
+            return false;
+        }
+        for (int i = 0; i < ascii.length; i++) {
+            if (bytes[offset + i] != ascii[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private int readLittleEndianInt(byte[] bytes, int offset) {
+        if (offset + 4 > bytes.length) {
+            return -1;
+        }
+        return (bytes[offset] & 0xFF)
+                | ((bytes[offset + 1] & 0xFF) << 8)
+                | ((bytes[offset + 2] & 0xFF) << 16)
+                | ((bytes[offset + 3] & 0xFF) << 24);
+    }
+
+    private int readBigEndianInt(byte[] bytes, int offset) {
+        if (offset + 4 > bytes.length) {
+            return -1;
+        }
+        return ((bytes[offset] & 0xFF) << 24)
+                | ((bytes[offset + 1] & 0xFF) << 16)
+                | ((bytes[offset + 2] & 0xFF) << 8)
+                | (bytes[offset + 3] & 0xFF);
+    }
+
+    private static class Mp3Frame {
+        private final int frameLength;
+        private final int sampleRate;
+        private final int samplesPerFrame;
+
+        private Mp3Frame(int frameLength, int sampleRate, int samplesPerFrame) {
+            this.frameLength = frameLength;
+            this.sampleRate = sampleRate;
+            this.samplesPerFrame = samplesPerFrame;
+        }
     }
 
     /**
