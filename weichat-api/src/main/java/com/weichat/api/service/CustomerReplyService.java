@@ -23,6 +23,7 @@ import org.springframework.util.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class CustomerReplyService {
@@ -372,11 +373,18 @@ public class CustomerReplyService {
                 payload.getString("content")
         ));
         mediaItem.setFilename(firstNonBlank(payload.getString("filename"), payload.getString("fileName")));
-        mediaItem.setContentType(firstNonBlank(payload.getString("contentType"), payload.getString("mimeType")));
+        mediaItem.setContentType(firstNonBlank(
+                payload.getString("contentType"),
+                payload.getString("content_type"),
+                payload.getString("mimeType"),
+                payload.getString("mime_type")
+        ));
         mediaItem.setIsHd(firstNonNullInteger(payload.getInteger("is_hd"), payload.getInteger("isHd")));
         mediaItem.setVoiceTime(firstNonNullInteger(
                 payload.getInteger("voice_time"),
                 payload.getInteger("voiceTime"),
+                payload.getInteger("voice_duration"),
+                payload.getInteger("voiceDuration"),
                 payload.getInteger("duration")
         ));
         enrichMediaItem(mediaItem, mediaType);
@@ -384,12 +392,89 @@ public class CustomerReplyService {
     }
 
     /**
-     * Fill type specific defaults. Voice reply currently defaults to a silk filename.
+     * Fill type specific defaults. Voice reply keeps the extension aligned with the audio format.
      */
     private void enrichMediaItem(ReplyMediaItem mediaItem, String mediaType) {
         if ("voice".equals(mediaType)) {
-            mediaItem.ensureFilename("reply-" + System.currentTimeMillis() + ".silk");
+            mediaItem.ensureFilename(buildDefaultVoiceFilename(mediaItem));
         }
+    }
+
+    private String buildDefaultVoiceFilename(ReplyMediaItem mediaItem) {
+        String extension = resolveVoiceExtension(mediaItem);
+        if (!StringUtils.hasText(extension)) {
+            extension = "silk";
+        }
+        return "reply-" + System.currentTimeMillis() + "." + extension;
+    }
+
+    private String resolveVoiceExtension(ReplyMediaItem mediaItem) {
+        String contentType = firstNonBlank(
+                mediaItem == null ? null : mediaItem.getContentType(),
+                extractContentTypeFromDataUrl(mediaItem == null ? null : mediaItem.getBase64())
+        );
+        if (StringUtils.hasText(contentType)) {
+            String mimeExtension = resolveExtensionFromContentType(contentType);
+            if (StringUtils.hasText(mimeExtension)) {
+                return mimeExtension;
+            }
+        }
+
+        if (mediaItem != null && StringUtils.hasText(mediaItem.getUrl())) {
+            String cleanUrl = mediaItem.getUrl();
+            int queryIndex = cleanUrl.indexOf('?');
+            if (queryIndex >= 0) {
+                cleanUrl = cleanUrl.substring(0, queryIndex);
+            }
+            String extension = StringUtils.getFilenameExtension(cleanUrl);
+            if (StringUtils.hasText(extension)) {
+                return extension.toLowerCase(Locale.ROOT);
+            }
+        }
+        return null;
+    }
+
+    private String extractContentTypeFromDataUrl(String base64Payload) {
+        if (!StringUtils.hasText(base64Payload)) {
+            return null;
+        }
+        String trimmed = base64Payload.trim();
+        int commaIndex = trimmed.indexOf(',');
+        if (!trimmed.startsWith("data:") || commaIndex <= 5) {
+            return null;
+        }
+        String meta = trimmed.substring(5, commaIndex);
+        int semicolonIndex = meta.indexOf(';');
+        return semicolonIndex >= 0 ? meta.substring(0, semicolonIndex) : meta;
+    }
+
+    private String resolveExtensionFromContentType(String contentType) {
+        if (!StringUtils.hasText(contentType)) {
+            return null;
+        }
+        String normalized = contentType.trim().toLowerCase(Locale.ROOT);
+        if ("audio/mpeg".equals(normalized) || "audio/mp3".equals(normalized) || "audio/x-mp3".equals(normalized)) {
+            return "mp3";
+        }
+        if ("audio/mp4".equals(normalized) || "audio/x-m4a".equals(normalized)) {
+            return "m4a";
+        }
+        if ("audio/wav".equals(normalized) || "audio/x-wav".equals(normalized) || "audio/wave".equals(normalized)) {
+            return "wav";
+        }
+        if ("audio/amr".equals(normalized)) {
+            return "amr";
+        }
+        if ("audio/silk".equals(normalized) || "application/silk".equals(normalized)) {
+            return "silk";
+        }
+        if ("audio/ogg".equals(normalized)) {
+            return "ogg";
+        }
+        if ("audio/webm".equals(normalized)) {
+            return "webm";
+        }
+        return null;
     }
 
     /**

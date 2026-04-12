@@ -5,13 +5,14 @@ import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.callback.ReplyMediaItem;
-import com.weichat.api.vo.request.cdn.CdnUploadFileRequest;
+import com.weichat.api.vo.request.cdn.CdnUploadLinkFileRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.Base64;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -24,10 +25,10 @@ public class CdnFileService {
      * Upload a file by remote URL.
      */
     public CdnUploadResponse uploadFileByUrl(String uuid, String fileUrl, String fileName) {
-        CdnUploadFileRequest request = CdnUploadFileRequest.builder()
+        CdnUploadLinkFileRequest request = CdnUploadLinkFileRequest.builder()
                 .uuid(uuid)
-                .fileUrl(fileUrl)
-                .fileName(fileName)
+                .url(fileUrl)
+                .filename(fileName)
                 .build();
         JSONObject response = client.post("/wxwork/UploadCdnLinkFile", (JSONObject) JSON.toJSON(request));
         return extractUploadResponse(response, "url");
@@ -108,7 +109,13 @@ public class CdnFileService {
             }
         }
 
-        byte[] bytes = Base64.getDecoder().decode(encoded.replaceAll("\\s", ""));
+        String normalizedBase64 = normalizeBase64(encoded);
+        byte[] bytes;
+        try {
+            bytes = Base64.getDecoder().decode(normalizedBase64);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid base64 file payload", e);
+        }
         if (bytes.length == 0) {
             throw new IllegalArgumentException("Base64 file is empty");
         }
@@ -126,17 +133,58 @@ public class CdnFileService {
      * Build a fallback filename from MIME type.
      */
     private String buildFilename(String contentType) {
-        String extension = "bin";
-        if (StringUtils.hasText(contentType)) {
-            int slashIndex = contentType.indexOf('/');
-            if (slashIndex >= 0 && slashIndex < contentType.length() - 1) {
-                extension = contentType.substring(slashIndex + 1).replaceAll("[^A-Za-z0-9]", "");
-            }
-        }
+        String extension = resolveExtension(contentType);
         if (!StringUtils.hasText(extension)) {
             extension = "bin";
         }
         return "reply-" + UUID.randomUUID().toString().replace("-", "") + "." + extension;
+    }
+
+    private String normalizeBase64(String encoded) {
+        String normalized = encoded == null ? "" : encoded.replaceAll("\\s", "");
+        int remainder = normalized.length() % 4;
+        if (remainder == 0) {
+            return normalized;
+        }
+        StringBuilder builder = new StringBuilder(normalized);
+        for (int i = remainder; i < 4; i++) {
+            builder.append('=');
+        }
+        return builder.toString();
+    }
+
+    private String resolveExtension(String contentType) {
+        if (!StringUtils.hasText(contentType)) {
+            return null;
+        }
+        String normalized = contentType.trim().toLowerCase(Locale.ROOT);
+        if ("audio/mpeg".equals(normalized) || "audio/mp3".equals(normalized) || "audio/x-mp3".equals(normalized)) {
+            return "mp3";
+        }
+        if ("audio/mp4".equals(normalized) || "audio/x-m4a".equals(normalized)) {
+            return "m4a";
+        }
+        if ("audio/wav".equals(normalized) || "audio/x-wav".equals(normalized) || "audio/wave".equals(normalized)) {
+            return "wav";
+        }
+        if ("audio/amr".equals(normalized)) {
+            return "amr";
+        }
+        if ("audio/silk".equals(normalized) || "application/silk".equals(normalized)) {
+            return "silk";
+        }
+        if ("audio/ogg".equals(normalized)) {
+            return "ogg";
+        }
+        if ("audio/webm".equals(normalized)) {
+            return "webm";
+        }
+
+        int slashIndex = normalized.indexOf('/');
+        if (slashIndex >= 0 && slashIndex < normalized.length() - 1) {
+            return normalized.substring(slashIndex + 1).replaceAll("[^a-z0-9]", "");
+        }
+        return null;
     }
 
     private static class Base64FileData {

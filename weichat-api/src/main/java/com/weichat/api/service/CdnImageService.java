@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.Base64;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -107,7 +108,13 @@ public class CdnImageService {
             }
         }
 
-        byte[] bytes = Base64.getDecoder().decode(encoded.replaceAll("\\s", ""));
+        String normalizedBase64 = normalizeBase64(encoded);
+        byte[] bytes;
+        try {
+            bytes = Base64.getDecoder().decode(normalizedBase64);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid base64 image payload", e);
+        }
         if (bytes.length == 0) {
             throw new IllegalArgumentException("Base64 image is empty");
         }
@@ -125,17 +132,52 @@ public class CdnImageService {
      * Build a fallback filename from MIME type.
      */
     private String buildFilename(String contentType) {
-        String extension = "png";
-        if (StringUtils.hasText(contentType)) {
-            int slashIndex = contentType.indexOf('/');
-            if (slashIndex >= 0 && slashIndex < contentType.length() - 1) {
-                extension = contentType.substring(slashIndex + 1).replaceAll("[^A-Za-z0-9]", "");
-            }
-        }
+        String extension = resolveExtension(contentType);
         if (!StringUtils.hasText(extension)) {
             extension = "png";
         }
         return "reply-" + UUID.randomUUID().toString().replace("-", "") + "." + extension;
+    }
+
+    private String normalizeBase64(String encoded) {
+        String normalized = encoded == null ? "" : encoded.replaceAll("\\s", "");
+        int remainder = normalized.length() % 4;
+        if (remainder == 0) {
+            return normalized;
+        }
+        StringBuilder builder = new StringBuilder(normalized);
+        for (int i = remainder; i < 4; i++) {
+            builder.append('=');
+        }
+        return builder.toString();
+    }
+
+    private String resolveExtension(String contentType) {
+        if (!StringUtils.hasText(contentType)) {
+            return null;
+        }
+        String normalized = contentType.trim().toLowerCase(Locale.ROOT);
+        if ("image/jpeg".equals(normalized) || "image/jpg".equals(normalized) || "image/pjpeg".equals(normalized)) {
+            return "jpg";
+        }
+        if ("image/png".equals(normalized) || "image/x-png".equals(normalized)) {
+            return "png";
+        }
+        if ("image/gif".equals(normalized)) {
+            return "gif";
+        }
+        if ("image/webp".equals(normalized)) {
+            return "webp";
+        }
+        if ("image/bmp".equals(normalized) || "image/x-ms-bmp".equals(normalized)) {
+            return "bmp";
+        }
+
+        int slashIndex = normalized.indexOf('/');
+        if (slashIndex >= 0 && slashIndex < normalized.length() - 1) {
+            return normalized.substring(slashIndex + 1).replaceAll("[^a-z0-9]", "");
+        }
+        return null;
     }
 
     private static class Base64ImageData {

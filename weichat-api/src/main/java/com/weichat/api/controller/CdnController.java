@@ -88,7 +88,7 @@ public class CdnController {
 
     @ApiOperation("CDN上传文件链接")
     @PostMapping("/uploadCdnLinkFile")
-    public ApiResult<CdnUploadResponse> uploadCdnLinkFile(@RequestBody CdnUploadFileRequest request) {
+    public ApiResult<CdnUploadResponse> uploadCdnLinkFile(@RequestBody CdnUploadLinkFileRequest request) {
         return ApiResult.from(client.post("/wxwork/UploadCdnLinkFile", toJson(request)), CdnUploadResponse.class);
     }
 
