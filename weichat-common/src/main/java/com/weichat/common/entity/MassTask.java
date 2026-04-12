@@ -55,7 +55,7 @@ public class MassTask implements Serializable {
     private String videoMediaId;
 
     /**
-     * 消息类型 (0-文本, 1-图片, 2-文件, 3-音频, 4-视频)
+     * 消息类型 (0-文本, 1-图片, 2-文件, 3-音频, 4-视频, 5-小程序消息)
      */
     private Integer msgType;
 
