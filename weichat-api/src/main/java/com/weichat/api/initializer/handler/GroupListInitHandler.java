@@ -75,7 +75,7 @@ public class GroupListInitHandler extends AbstractInitHandler {
         String roomId = item.getString("room_id");
         WxGroupInfo group = new WxGroupInfo();
         group.setRoomId(roomId);
-        group.setCorpid(context.getCorpId());
+        group.setCorpId(context.getCorpId());
         group.setNickname(item.getString("nickname"));
         group.setTotal(item.getInteger("total"));
         group.setCreateTime(item.getLong("create_time"));

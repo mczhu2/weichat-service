@@ -5,7 +5,7 @@
     <insert id="insert" parameterType="com.weichat.common.entity.WxGroupInfo">
         INSERT INTO wx_group_info (
             room_id,
-            corpid,
+            corp_id,
             create_user_id,
             total,
             notice_sendervid,
@@ -18,7 +18,7 @@
             managers
         ) VALUES (
             #{roomId},
-            #{corpid},
+            #{corpId},
             #{createUserId},
             #{total},
             #{noticeSendervid},
@@ -51,7 +51,7 @@
     <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.WxGroupInfo">
         UPDATE wx_group_info SET
             room_id = #{roomId},
-            corpid = #{corpid},
+            corp_id = #{corpId},
             create_user_id = #{createUserId},
             total = #{total},
             notice_sendervid = #{noticeSendervid},
@@ -79,7 +79,7 @@
     <insert id="batchInsert" parameterType="java.util.List">
         INSERT INTO wx_group_info (
             room_id,
-            corpid,
+            corp_id,
             create_user_id,
             total,
             notice_sendervid,
@@ -94,7 +94,7 @@
         <foreach collection="list" item="item" separator=",">
             (
                 #{item.roomId},
-                #{item.corpid},
+                #{item.corpId},
                 #{item.createUserId},
                 #{item.total},
                 #{item.noticeSendervid},
@@ -131,7 +131,7 @@
 
     <select id="selectByFiltersWithPaging" resultType="com.weichat.common.entity.WxGroupInfo">
         SELECT * FROM wx_group_info g
-        WHERE g.corpid IN
+        WHERE g.corp_id IN
         <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
             #{corpId}
         </foreach>

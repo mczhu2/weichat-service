@@ -35,12 +35,12 @@ public class GroupUpdateStrategy implements CallbackStrategy {
             wxGroupInfo.setRoomId(jsonObject.getString("room_conversation_id"));
             wxGroupInfo.setNickname(jsonObject.getString("room_name"));
             wxGroupInfo.setFlag(jsonObject.getLong("flag"));
-            wxGroupInfo.setCorpid(jsonObject.getLong("corp_id"));
+            wxGroupInfo.setCorpId(jsonObject.getLong("corp_id"));
 
             WxGroupInfo existingGroupInfo = wxGroupInfoService.selectByRoomId(wxGroupInfo.getRoomId());
             if (existingGroupInfo != null) {
                 wxGroupInfo.setId(existingGroupInfo.getId());
-                wxGroupInfo.setCorpid(existingGroupInfo.getCorpid());
+                wxGroupInfo.setCorpId(existingGroupInfo.getCorpId());
                 wxGroupInfo.setCreateUserId(existingGroupInfo.getCreateUserId());
                 wxGroupInfo.setTotal(existingGroupInfo.getTotal());
                 wxGroupInfo.setCreateTime(existingGroupInfo.getCreateTime());
@@ -48,7 +48,7 @@ public class GroupUpdateStrategy implements CallbackStrategy {
                 logger.info("group update applied, roomId={}", wxGroupInfo.getRoomId());
             } else {
                 fillCorpIdIfAbsent(wxGroupInfo, callbackRequest.getUuid());
-                if (wxGroupInfo.getCorpid() == null) {
+                if (wxGroupInfo.getCorpId() == null) {
                     logger.warn("skip group insert because corpId is missing, roomId={}", wxGroupInfo.getRoomId());
                     return "{\"success\": false, \"message\": \"corpId missing for group\"}";
                 }
@@ -66,13 +66,13 @@ public class GroupUpdateStrategy implements CallbackStrategy {
     }
 
     private void fillCorpIdIfAbsent(WxGroupInfo groupInfo, String uuid) {
-        if (groupInfo.getCorpid() != null) {
+        if (groupInfo.getCorpId() != null) {
             return;
         }
 
         WxUserInfo ownerUserInfo = wxUserInfoService.selectByUuid(uuid);
         if (ownerUserInfo != null) {
-            groupInfo.setCorpid(ownerUserInfo.getCorpid());
+            groupInfo.setCorpId(ownerUserInfo.getCorpid());
         }
     }
 }

@@ -1,5 +1,4 @@
 package com.weichat.common.entity;
-
 import lombok.Data;
 
 import java.io.Serializable;
@@ -11,7 +10,8 @@ public class WxGroupInfo implements Serializable {
 
     private Long id;
     private String roomId;
-    private Long corpid;
+
+    private Long corpId;
     private Long createUserId;
     private Integer total;
     private Long noticeSendervid;

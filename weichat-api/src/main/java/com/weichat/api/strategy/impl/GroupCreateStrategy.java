@@ -41,6 +41,7 @@ public class GroupCreateStrategy implements CallbackStrategy {
             
             // 保存群信息
             WxGroupInfo wxGroupInfo = JSON.toJavaObject(jsonObject, WxGroupInfo.class);
+            wxGroupInfo.setCorpId(jsonObject.getLong("corp_id"));
             // 先根据roomId查询是否存在
             WxGroupInfo existingGroupInfo = wxGroupInfoService.selectByRoomId(wxGroupInfo.getRoomId());
             if (existingGroupInfo != null) {
