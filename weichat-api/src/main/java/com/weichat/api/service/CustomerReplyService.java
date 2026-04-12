@@ -6,6 +6,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.callback.CustomerReplyCallbackResult;
 import com.weichat.api.vo.callback.ReplyMediaItem;
+import com.weichat.api.vo.request.message.SendFriendReplyRequest;
 import com.weichat.api.vo.request.message.SendImageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.api.vo.request.message.SendVoiceRequest;
@@ -41,6 +42,10 @@ public class CustomerReplyService {
      * Handle downstream callback replies. Currently supports text, image and voice replies.
      */
     public void sendReplyToCustomer(WxMessageInfo wxMessageInfo, WxUserInfo receiverUser, String callbackBody) {
+        if (wxMessageInfo == null || receiverUser == null) {
+            logger.warn("Reply context is missing. wxMessageInfo={}, receiverUser={}", wxMessageInfo, receiverUser);
+            return;
+        }
         if (!StringUtils.hasText(callbackBody)) {
             logger.warn("Callback body is empty, skip reply. msgId={}", wxMessageInfo.getMsgId());
             return;
@@ -52,14 +57,60 @@ public class CustomerReplyService {
             return;
         }
 
+        if (!StringUtils.hasText(wxMessageInfo.getRoomId())) {
+            ApiResult<Void> result = sendFriendReply(buildFriendReplyRequest(wxMessageInfo, receiverUser, callbackResult));
+            if (result != null && result.getCode() != 0) {
+                logger.warn(
+                        "Failed to send direct friend reply. msgId={}, sender={}, receiver={}, msg={}",
+                        wxMessageInfo.getMsgId(),
+                        wxMessageInfo.getReceiver(),
+                        wxMessageInfo.getSender(),
+                        result.getMsg()
+                );
+            }
+            return;
+        }
+
         ReplyTarget target = resolveReplyTarget(wxMessageInfo, receiverUser);
         if (target == null) {
             return;
         }
 
-        sendTextReply(target, wxMessageInfo, callbackResult.getReply());
-        sendImageReplies(target, wxMessageInfo, callbackResult.getImages());
-        sendVoiceReplies(target, wxMessageInfo, callbackResult.getVoices());
+        ReplyLogContext logContext = ReplyLogContext.fromMessage(
+                wxMessageInfo.getMsgId(),
+                wxMessageInfo.getSender(),
+                wxMessageInfo.getReceiver()
+        );
+        sendTextReply(target, logContext, callbackResult.getReply());
+        sendImageReplies(target, logContext, callbackResult.getImages());
+        sendVoiceReplies(target, logContext, callbackResult.getVoices());
+    }
+
+    /**
+     * Send reply message to a direct friend with explicit sender / receiver parameters only.
+     */
+    public ApiResult<Void> sendFriendReply(SendFriendReplyRequest request) {
+        String validationMessage = validateFriendReplyRequest(request);
+        if (validationMessage != null) {
+            return ApiResult.fail(validationMessage);
+        }
+
+        try {
+            ReplyTarget target = new ReplyTarget(request.getUuid(), request.getReceiver(), false, request.getKfId());
+            ReplyLogContext logContext = ReplyLogContext.fromMessage(null, request.getSender(), request.getReceiver());
+            sendTextReply(target, logContext, request.getReply());
+            sendImageReplies(target, logContext, request.getImages());
+            sendVoiceReplies(target, logContext, request.getVoices());
+            return ApiResult.success(null);
+        } catch (Exception e) {
+            logger.error(
+                    "Failed to send friend reply. sender={}, receiver={}",
+                    request.getSender(),
+                    request.getReceiver(),
+                    e
+            );
+            return ApiResult.fail("send friend reply failed");
+        }
     }
 
     /**
@@ -105,7 +156,7 @@ public class CustomerReplyService {
     /**
      * Send plain text reply content.
      */
-    private void sendTextReply(ReplyTarget target, WxMessageInfo wxMessageInfo, String reply) {
+    private void sendTextReply(ReplyTarget target, ReplyLogContext logContext, String reply) {
         if (!StringUtils.hasText(reply)) {
             return;
         }
@@ -118,13 +169,13 @@ public class CustomerReplyService {
                 .kf_id(target.getKfId())
                 .build();
         ApiResult<SendMsgResponse> sendResult = messageSendService.sendText(request);
-        logSendResult("text", wxMessageInfo, sendResult);
+        logSendResult("text", logContext, sendResult);
     }
 
     /**
      * Upload and send all callback images.
      */
-    private void sendImageReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, List<ReplyMediaItem> imageItems) {
+    private void sendImageReplies(ReplyTarget target, ReplyLogContext logContext, List<ReplyMediaItem> imageItems) {
         if (imageItems == null || imageItems.isEmpty()) {
             return;
         }
@@ -139,11 +190,13 @@ public class CustomerReplyService {
                         validateUploadResponse(uploadResponse)
                 );
                 ApiResult<SendMsgResponse> sendResult = messageSendService.sendImage(request);
-                logSendResult("image", wxMessageInfo, sendResult);
+                logSendResult("image", logContext, sendResult);
             } catch (Exception e) {
                 logger.error(
-                        "Failed to send reply image. msgId={}, imageIndex={}, payload={}",
-                        wxMessageInfo.getMsgId(),
+                        "Failed to send reply image. msgId={}, sender={}, receiver={}, imageIndex={}, payload={}",
+                        logContext.getMsgId(),
+                        logContext.getSender(),
+                        logContext.getReceiver(),
                         i,
                         imagePayload,
                         e
@@ -155,7 +208,7 @@ public class CustomerReplyService {
     /**
      * Upload and send all callback voices.
      */
-    private void sendVoiceReplies(ReplyTarget target, WxMessageInfo wxMessageInfo, List<ReplyMediaItem> voiceItems) {
+    private void sendVoiceReplies(ReplyTarget target, ReplyLogContext logContext, List<ReplyMediaItem> voiceItems) {
         if (voiceItems == null || voiceItems.isEmpty()) {
             return;
         }
@@ -170,11 +223,13 @@ public class CustomerReplyService {
                         validateFileUploadResponse(uploadResponse)
                 );
                 ApiResult<SendMsgResponse> sendResult = messageSendService.sendVoice(request);
-                logSendResult("voice", wxMessageInfo, sendResult);
+                logSendResult("voice", logContext, sendResult);
             } catch (Exception e) {
                 logger.error(
-                        "Failed to send reply voice. msgId={}, voiceIndex={}, payload={}",
-                        wxMessageInfo.getMsgId(),
+                        "Failed to send reply voice. msgId={}, sender={}, receiver={}, voiceIndex={}, payload={}",
+                        logContext.getMsgId(),
+                        logContext.getSender(),
+                        logContext.getReceiver(),
                         i,
                         voicePayload,
                         e
@@ -456,13 +511,13 @@ public class CustomerReplyService {
     /**
      * Log reply sending result for troubleshooting.
      */
-    private void logSendResult(String replyType, WxMessageInfo wxMessageInfo, ApiResult<SendMsgResponse> sendResult) {
+    private void logSendResult(String replyType, ReplyLogContext logContext, ApiResult<SendMsgResponse> sendResult) {
         logger.info(
                 "Reply send finished. type={}, msgId={}, receiver={}, sender={}, code={}, msg={}",
                 replyType,
-                wxMessageInfo.getMsgId(),
-                wxMessageInfo.getReceiver(),
-                wxMessageInfo.getSender(),
+                logContext.getMsgId(),
+                logContext.getReceiver(),
+                logContext.getSender(),
                 sendResult == null ? null : sendResult.getCode(),
                 sendResult == null ? null : sendResult.getMsg()
         );
@@ -528,6 +583,41 @@ public class CustomerReplyService {
         return null;
     }
 
+    private SendFriendReplyRequest buildFriendReplyRequest(WxMessageInfo wxMessageInfo,
+                                                           WxUserInfo receiverUser,
+                                                           CustomerReplyCallbackResult callbackResult) {
+        return SendFriendReplyRequest.builder()
+                .uuid(receiverUser.getUuid())
+                .sender(wxMessageInfo.getReceiver())
+                .receiver(wxMessageInfo.getSender())
+                .kfId(wxMessageInfo.getKfId())
+                .reply(callbackResult.getReply())
+                .images(callbackResult.getImages())
+                .voices(callbackResult.getVoices())
+                .build();
+    }
+
+    private String validateFriendReplyRequest(SendFriendReplyRequest request) {
+        if (request == null) {
+            return "request is null";
+        }
+        if (!StringUtils.hasText(request.getUuid())) {
+            return "uuid is required";
+        }
+        if (request.getSender() == null) {
+            return "sender is required";
+        }
+        if (request.getReceiver() == null) {
+            return "receiver is required";
+        }
+        if (!StringUtils.hasText(request.getReply())
+                && (request.getImages() == null || request.getImages().isEmpty())
+                && (request.getVoices() == null || request.getVoices().isEmpty())) {
+            return "reply or media is required";
+        }
+        return null;
+    }
+
     private static class ReplyTarget {
         private final String uuid;
         private final Long sendUserid;
@@ -555,6 +645,34 @@ public class CustomerReplyService {
 
         public Long getKfId() {
             return kfId;
+        }
+    }
+
+    private static class ReplyLogContext {
+        private final Long msgId;
+        private final Long sender;
+        private final Long receiver;
+
+        private ReplyLogContext(Long msgId, Long sender, Long receiver) {
+            this.msgId = msgId;
+            this.sender = sender;
+            this.receiver = receiver;
+        }
+
+        private static ReplyLogContext fromMessage(Long msgId, Long sender, Long receiver) {
+            return new ReplyLogContext(msgId, sender, receiver);
+        }
+
+        public Long getMsgId() {
+            return msgId;
+        }
+
+        public Long getSender() {
+            return sender;
+        }
+
+        public Long getReceiver() {
+            return receiver;
         }
     }
 }
