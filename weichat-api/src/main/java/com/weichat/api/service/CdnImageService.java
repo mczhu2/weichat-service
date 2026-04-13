@@ -1,11 +1,10 @@
 package com.weichat.api.service;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
+import com.weichat.api.service.RemoteMediaDownloadService.RemoteMediaResource;
 import com.weichat.api.vo.callback.ReplyMediaItem;
-import com.weichat.api.vo.request.cdn.CdnUploadImgRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,15 +20,27 @@ public class CdnImageService {
     @Autowired
     private WxWorkApiClient client;
 
+    @Autowired
+    private RemoteMediaDownloadService remoteMediaDownloadService;
+
     /**
      * Upload an image by remote URL.
      */
     public CdnUploadResponse uploadImageByUrl(String uuid, String imageUrl) {
-        CdnUploadImgRequest request = CdnUploadImgRequest.builder()
-                .uuid(uuid)
-                .url(imageUrl)
-                .build();
-        JSONObject response = client.post("/wxwork/CdnUploadImgLink", (JSONObject) JSON.toJSON(request));
+        RemoteMediaResource imageResource = remoteMediaDownloadService.download(
+                imageUrl,
+                null,
+                "image/png",
+                "image"
+        );
+        JSONObject response = client.postMultipart(
+                "/wxwork/CdnUploadImg",
+                uuid,
+                "file",
+                imageResource.getFilename(),
+                imageResource.getContentType(),
+                imageResource.getBytes()
+        );
         return extractUploadResponse(response, "url");
     }
 
