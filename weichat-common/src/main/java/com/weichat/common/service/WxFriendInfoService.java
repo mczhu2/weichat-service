@@ -77,4 +77,14 @@ public interface WxFriendInfoService {
      * @return 微信好友信息列表
      */
     List<WxFriendInfo> selectByCorpId(Long corpId);
+
+    /**
+     * 按条件分页查询外部联系人
+     * @param uuid 设备uuid
+     * @param corpIds 企业ID列表
+     * @param offset 偏移量
+     * @param limit 限制数量
+     * @return 外部联系人列表
+     */
+    List<WxFriendInfo> selectExternalByFiltersWithPaging(String uuid, List<Long> corpIds, int offset, int limit);
 }

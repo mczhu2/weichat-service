@@ -1,10 +1,10 @@
 package com.weichat.api.controller;
 
 import com.weichat.api.entity.ApiResult;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
-import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.WxGroupInfoService;
-import com.weichat.common.service.WxUserInfoService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +24,7 @@ import java.util.List;
 public class MassMessageTargetController {
 
     @Autowired
-    private WxUserInfoService wxUserInfoService;
+    private WxFriendInfoService wxFriendInfoService;
 
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
@@ -35,7 +35,7 @@ public class MassMessageTargetController {
      */
     @ApiOperation("分页查询圈人目标")
     @GetMapping("/external-contacts")
-    public ApiResult<List<WxUserInfo>> listExternalContacts(
+    public ApiResult<List<WxFriendInfo>> listExternalContacts(
             @RequestParam(required = false) String uuid,
             @RequestParam(required = false) List<Long> corpIds,
             @RequestParam(defaultValue = "1") int pageNum,
@@ -47,7 +47,7 @@ public class MassMessageTargetController {
 
         String normalizedUuid = normalize(uuid);
         List<Long> normalizedCorpIds = corpIds == null || corpIds.isEmpty() ? null : corpIds;
-        List<WxUserInfo> contacts = wxUserInfoService.selectByFiltersWithPaging(
+        List<WxFriendInfo> contacts = wxFriendInfoService.selectExternalByFiltersWithPaging(
                 normalizedUuid,
                 normalizedCorpIds,
                 offset,

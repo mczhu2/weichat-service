@@ -158,4 +158,29 @@
     <select id="selectByCorpId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
         SELECT * FROM wx_friend_info WHERE corp_id = #{corpId}
     </select>
+
+    <select id="selectExternalByFiltersWithPaging" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT * FROM wx_friend_info f
+        <where>
+            f.is_del = 0
+            AND f.is_external = 1
+            <if test="corpIds != null and corpIds.size() > 0">
+                AND f.corp_id IN
+                <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
+                    #{corpId}
+                </foreach>
+            </if>
+            <if test="uuid != null and uuid != ''">
+                AND EXISTS (
+                    SELECT 1
+                    FROM wx_user_info u
+                    WHERE u.user_id = f.owner_user_id
+                      AND u.uuid = #{uuid}
+                      AND u.is_del = 0
+                )
+            </if>
+        </where>
+        ORDER BY f.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
 </mapper>
