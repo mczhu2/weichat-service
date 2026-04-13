@@ -80,11 +80,11 @@ public interface WxFriendInfoService {
 
     /**
      * 按条件分页查询外部联系人
-     * @param uuid 设备uuid
+     * @param userIdList 用户ID列表
      * @param corpIds 企业ID列表
      * @param offset 偏移量
      * @param limit 限制数量
      * @return 外部联系人列表
      */
-    List<WxFriendInfo> selectExternalByFiltersWithPaging(String uuid, List<Long> corpIds, int offset, int limit);
+    List<WxFriendInfo> selectExternalByFiltersWithPaging(List<Long> userIdList, List<Long> corpIds, int offset, int limit);
 }

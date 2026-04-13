@@ -170,14 +170,11 @@
                     #{corpId}
                 </foreach>
             </if>
-            <if test="uuid != null and uuid != ''">
-                AND EXISTS (
-                    SELECT 1
-                    FROM wx_user_info u
-                    WHERE u.user_id = f.owner_user_id
-                      AND u.uuid = #{uuid}
-                      AND u.is_del = 0
-                )
+            <if test="userIdList != null and userIdList.size() > 0">
+                AND f.owner_user_id IN
+                <foreach collection="userIdList" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
             </if>
         </where>
         ORDER BY f.create_time DESC

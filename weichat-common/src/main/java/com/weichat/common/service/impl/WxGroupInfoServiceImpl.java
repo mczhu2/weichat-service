@@ -68,7 +68,7 @@ public class WxGroupInfoServiceImpl implements WxGroupInfoService {
     }
 
     @Override
-    public List<WxGroupInfo> selectByFiltersWithPaging(List<Long> corpIds, String uuid, int offset, int limit) {
-        return wxGroupInfoMapper.selectByFiltersWithPaging(corpIds, uuid, offset, limit);
+    public List<WxGroupInfo> selectByFiltersWithPaging(List<Long> corpIds, List<Long> userIdList, int offset, int limit) {
+        return wxGroupInfoMapper.selectByFiltersWithPaging(corpIds, userIdList, offset, limit);
     }
 }

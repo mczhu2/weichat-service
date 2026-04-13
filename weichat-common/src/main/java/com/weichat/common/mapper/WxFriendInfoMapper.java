@@ -83,13 +83,13 @@ public interface WxFriendInfoMapper {
 
     /**
      * 按条件分页查询外部联系人
-     * @param uuid 设备uuid
+     * @param userIdList 用户ID列表
      * @param corpIds 企业ID列表
      * @param offset 偏移量
      * @param limit 限制数量
      * @return 外部联系人列表
      */
-    List<WxFriendInfo> selectExternalByFiltersWithPaging(@Param("uuid") String uuid,
+    List<WxFriendInfo> selectExternalByFiltersWithPaging(@Param("userIdList") List<Long> userIdList,
                                                          @Param("corpIds") List<Long> corpIds,
                                                          @Param("offset") int offset,
                                                          @Param("limit") int limit);

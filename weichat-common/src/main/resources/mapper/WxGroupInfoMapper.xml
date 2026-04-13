@@ -131,19 +131,20 @@
 
     <select id="selectByFiltersWithPaging" resultType="com.weichat.common.entity.WxGroupInfo">
         SELECT * FROM wx_group_info g
-        WHERE g.corp_id IN
-        <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
-            #{corpId}
-        </foreach>
-        <if test="uuid != null and uuid != ''">
-            AND EXISTS (
-                SELECT 1
-                FROM wx_user_info u
-                WHERE u.user_id = g.create_user_id
-                  AND u.uuid = #{uuid}
-                  AND u.is_del = 0
-            )
-        </if>
+        <where>
+            <if test="corpIds != null and corpIds.size() > 0">
+                g.corp_id IN
+                <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
+                    #{corpId}
+                </foreach>
+            </if>
+            <if test="userIdList != null and userIdList.size() > 0">
+                AND g.create_user_id IN
+                <foreach collection="userIdList" item="userId" open="(" separator="," close=")">
+                    #{userId}
+                </foreach>
+            </if>
+        </where>
         ORDER BY g.create_time DESC
         LIMIT #{offset}, #{limit}
     </select>

@@ -60,8 +60,8 @@ public interface WxGroupInfoService {
     List<WxGroupInfo> selectByUuidWithPaging(String uuid, int offset, int limit);
 
     /**
-     * 按 corpIds 和 uuid 组合条件分页查询微信群信息。
-     * corpIds 为圈群主过滤条件，uuid 为可选过滤条件。
+     * 按 corpIds 和 userIdList 组合条件分页查询微信群信息。
+     * corpIds 为圈群主过滤条件，userIdList 为可选过滤条件。
      */
-    List<WxGroupInfo> selectByFiltersWithPaging(List<Long> corpIds, String uuid, int offset, int limit);
+    List<WxGroupInfo> selectByFiltersWithPaging(List<Long> corpIds, List<Long> userIdList, int offset, int limit);
 }
