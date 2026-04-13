@@ -1,6 +1,8 @@
 package com.weichat.common.service;
 
 import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.enums.MassTaskDetailSendStatusEnum;
+import com.weichat.common.enums.MassTaskDetailSentFlagEnum;
 import com.weichat.common.mapper.MassTaskDetailMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,8 +32,8 @@ public class MassTaskDetailService {
     public void updateSendSuccessStatus(Long detailId) {
         MassTaskDetail detail = new MassTaskDetail();
         detail.setId(detailId);
-        detail.setIsSent(1);
-        detail.setSendStatus(1);
+        detail.setIsSent(MassTaskDetailSentFlagEnum.SENT.getCode());
+        detail.setSendStatus(MassTaskDetailSendStatusEnum.SUCCESS.getCode());
         detail.setSendTime(LocalDateTime.now());
         detail.setUpdateTime(LocalDateTime.now());
         massTaskDetailMapper.updateByPrimaryKey(detail);
@@ -43,8 +45,8 @@ public class MassTaskDetailService {
     public void updateSendFailureStatus(Long detailId, String errorMsg) {
         MassTaskDetail detail = new MassTaskDetail();
         detail.setId(detailId);
-        detail.setIsSent(1);
-        detail.setSendStatus(0);
+        detail.setIsSent(MassTaskDetailSentFlagEnum.SENT.getCode());
+        detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
         detail.setSendResult(errorMsg);
         detail.setSendTime(LocalDateTime.now());
         detail.setUpdateTime(LocalDateTime.now());
@@ -65,8 +67,8 @@ public class MassTaskDetailService {
         int count = 0;
         for (MassTaskDetail detail : details) {
             detail.setCreateTime(LocalDateTime.now());
-            detail.setIsSent(0);
-            detail.setSendStatus(0);
+            detail.setIsSent(MassTaskDetailSentFlagEnum.UNSENT.getCode());
+            detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
             massTaskDetailMapper.insert(detail);
             count++;
         }

@@ -2,6 +2,7 @@ package com.weichat.common.service;
 
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.enums.MassTaskSendStatusEnum;
 import com.weichat.common.mapper.MassTaskMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,7 @@ public class MassTaskService {
     @Transactional
     public Long createMassTask(MassTask massTask, List<MassTaskDetail> details) {
         massTask.setCreateTime(LocalDateTime.now());
-        massTask.setSendStatus(0);
+        massTask.setSendStatus(MassTaskSendStatusEnum.PENDING.getCode());
         massTask.setTotalCount(details.size());
         massTask.setSentCount(0);
         massTask.setSuccessCount(0);
@@ -78,7 +79,7 @@ public class MassTaskService {
 
         MassTask originalTask = massTaskMapper.selectByPrimaryKey(taskId);
         if (originalTask != null && sentCount >= originalTask.getTotalCount()) {
-            massTask.setSendStatus(2);
+            massTask.setSendStatus(MassTaskSendStatusEnum.COMPLETED.getCode());
         }
 
         massTaskMapper.updateByPrimaryKey(massTask);
@@ -90,7 +91,7 @@ public class MassTaskService {
     public void cancelMassTask(Long taskId) {
         MassTask massTask = new MassTask();
         massTask.setId(taskId);
-        massTask.setSendStatus(3);
+        massTask.setSendStatus(MassTaskSendStatusEnum.CANCELLED.getCode());
         massTaskMapper.updateByPrimaryKey(massTask);
     }
 
