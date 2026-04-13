@@ -11,6 +11,8 @@
     <result column="file_media_id" jdbcType="VARCHAR" property="fileMediaId" />
     <result column="audio_media_id" jdbcType="VARCHAR" property="audioMediaId" />
     <result column="video_media_id" jdbcType="VARCHAR" property="videoMediaId" />
+    <result column="payload_version" jdbcType="VARCHAR" property="payloadVersion" />
+    <result column="payload_json" jdbcType="LONGVARCHAR" property="payloadJson" />
     <result column="msg_type" jdbcType="TINYINT" property="msgType" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="send_time" jdbcType="TIMESTAMP" property="sendTime" />
@@ -25,7 +27,7 @@
 
   <sql id="Base_Column_List">
     id, task_name, task_type, content, image_media_id, file_media_id, audio_media_id,
-    video_media_id, msg_type, create_time, send_time, send_status, creator, total_count,
+    video_media_id, payload_version, payload_json, msg_type, create_time, send_time, send_status, creator, total_count,
     sent_count, success_count, remark, template_id
   </sql>
 
@@ -44,13 +46,14 @@
   <insert id="insert" parameterType="com.weichat.common.entity.MassTask" useGeneratedKeys="true" keyProperty="id">
     insert into mass_task (
       task_name, task_type, content, image_media_id, file_media_id, audio_media_id,
-      video_media_id, msg_type, create_time, send_time, send_status, creator, total_count,
+      video_media_id, payload_version, payload_json, msg_type, create_time, send_time, send_status, creator, total_count,
       sent_count, success_count, remark, template_id
     )
     values (
       #{taskName,jdbcType=VARCHAR}, #{taskType,jdbcType=TINYINT}, #{content,jdbcType=LONGVARCHAR},
       #{imageMediaId,jdbcType=VARCHAR}, #{fileMediaId,jdbcType=VARCHAR}, #{audioMediaId,jdbcType=VARCHAR},
-      #{videoMediaId,jdbcType=VARCHAR}, #{msgType,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP},
+      #{videoMediaId,jdbcType=VARCHAR}, #{payloadVersion,jdbcType=VARCHAR}, #{payloadJson,jdbcType=LONGVARCHAR},
+      #{msgType,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP},
       #{sendTime,jdbcType=TIMESTAMP}, #{sendStatus,jdbcType=TINYINT}, #{creator,jdbcType=VARCHAR},
       #{totalCount,jdbcType=INTEGER}, #{sentCount,jdbcType=INTEGER}, #{successCount,jdbcType=INTEGER},
       #{remark,jdbcType=LONGVARCHAR}, #{templateId,jdbcType=BIGINT}
@@ -67,6 +70,8 @@
       <if test="fileMediaId != null">file_media_id = #{fileMediaId,jdbcType=VARCHAR},</if>
       <if test="audioMediaId != null">audio_media_id = #{audioMediaId,jdbcType=VARCHAR},</if>
       <if test="videoMediaId != null">video_media_id = #{videoMediaId,jdbcType=VARCHAR},</if>
+      <if test="payloadVersion != null">payload_version = #{payloadVersion,jdbcType=VARCHAR},</if>
+      <if test="payloadJson != null">payload_json = #{payloadJson,jdbcType=LONGVARCHAR},</if>
       <if test="msgType != null">msg_type = #{msgType,jdbcType=TINYINT},</if>
       <if test="createTime != null">create_time = #{createTime,jdbcType=TIMESTAMP},</if>
       <if test="sendTime != null">send_time = #{sendTime,jdbcType=TIMESTAMP},</if>

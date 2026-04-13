@@ -48,4 +48,16 @@ public class SendAppRequest extends BaseRequest {
 
     @ApiModelProperty(value = "小程序头像URL", example = "https://example.com/icon.png")
     private String weappIconUrl;
+
+    @ApiModelProperty(value = "Mini program cover cdn key", required = true, example = "cdn_key_xxx")
+    private String cdnkey;
+
+    @ApiModelProperty(value = "Mini program cover aes key", required = true, example = "aes_key_xxx")
+    private String aeskey;
+
+    @ApiModelProperty(value = "Mini program cover md5", required = true, example = "d41d8cd98f00b204e9800998ecf8427e")
+    private String md5;
+
+    @ApiModelProperty(value = "Mini program cover file size", required = true, example = "102400")
+    private Integer fileSize;
 }

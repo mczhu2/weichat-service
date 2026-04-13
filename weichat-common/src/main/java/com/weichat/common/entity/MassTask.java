@@ -55,6 +55,16 @@ public class MassTask implements Serializable {
     private String videoMediaId;
 
     /**
+     * payload 鐗堟湰
+     */
+    private String payloadVersion;
+
+    /**
+     * 瀵岀粨鏋勬秷鎭?payload json
+     */
+    private String payloadJson;
+
+    /**
      * 消息类型 (0-文本, 1-图片, 2-文件, 3-音频, 4-视频, 5-小程序消息)
      */
     private Integer msgType;

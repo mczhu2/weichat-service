@@ -224,6 +224,8 @@ public class MassMessageController {
         existingTask.setFileMediaId(massTask.getFileMediaId());
         existingTask.setAudioMediaId(massTask.getAudioMediaId());
         existingTask.setVideoMediaId(massTask.getVideoMediaId());
+        existingTask.setPayloadVersion(massTask.getPayloadVersion());
+        existingTask.setPayloadJson(massTask.getPayloadJson());
         existingTask.setMsgType(massTask.getMsgType());
         existingTask.setSendTime(massTask.getSendTime());
         existingTask.setCreator(massTask.getCreator());
