@@ -8,6 +8,8 @@ import com.weichat.common.entity.MassTaskDetail;
 import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.enums.MassTaskDetailSendStatusEnum;
+import com.weichat.common.enums.MassTaskDetailSentFlagEnum;
 import com.weichat.common.enums.MassTaskReceiverTypeEnum;
 import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.MassTaskDetailService;
@@ -171,8 +173,8 @@ public class MassMessageController {
             detail.setReceiverType(receiverType);
             detail.setReceiverId(receiverId);
             detail.setReceiverName(getReceiverName(receiverType, receiverId));
-            detail.setIsSent(0);
-            detail.setSendStatus(0);
+            detail.setIsSent(MassTaskDetailSentFlagEnum.UNSENT.getCode());
+            detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
             detail.setCreateTime(java.time.LocalDateTime.now());
             details.add(detail);
         }

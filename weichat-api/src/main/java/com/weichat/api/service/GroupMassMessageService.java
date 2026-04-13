@@ -289,13 +289,13 @@ public class GroupMassMessageService {
                 return false;
             }
 
-            Integer code = result.getInteger("code");
+            Integer code = resolveResponseCode(result);
             if (code != null && code == 0) {
                 massTaskDetailService.updateSendSuccessStatus(detail.getId());
                 return true;
             }
 
-            String errorMsg = result.getString("msg");
+            String errorMsg = resolveResponseMessage(result);
             massTaskDetailService.updateSendFailureStatus(detail.getId(), errorMsg != null ? errorMsg : "发送失败");
             return false;
         } catch (Exception e) {
@@ -319,6 +319,24 @@ public class GroupMassMessageService {
         }
 
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
+    }
+
+    private Integer resolveResponseCode(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.containsKey("errcode")) {
+            return result.getInteger("errcode");
+        }
+        return result.getInteger("code");
+    }
+
+    private String resolveResponseMessage(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        String errorMsg = result.getString("errmsg");
+        return StringUtils.hasText(errorMsg) ? errorMsg : result.getString("msg");
     }
 
     private WxUserInfo resolveSenderUserInfo(Long senderUserId) {

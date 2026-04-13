@@ -11,6 +11,8 @@ import com.weichat.common.entity.MessageTemplate;
 import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.enums.MassTaskDetailSendStatusEnum;
+import com.weichat.common.enums.MassTaskDetailSentFlagEnum;
 import com.weichat.common.enums.MassTaskReceiverTypeEnum;
 import com.weichat.common.service.MassTaskDetailService;
 import com.weichat.common.service.MassTaskService;
@@ -116,13 +118,13 @@ public class MassMessageService {
                 return false;
             }
 
-            Integer code = result.getInteger("code");
+            Integer code = resolveResponseCode(result);
             if (code != null && code == 0) {
                 markSuccess(detail);
                 return true;
             }
 
-            String errorMsg = result.getString("msg");
+            String errorMsg = resolveResponseMessage(result);
             log.error("向外部联系人发送消息失败，错误码: {}, 接收方ID: {}", code, friendInfo.getUserId());
             markFailure(detail, errorMsg != null ? errorMsg : "发送失败");
             return false;
@@ -181,13 +183,13 @@ public class MassMessageService {
                 return false;
             }
 
-            Integer code = result.getInteger("code");
+            Integer code = resolveResponseCode(result);
             if (code != null && code == 0) {
                 markSuccess(detail);
                 return true;
             }
 
-            String errorMsg = result.getString("msg");
+            String errorMsg = resolveResponseMessage(result);
             log.error("向群聊发送消息失败，错误码: {}, 群ID: {}", code, groupInfo.getRoomId());
             markFailure(detail, errorMsg != null ? errorMsg : "发送失败");
             return false;
@@ -244,15 +246,33 @@ public class MassMessageService {
         int success = 0;
 
         for (MassTaskDetail detail : details) {
-            if (detail.getIsSent() == 1) {
+            if (MassTaskDetailSentFlagEnum.SENT.getCode().equals(detail.getIsSent())) {
                 sent++;
-                if (detail.getSendStatus() == 1) {
+                if (MassTaskDetailSendStatusEnum.SUCCESS.getCode().equals(detail.getSendStatus())) {
                     success++;
                 }
             }
         }
 
         massTaskService.updateTaskStatistics(taskId, sent, success);
+    }
+
+    private Integer resolveResponseCode(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.containsKey("errcode")) {
+            return result.getInteger("errcode");
+        }
+        return result.getInteger("code");
+    }
+
+    private String resolveResponseMessage(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        String errorMsg = result.getString("errmsg");
+        return StringUtils.hasText(errorMsg) ? errorMsg : result.getString("msg");
     }
 
     /**
