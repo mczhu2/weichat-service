@@ -25,7 +25,7 @@ public class AppMassTaskMessageSender implements MassTaskMessageSender {
 
     @Override
     public JSONObject send(MassTask task, MassTaskReceiverContext receiverContext) {
-        MassTaskAppMessageMaterial appMaterial = messageSupport.resolveAppMessageMaterial(task);
+        MassTaskAppMessageMaterial appMaterial = messageSupport.resolveAppMessageMaterial(task, receiverContext.getReceiverName());
         MassTaskMediaMaterial coverMaterial = appMaterial.getCoverMaterial();
         if (coverMaterial == null) {
             throw new IllegalArgumentException("app cover is required");

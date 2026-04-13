@@ -21,7 +21,7 @@ public class LinkMassTaskMessageSender implements MassTaskMessageSender {
 
     @Override
     public JSONObject send(MassTask task, MassTaskReceiverContext receiverContext) {
-        MassTaskLinkPayload payload = messageSupport.resolveLinkPayload(task);
+        MassTaskLinkPayload payload = messageSupport.resolveLinkPayload(task, receiverContext.getReceiverName());
         SendLinkRequest request = SendLinkRequest.builder()
                 .uuid(receiverContext.getSenderUuid())
                 .send_userid(receiverContext.getReceiverUserId())
