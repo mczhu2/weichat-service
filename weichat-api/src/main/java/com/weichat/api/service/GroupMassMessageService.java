@@ -280,10 +280,14 @@ public class GroupMassMessageService {
                     .build();
 
             JSONObject result = wxWorkApiClient.post(
-                    "/wxwork/sendtext",
+                    "/wxwork/SendTextMsg",
                     JSON.parseObject(JSON.toJSONString(request))
             );
             log.info("发送群发消息，结果: {}", result);
+            if (result == null) {
+                massTaskDetailService.updateSendFailureStatus(detail.getId(), "下游发送接口无响应");
+                return false;
+            }
 
             Integer code = result.getInteger("code");
             if (code != null && code == 0) {

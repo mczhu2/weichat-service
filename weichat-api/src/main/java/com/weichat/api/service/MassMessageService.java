@@ -106,10 +106,15 @@ public class MassMessageService {
                     .build();
 
             JSONObject result = wxWorkApiClient.post(
-                    "/wxwork/sendtext",
+                    "/wxwork/SendTextMsg",
                     JSON.parseObject(JSON.toJSONString(request))
             );
             log.info("向外部联系人发送消息，结果: {}", result);
+            if (result == null) {
+                log.error("向外部联系人发送消息失败，下游接口无响应，receiverId={}, senderUuid={}", detail.getReceiverId(), senderUserInfo.getUuid());
+                markFailure(detail, "下游发送接口无响应");
+                return false;
+            }
 
             Integer code = result.getInteger("code");
             if (code != null && code == 0) {
@@ -166,10 +171,15 @@ public class MassMessageService {
                     .build();
 
             JSONObject result = wxWorkApiClient.post(
-                    "/wxwork/sendtext",
+                    "/wxwork/SendTextMsg",
                     JSON.parseObject(JSON.toJSONString(request))
             );
             log.info("向群聊发送消息，结果: {}", result);
+            if (result == null) {
+                log.error("向群聊发送消息失败，下游接口无响应，groupId={}, senderUuid={}", detail.getReceiverId(), senderUserInfo.getUuid());
+                markFailure(detail, "下游发送接口无响应");
+                return false;
+            }
 
             Integer code = result.getInteger("code");
             if (code != null && code == 0) {
