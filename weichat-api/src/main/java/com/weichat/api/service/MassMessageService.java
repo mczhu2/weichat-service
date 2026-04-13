@@ -8,16 +8,20 @@ import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
 import com.weichat.common.entity.MessageTemplate;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.enums.MassTaskReceiverTypeEnum;
 import com.weichat.common.service.MassTaskDetailService;
 import com.weichat.common.service.MassTaskService;
 import com.weichat.common.service.MessageTemplateService;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.WxGroupInfoService;
 import com.weichat.common.service.WxUserInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -44,6 +48,9 @@ public class MassMessageService {
     private WxUserInfoService wxUserInfoService;
 
     @Autowired
+    private WxFriendInfoService wxFriendInfoService;
+
+    @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
     /**
@@ -51,10 +58,10 @@ public class MassMessageService {
      */
     public boolean sendMassMessageToReceiver(MassTaskDetail detail) {
         try {
-            if (detail.getReceiverType() == 1) {
+            if (MassTaskReceiverTypeEnum.EXTERNAL_CONTACT.getCode().equals(detail.getReceiverType())) {
                 return sendToExternalContact(detail);
             }
-            if (detail.getReceiverType() == 2) {
+            if (MassTaskReceiverTypeEnum.GROUP_CHAT.getCode().equals(detail.getReceiverType())) {
                 return sendToGroup(detail);
             }
 
@@ -79,16 +86,23 @@ public class MassMessageService {
                 return false;
             }
 
-            WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(detail.getReceiverId());
-            if (userInfo == null) {
-                markFailure(detail, "接收用户不存在");
+            WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(detail.getReceiverId());
+            if (friendInfo == null) {
+                markFailure(detail, "接收好友不存在");
+                return false;
+            }
+
+            WxUserInfo senderUserInfo = resolveSenderUserInfo(friendInfo.getOwnerUserId());
+            if (senderUserInfo == null || !StringUtils.hasText(senderUserInfo.getUuid())) {
+                markFailure(detail, "发送账号uuid不存在");
                 return false;
             }
 
             SendTextRequest request = SendTextRequest.builder()
-                    .send_userid(userInfo.getUserId())
+                    .uuid(senderUserInfo.getUuid())
+                    .send_userid(friendInfo.getUserId())
                     .isRoom(false)
-                    .content(resolveContent(task, detail.getReceiverName()))
+                    .content(resolveContent(task, resolveFriendName(friendInfo)))
                     .build();
 
             JSONObject result = wxWorkApiClient.post(
@@ -104,7 +118,7 @@ public class MassMessageService {
             }
 
             String errorMsg = result.getString("msg");
-            log.error("向外部联系人发送消息失败，错误码: {}, 接收方ID: {}", code, userInfo.getUserId());
+            log.error("向外部联系人发送消息失败，错误码: {}, 接收方ID: {}", code, friendInfo.getUserId());
             markFailure(detail, errorMsg != null ? errorMsg : "发送失败");
             return false;
         } catch (Exception e) {
@@ -131,6 +145,12 @@ public class MassMessageService {
                 return false;
             }
 
+            WxUserInfo senderUserInfo = resolveSenderUserInfo(groupInfo.getCreateUserId());
+            if (senderUserInfo == null || !StringUtils.hasText(senderUserInfo.getUuid())) {
+                markFailure(detail, "发送账号uuid不存在");
+                return false;
+            }
+
             Long roomId = parseLongSafely(groupInfo.getRoomId());
             if (roomId == null) {
                 log.error("群ID格式不正确，无法发送消息，groupId: {}, roomId: {}", detail.getReceiverId(), groupInfo.getRoomId());
@@ -139,6 +159,7 @@ public class MassMessageService {
             }
 
             SendTextRequest request = SendTextRequest.builder()
+                    .uuid(senderUserInfo.getUuid())
                     .send_userid(roomId)
                     .isRoom(true)
                     .content(resolveContent(task, groupInfo.getNickname()))
@@ -222,6 +243,33 @@ public class MassMessageService {
         }
 
         massTaskService.updateTaskStatistics(taskId, sent, success);
+    }
+
+    /**
+     * 发送账号优先按 vid 匹配，找不到再回退到 userId。
+     */
+    private WxUserInfo resolveSenderUserInfo(Long senderUserId) {
+        if (senderUserId == null) {
+            return null;
+        }
+        WxUserInfo userInfo = wxUserInfoService.selectByVid(senderUserId);
+        if (userInfo != null) {
+            return userInfo;
+        }
+        return wxUserInfoService.selectByUserId(senderUserId);
+    }
+
+    private String resolveFriendName(WxFriendInfo friendInfo) {
+        if (friendInfo == null) {
+            return "未知用户";
+        }
+        if (StringUtils.hasText(friendInfo.getRealname())) {
+            return friendInfo.getRealname();
+        }
+        if (StringUtils.hasText(friendInfo.getNickname())) {
+            return friendInfo.getNickname();
+        }
+        return "未知用户";
     }
 
     /**

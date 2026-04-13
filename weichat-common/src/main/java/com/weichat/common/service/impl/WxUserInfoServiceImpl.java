@@ -53,6 +53,11 @@ public class WxUserInfoServiceImpl implements WxUserInfoService {
     }
 
     @Override
+    public WxUserInfo selectByVid(Long vid) {
+        return wxUserInfoMapper.selectByVid(vid);
+    }
+
+    @Override
     public int batchInsert(List<WxUserInfo> list) {
         return wxUserInfoMapper.batchInsert(list);
     }

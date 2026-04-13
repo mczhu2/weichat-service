@@ -8,6 +8,7 @@ import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
 import com.weichat.common.entity.MessageTemplate;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.enums.MassMessageTypeEnum;
@@ -19,11 +20,13 @@ import com.weichat.common.enums.MassTaskTypeEnum;
 import com.weichat.common.service.MassTaskDetailService;
 import com.weichat.common.service.MassTaskService;
 import com.weichat.common.service.MessageTemplateService;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.WxGroupInfoService;
 import com.weichat.common.service.WxUserInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -51,6 +54,9 @@ public class GroupMassMessageService {
 
     @Autowired
     private WxUserInfoService wxUserInfoService;
+
+    @Autowired
+    private WxFriendInfoService wxFriendInfoService;
 
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
@@ -180,8 +186,8 @@ public class GroupMassMessageService {
             detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
             detail.setCreateTime(LocalDateTime.now());
 
-            WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(userId);
-            detail.setReceiverName(userInfo != null ? userInfo.getRealname() : "未知用户");
+            WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(userId);
+            detail.setReceiverName(resolveFriendName(friendInfo));
             details.add(detail);
         }
         return details;
@@ -224,20 +230,31 @@ public class GroupMassMessageService {
             String receiverName;
 
             if (MassTaskReceiverTypeEnum.EXTERNAL_CONTACT.getCode().equals(detail.getReceiverType())) {
-                WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(detail.getReceiverId());
-                if (userInfo == null) {
-                    log.error("找不到对应的用户信息，接收方ID: {}", detail.getReceiverId());
-                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "接收用户不存在");
+                WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(detail.getReceiverId());
+                if (friendInfo == null) {
+                    log.error("找不到对应的好友信息，接收方ID: {}", detail.getReceiverId());
+                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "接收好友不存在");
                     return false;
                 }
-                sendUserId = userInfo.getUserId();
-                receiverName = userInfo.getRealname();
+                WxUserInfo senderUserInfo = resolveSenderUserInfo(friendInfo.getOwnerUserId());
+                if (senderUserInfo == null || !StringUtils.hasText(senderUserInfo.getUuid())) {
+                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "发送账号uuid不存在");
+                    return false;
+                }
+                sendUserId = friendInfo.getUserId();
+                receiverName = resolveFriendName(friendInfo);
                 isRoom = false;
+                task.setCreator(senderUserInfo.getUuid());
             } else if (MassTaskReceiverTypeEnum.GROUP_CHAT.getCode().equals(detail.getReceiverType())) {
                 WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(detail.getReceiverId());
                 if (groupInfo == null) {
                     log.error("找不到对应的群信息，群ID: {}", detail.getReceiverId());
                     massTaskDetailService.updateSendFailureStatus(detail.getId(), "群聊不存在");
+                    return false;
+                }
+                WxUserInfo senderUserInfo = resolveSenderUserInfo(groupInfo.getCreateUserId());
+                if (senderUserInfo == null || !StringUtils.hasText(senderUserInfo.getUuid())) {
+                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "发送账号uuid不存在");
                     return false;
                 }
                 sendUserId = parseLongSafely(groupInfo.getRoomId());
@@ -248,6 +265,7 @@ public class GroupMassMessageService {
                 }
                 receiverName = groupInfo.getNickname();
                 isRoom = true;
+                task.setCreator(senderUserInfo.getUuid());
             } else {
                 log.error("未知的接收方类型: {}", detail.getReceiverType());
                 massTaskDetailService.updateSendFailureStatus(detail.getId(), "未知的接收方类型");
@@ -255,6 +273,7 @@ public class GroupMassMessageService {
             }
 
             SendTextRequest request = SendTextRequest.builder()
+                    .uuid(task.getCreator())
                     .send_userid(sendUserId)
                     .isRoom(isRoom)
                     .content(resolveContent(task, receiverName))
@@ -296,6 +315,30 @@ public class GroupMassMessageService {
         }
 
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
+    }
+
+    private WxUserInfo resolveSenderUserInfo(Long senderUserId) {
+        if (senderUserId == null) {
+            return null;
+        }
+        WxUserInfo userInfo = wxUserInfoService.selectByVid(senderUserId);
+        if (userInfo != null) {
+            return userInfo;
+        }
+        return wxUserInfoService.selectByUserId(senderUserId);
+    }
+
+    private String resolveFriendName(WxFriendInfo friendInfo) {
+        if (friendInfo == null) {
+            return "未知用户";
+        }
+        if (StringUtils.hasText(friendInfo.getRealname())) {
+            return friendInfo.getRealname();
+        }
+        if (StringUtils.hasText(friendInfo.getNickname())) {
+            return friendInfo.getNickname();
+        }
+        return "未知用户";
     }
 
     /**

@@ -5,8 +5,11 @@ import com.weichat.api.service.GroupMassMessageService;
 import com.weichat.api.service.MassMessageService;
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.enums.MassTaskReceiverTypeEnum;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.MassTaskDetailService;
 import com.weichat.common.service.MassTaskService;
 import com.weichat.common.service.WxGroupInfoService;
@@ -38,6 +41,9 @@ public class MassMessageController {
 
     @Autowired
     private MassTaskDetailService massTaskDetailService;
+
+    @Autowired
+    private WxFriendInfoService wxFriendInfoService;
 
     @Autowired
     private WxUserInfoService wxUserInfoService;
@@ -179,10 +185,18 @@ public class MassMessageController {
      * 根据接收对象类型解析明细中展示的名称。
      */
     private String getReceiverName(Integer receiverType, Long receiverId) {
-        if (receiverType == 1) {
-            WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(receiverId);
-            return userInfo != null ? userInfo.getRealname() : "未知用户";
-        } else if (receiverType == 2) {
+        if (MassTaskReceiverTypeEnum.EXTERNAL_CONTACT.getCode().equals(receiverType)) {
+            WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(receiverId);
+            if (friendInfo == null) {
+                return "未知用户";
+            }
+            if (friendInfo.getRealname() != null && !friendInfo.getRealname().trim().isEmpty()) {
+                return friendInfo.getRealname();
+            }
+            return friendInfo.getNickname() != null && !friendInfo.getNickname().trim().isEmpty()
+                    ? friendInfo.getNickname()
+                    : "未知用户";
+        } else if (MassTaskReceiverTypeEnum.GROUP_CHAT.getCode().equals(receiverType)) {
             WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(receiverId);
             return groupInfo != null ? groupInfo.getNickname() : "未知群聊";
         } else {

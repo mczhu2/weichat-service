@@ -102,6 +102,11 @@
         SELECT * FROM wx_user_info WHERE user_id = #{userId} and is_del=0 limit 1;
     </select>
 
+    <!-- 根据vid查询微信用户信息 -->
+    <select id="selectByVid" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxUserInfo">
+        SELECT * FROM wx_user_info WHERE vid = #{vid} and is_del=0 limit 1;
+    </select>
+
     <!-- 根据用户ID和企业ID查询微信用户信息 -->
     <select id="selectByUserIdAndCorpId" resultType="com.weichat.common.entity.WxUserInfo">
         SELECT * FROM wx_user_info WHERE user_id = #{userId} AND corpid = #{corpId} and is_del=0 limit 1;

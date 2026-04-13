@@ -57,6 +57,13 @@ public interface WxUserInfoService {
     WxUserInfo selectByUserId(Long userId);
 
     /**
+     * 根据 vid 查询微信用户信息
+     * @param vid 用户 vid
+     * @return 微信用户信息
+     */
+    WxUserInfo selectByVid(Long vid);
+
+    /**
      * 批量插入微信用户信息
      * @param list 微信用户信息列表
      * @return 影响行数
