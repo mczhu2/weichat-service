@@ -2,15 +2,16 @@ package com.weichat.api.controller;
 
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.service.GroupMassMessageService;
-import com.weichat.api.service.mass.MassMessageTypeSpecService;
-import com.weichat.api.service.mass.MassTaskRequestValidator;
-import com.weichat.api.vo.request.mass.MassTaskCreateRequest;
-import com.weichat.api.vo.response.mass.MassMessageTypeSpecResponse;
-import com.weichat.api.vo.response.mass.MassTaskValidationResponse;
+import com.weichat.api.service.MassMessageService;
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.enums.MassTaskDetailSendStatusEnum;
+import com.weichat.common.enums.MassTaskDetailSentFlagEnum;
+import com.weichat.common.enums.MassTaskReceiverTypeEnum;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.MassTaskDetailService;
 import com.weichat.common.service.MassTaskService;
 import com.weichat.common.service.WxGroupInfoService;
@@ -20,13 +21,13 @@ import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-@Api(tags = "Mass Message")
+/**
+ * 群发任务控制器，负责创建、触发和管理群发任务。
+ */
+@Api(tags = "群发功能")
 @RestController
 @RequestMapping("/api/v1/mass")
 public class MassMessageController {
@@ -35,10 +36,16 @@ public class MassMessageController {
     private GroupMassMessageService groupMassMessageService;
 
     @Autowired
+    private MassMessageService massMessageService;
+
+    @Autowired
     private MassTaskService massTaskService;
 
     @Autowired
     private MassTaskDetailService massTaskDetailService;
+
+    @Autowired
+    private WxFriendInfoService wxFriendInfoService;
 
     @Autowired
     private WxUserInfoService wxUserInfoService;
@@ -46,13 +53,10 @@ public class MassMessageController {
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
-    @Autowired
-    private MassMessageTypeSpecService massMessageTypeSpecService;
-
-    @Autowired
-    private MassTaskRequestValidator massTaskRequestValidator;
-
-    @ApiOperation("Create text task for users")
+    /**
+     * 创建面向外部联系人的文本群发任务。
+     */
+    @ApiOperation("向多个用户群发消息")
     @PostMapping("/send-to-users")
     public ApiResult<Long> sendMassMessageToUsers(@RequestParam String uuid,
                                                   @RequestParam List<Long> userIds,
@@ -61,7 +65,10 @@ public class MassMessageController {
         return ApiResult.success(taskId);
     }
 
-    @ApiOperation("Create template task for users")
+    /**
+     * 创建面向外部联系人的模板群发任务。
+     */
+    @ApiOperation("向多个用户群发消息（使用模板）")
     @PostMapping("/send-to-users-with-template")
     public ApiResult<Long> sendMassMessageToUsersWithTemplate(@RequestParam String uuid,
                                                               @RequestParam List<Long> userIds,
@@ -71,7 +78,10 @@ public class MassMessageController {
         return ApiResult.success(taskId);
     }
 
-    @ApiOperation("Create text task for groups")
+    /**
+     * 创建面向群聊的文本群发任务。
+     */
+    @ApiOperation("向多个群聊群发消息")
     @PostMapping("/send-to-groups")
     public ApiResult<Long> sendMassMessageToGroups(@RequestParam String uuid,
                                                    @RequestParam List<Long> groupIds,
@@ -80,7 +90,10 @@ public class MassMessageController {
         return ApiResult.success(taskId);
     }
 
-    @ApiOperation("Create template task for groups")
+    /**
+     * 创建面向群聊的模板群发任务。
+     */
+    @ApiOperation("向多个群聊群发消息（使用模板）")
     @PostMapping("/send-to-groups-with-template")
     public ApiResult<Long> sendMassMessageToGroupsWithTemplate(@RequestParam String uuid,
                                                                @RequestParam List<Long> groupIds,
@@ -90,75 +103,79 @@ public class MassMessageController {
         return ApiResult.success(taskId);
     }
 
-    @ApiOperation("Trigger task manually")
+    /**
+     * 手动触发已创建的群发任务执行发送。
+     */
+    @ApiOperation("手动触发群发任务")
     @PostMapping("/trigger-task/{taskId}")
     public ApiResult<Boolean> triggerMassTask(@PathVariable Long taskId) {
         boolean result = groupMassMessageService.triggerMassTask(taskId);
         return ApiResult.success(result);
     }
 
-    @ApiOperation("List tasks")
+    /**
+     * 分页查询群发任务列表。
+     */
+    @ApiOperation("获取群发任务列表")
     @GetMapping("/tasks")
-    public ApiResult<List<MassTask>> getMassTaskList(@RequestParam(defaultValue = "1") int pageNum,
-                                                     @RequestParam(defaultValue = "10") int pageSize) {
+    public ApiResult<List<MassTask>> getMassTaskList(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+
         int offset = (pageNum - 1) * pageSize;
-        return ApiResult.success(massTaskService.getMassTaskList(offset, pageSize));
+        List<MassTask> tasks = massTaskService.getMassTaskList(offset, pageSize);
+
+        return ApiResult.success(tasks);
     }
 
-    @ApiOperation("Get message type specs")
-    @GetMapping("/message-type-specs")
-    public ApiResult<List<MassMessageTypeSpecResponse>> getMessageTypeSpecs() {
-        return ApiResult.success(massMessageTypeSpecService.getAllSpecs());
-    }
-
-    @ApiOperation("Validate rich task request")
-    @PostMapping("/task/validate")
-    public ApiResult<MassTaskValidationResponse> validateMassTask(@RequestBody MassTaskCreateRequest request) {
-        List<String> errors = massTaskRequestValidator.validateCreateRequest(request);
-        MassTaskValidationResponse response = new MassTaskValidationResponse();
-        response.setValid(errors.isEmpty());
-        response.setErrors(errors);
-        return ApiResult.success(response);
-    }
-
-    @ApiOperation("Get task detail")
+    /**
+     * 查询单个群发任务及其统计信息。
+     */
+    @ApiOperation("获取群发任务详情")
     @GetMapping("/task/{taskId}")
     public ApiResult<MassTask> getMassTaskById(@PathVariable Long taskId) {
-        return ApiResult.success(massTaskService.getMassTaskById(taskId));
+        MassTask task = massTaskService.getMassTaskById(taskId);
+        return ApiResult.success(task);
     }
 
-    @ApiOperation("Get task detail items")
+    /**
+     * 查询任务下每个接收对象的发送明细。
+     */
+    @ApiOperation("获取群发任务明细")
     @GetMapping("/task-details/{taskId}")
     public ApiResult<List<MassTaskDetail>> getMassTaskDetails(@PathVariable Long taskId) {
-        return ApiResult.success(massTaskDetailService.getDetailsByTaskId(taskId));
+        List<MassTaskDetail> details = massTaskDetailService.getDetailsByTaskId(taskId);
+        return ApiResult.success(details);
     }
 
-    @ApiOperation("Cancel task")
+    /**
+     * 取消群发任务。
+     */
+    @ApiOperation("取消群发任务")
     @PutMapping("/cancel-task/{taskId}")
     public ApiResult<Void> cancelMassTask(@PathVariable Long taskId) {
         massTaskService.cancelMassTask(taskId);
         return ApiResult.success(null);
     }
 
-    @ApiOperation("Create task by legacy payload")
+    /**
+     * 保存自定义群发任务，并按接收对象展开明细记录。
+     */
+    @ApiOperation("创建群发任务")
     @PostMapping("/task")
     public ApiResult<Long> createMassTask(@RequestBody MassTask massTask,
                                           @RequestParam List<Long> receiverIds,
                                           @RequestParam Integer receiverType) {
-        List<String> errors = massTaskRequestValidator.validateLegacyTask(massTask, receiverIds, receiverType);
-        if (!errors.isEmpty()) {
-            return ApiResult.fail(String.join("; ", errors));
-        }
+        List<MassTaskDetail> details = new java.util.ArrayList<>();
 
-        List<MassTaskDetail> details = new ArrayList<>();
         for (Long receiverId : receiverIds) {
             MassTaskDetail detail = new MassTaskDetail();
             detail.setReceiverType(receiverType);
             detail.setReceiverId(receiverId);
             detail.setReceiverName(getReceiverName(receiverType, receiverId));
-            detail.setIsSent(0);
-            detail.setSendStatus(0);
-            detail.setCreateTime(LocalDateTime.now());
+            detail.setIsSent(MassTaskDetailSentFlagEnum.UNSENT.getCode());
+            detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
+            detail.setCreateTime(java.time.LocalDateTime.now());
             details.add(detail);
         }
 
@@ -166,34 +183,38 @@ public class MassMessageController {
         return ApiResult.success(taskId);
     }
 
+    /**
+     * 根据接收对象类型解析明细中展示的名称。
+     */
     private String getReceiverName(Integer receiverType, Long receiverId) {
-        if (receiverType == 1) {
-            WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(receiverId);
-            return userInfo != null ? userInfo.getRealname() : "unknown-user";
-        }
-        if (receiverType == 2) {
+        if (MassTaskReceiverTypeEnum.EXTERNAL_CONTACT.getCode().equals(receiverType)) {
+            WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(receiverId);
+            if (friendInfo == null) {
+                return "未知用户";
+            }
+            if (friendInfo.getRealname() != null && !friendInfo.getRealname().trim().isEmpty()) {
+                return friendInfo.getRealname();
+            }
+            return friendInfo.getNickname() != null && !friendInfo.getNickname().trim().isEmpty()
+                    ? friendInfo.getNickname()
+                    : "未知用户";
+        } else if (MassTaskReceiverTypeEnum.GROUP_CHAT.getCode().equals(receiverType)) {
             WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(receiverId);
-            return groupInfo != null ? groupInfo.getNickname() : "unknown-group";
+            return groupInfo != null ? groupInfo.getNickname() : "未知群聊";
+        } else {
+            return "未知接收者";
         }
-        return "unknown-receiver";
     }
 
-    @ApiOperation("Update legacy task")
+    /**
+     * 更新任务的可编辑字段，不覆盖发送状态和统计字段。
+     */
+    @ApiOperation("更新群发任务")
     @PutMapping("/task/{taskId}")
     public ApiResult<Void> updateMassTask(@PathVariable Long taskId, @RequestBody MassTask massTask) {
         MassTask existingTask = massTaskService.getMassTaskById(taskId);
         if (existingTask == null) {
-            return ApiResult.fail("mass task not found");
-        }
-
-        List<String> errors = massTaskRequestValidator.validateLegacyTask(
-                massTask,
-                Collections.singletonList(1L),
-                massTask.getTaskType()
-        );
-        errors.remove("receiverIds must not be empty");
-        if (!errors.isEmpty()) {
-            return ApiResult.fail(String.join("; ", errors));
+            return ApiResult.fail("群发任务不存在");
         }
 
         existingTask.setTaskName(massTask.getTaskName());
@@ -213,7 +234,10 @@ public class MassMessageController {
         return ApiResult.success(null);
     }
 
-    @ApiOperation("Delete task")
+    /**
+     * 删除任务及其关联的发送明细。
+     */
+    @ApiOperation("删除群发任务")
     @DeleteMapping("/task/{taskId}")
     public ApiResult<Void> deleteMassTask(@PathVariable Long taskId) {
         massTaskDetailService.deleteByTaskId(taskId);
@@ -221,9 +245,13 @@ public class MassMessageController {
         return ApiResult.success(null);
     }
 
-    @ApiOperation("Get task stats")
+    /**
+     * 查询任务统计信息。
+     */
+    @ApiOperation("获取任务统计信息")
     @GetMapping("/task-stats/{taskId}")
     public ApiResult<MassTask> getTaskStats(@PathVariable Long taskId) {
-        return ApiResult.success(massTaskService.getMassTaskById(taskId));
+        MassTask task = massTaskService.getMassTaskById(taskId);
+        return ApiResult.success(task);
     }
 }

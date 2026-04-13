@@ -158,4 +158,32 @@
     <select id="selectByCorpId" parameterType="java.lang.Long" resultType="com.weichat.common.entity.WxFriendInfo">
         SELECT * FROM wx_friend_info WHERE corp_id = #{corpId}
     </select>
+
+    <select id="selectExternalByFiltersWithPaging" resultType="com.weichat.common.entity.WxFriendInfo">
+        SELECT f.*
+        FROM wx_friend_info f
+        INNER JOIN (
+            SELECT MAX(ff.id) AS id
+            FROM wx_friend_info ff
+            <where>
+                ff.is_del = 0
+                AND ff.is_external = 1
+                <if test="corpIds != null and corpIds.size() > 0">
+                    AND ff.corp_id IN
+                    <foreach collection="corpIds" item="corpId" open="(" separator="," close=")">
+                        #{corpId}
+                    </foreach>
+                </if>
+                <if test="userIdList != null and userIdList.size() > 0">
+                    AND ff.owner_user_id IN
+                    <foreach collection="userIdList" item="userId" open="(" separator="," close=")">
+                        #{userId}
+                    </foreach>
+                </if>
+            </where>
+            GROUP BY ff.user_id
+        ) dedup ON dedup.id = f.id
+        ORDER BY f.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
 </mapper>

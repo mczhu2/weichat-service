@@ -1,0 +1,6 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sun Apr 12 23:32:00 CST 2026
+maven-install-plugin-2.5.2.jar>mirror=
+maven-install-plugin-2.5.2.jar>central=
+maven-install-plugin-2.5.2.pom>mirror=
+maven-install-plugin-2.5.2.pom>central=

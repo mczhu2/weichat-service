@@ -65,11 +65,11 @@ public interface WxGroupInfoMapper {
                                              @Param("limit") int limit);
 
     /**
-     * 按 corpIds 和 uuid 组合条件分页查询微信群信息。
-     * corpIds 作为必填公司范围过滤，uuid 作为可选设备过滤。
+     * 按 corpIds 和 userIdList 组合条件分页查询微信群信息。
+     * corpIds 作为必填公司范围过滤，userIdList 作为可选用户过滤。
      */
     List<WxGroupInfo> selectByFiltersWithPaging(@Param("corpIds") List<Long> corpIds,
-                                                @Param("uuid") String uuid,
+                                                @Param("userIdList") List<Long> userIdList,
                                                 @Param("offset") int offset,
                                                 @Param("limit") int limit);
 }

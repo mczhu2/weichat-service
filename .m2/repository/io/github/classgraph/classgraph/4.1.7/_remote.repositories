@@ -1,0 +1,6 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sun Apr 12 23:26:00 CST 2026
+classgraph-4.1.7.jar>mirror=
+classgraph-4.1.7.jar>central=
+classgraph-4.1.7.pom>central=
+classgraph-4.1.7.pom>mirror=

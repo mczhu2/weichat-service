@@ -10,6 +10,7 @@ import com.weichat.common.enums.FriendTypeEnum;
 import com.weichat.common.service.WxFriendInfoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ public class FriendListInitHandler extends AbstractInitHandler {
                 break;
             }
             
-            List<WxFriendInfo> friends = parseFriendList(list, context.getUserId());
+            List<WxFriendInfo> friends = parseFriendList(list, context.getUserId(), context.getCorpId());
             saveFriends(friends);
             totalCount += friends.size();
             
@@ -105,7 +106,7 @@ public class FriendListInitHandler extends AbstractInitHandler {
         logger.info("同步内部联系人完成，共{}条", totalCount);
     }
     
-    private List<WxFriendInfo> parseFriendList(JSONArray list, Long ownerUserId) {
+    private List<WxFriendInfo> parseFriendList(JSONArray list, Long ownerUserId, Long corpId) {
         List<WxFriendInfo> friends = new ArrayList<>();
         for (int i = 0; i < list.size(); i++) {
             JSONObject item = list.getJSONObject(i);
@@ -118,7 +119,8 @@ public class FriendListInitHandler extends AbstractInitHandler {
             friend.setSex(item.getInteger("sex"));
             friend.setMobile(item.getString("mobile"));
             friend.setRealname(item.getString("realname"));
-            friend.setCorpId(item.getLong("corp_id"));
+            // 这个corpId 是顾客的，不是企业的
+            friend.setCorpId(corpId);
             friend.setCreateTime(item.getLong("create_time"));
             friend.setSeq(item.getLong("seq"));
             friend.setIsExternal(FriendTypeEnum.EXTERNAL.getCode()); // 外部微信好友
@@ -154,14 +156,34 @@ public class FriendListInitHandler extends AbstractInitHandler {
     
     private void saveFriends(List<WxFriendInfo> friends) {
         for (WxFriendInfo friend : friends) {
-            WxFriendInfo existing = friendInfoService.selectByOwnerUserIdAndUnionid(
-                friend.getOwnerUserId(), friend.getUnionid(), friend.getIsExternal());
+            WxFriendInfo existing = findExistingFriend(friend);
             if (existing != null) {
                 friend.setId(existing.getId());
                 friendInfoService.updateByPrimaryKey(friend);
-            } else {
+                continue;
+            }
+
+            try {
                 friendInfoService.insert(friend);
+            } catch (DuplicateKeyException e) {
+                // Unique key may conflict under concurrent sync or stale pre-check results.
+                WxFriendInfo duplicated = findExistingFriend(friend);
+                if (duplicated != null) {
+                    friend.setId(duplicated.getId());
+                    friendInfoService.updateByPrimaryKey(friend);
+                    logger.info("好友唯一键冲突后转更新，unionid={}, ownerUserId={}", friend.getUnionid(), friend.getOwnerUserId());
+                } else {
+                    throw e;
+                }
             }
         }
+    }
+
+    private WxFriendInfo findExistingFriend(WxFriendInfo friend) {
+        return friendInfoService.selectByOwnerUserIdAndUnionid(
+                friend.getOwnerUserId(),
+                friend.getUnionid(),
+                friend.getIsExternal()
+        );
     }
 }

@@ -1,0 +1,6 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sun Apr 12 23:26:00 CST 2026
+jackson-databind-2.13.5.pom>mirror=
+jackson-databind-2.13.5.jar>mirror=
+jackson-databind-2.13.5.jar>central=
+jackson-databind-2.13.5.pom>central=

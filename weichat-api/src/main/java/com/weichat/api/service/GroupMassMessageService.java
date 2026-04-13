@@ -8,16 +8,25 @@ import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
 import com.weichat.common.entity.MessageTemplate;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.enums.MassMessageTypeEnum;
+import com.weichat.common.enums.MassTaskDetailSendStatusEnum;
+import com.weichat.common.enums.MassTaskDetailSentFlagEnum;
+import com.weichat.common.enums.MassTaskReceiverTypeEnum;
+import com.weichat.common.enums.MassTaskSendStatusEnum;
+import com.weichat.common.enums.MassTaskTypeEnum;
 import com.weichat.common.service.MassTaskDetailService;
 import com.weichat.common.service.MassTaskService;
 import com.weichat.common.service.MessageTemplateService;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.WxGroupInfoService;
 import com.weichat.common.service.WxUserInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -47,6 +56,9 @@ public class GroupMassMessageService {
     private WxUserInfoService wxUserInfoService;
 
     @Autowired
+    private WxFriendInfoService wxFriendInfoService;
+
+    @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
     /**
@@ -55,11 +67,11 @@ public class GroupMassMessageService {
     public Long sendMassMessageToUsers(String uuid, List<Long> userIds, String content) {
         MassTask massTask = new MassTask();
         massTask.setTaskName("人员群发任务-" + System.currentTimeMillis());
-        massTask.setTaskType(1);
+        massTask.setTaskType(MassTaskTypeEnum.USER.getCode());
         massTask.setContent(content);
-        massTask.setMsgType(0);
+        massTask.setMsgType(MassMessageTypeEnum.TEXT.getCode());
         massTask.setCreator(uuid);
-        massTask.setSendStatus(1);
+        massTask.setSendStatus(MassTaskSendStatusEnum.PENDING.getCode());
         massTask.setCreateTime(LocalDateTime.now());
 
         return massTaskService.createMassTask(massTask, buildUserDetails(userIds));
@@ -76,11 +88,11 @@ public class GroupMassMessageService {
 
         MassTask massTask = new MassTask();
         massTask.setTaskName("人员群发任务(模板)-" + System.currentTimeMillis());
-        massTask.setTaskType(1);
+        massTask.setTaskType(MassTaskTypeEnum.USER.getCode());
         massTask.setContent(template.getTemplateContent());
         massTask.setMsgType(template.getMsgType());
         massTask.setCreator(uuid);
-        massTask.setSendStatus(1);
+        massTask.setSendStatus(MassTaskSendStatusEnum.PENDING.getCode());
         massTask.setCreateTime(LocalDateTime.now());
         massTask.setTemplateId(templateId);
 
@@ -93,11 +105,11 @@ public class GroupMassMessageService {
     public Long sendMassMessageToGroups(String uuid, List<Long> groupIds, String content) {
         MassTask massTask = new MassTask();
         massTask.setTaskName("群聊群发任务-" + System.currentTimeMillis());
-        massTask.setTaskType(2);
+        massTask.setTaskType(MassTaskTypeEnum.GROUP.getCode());
         massTask.setContent(content);
-        massTask.setMsgType(0);
+        massTask.setMsgType(MassMessageTypeEnum.TEXT.getCode());
         massTask.setCreator(uuid);
-        massTask.setSendStatus(1);
+        massTask.setSendStatus(MassTaskSendStatusEnum.PENDING.getCode());
         massTask.setCreateTime(LocalDateTime.now());
 
         return massTaskService.createMassTask(massTask, buildGroupDetails(groupIds));
@@ -114,11 +126,11 @@ public class GroupMassMessageService {
 
         MassTask massTask = new MassTask();
         massTask.setTaskName("群聊群发任务(模板)-" + System.currentTimeMillis());
-        massTask.setTaskType(2);
+        massTask.setTaskType(MassTaskTypeEnum.GROUP.getCode());
         massTask.setContent(template.getTemplateContent());
         massTask.setMsgType(template.getMsgType());
         massTask.setCreator(uuid);
-        massTask.setSendStatus(1);
+        massTask.setSendStatus(MassTaskSendStatusEnum.PENDING.getCode());
         massTask.setCreateTime(LocalDateTime.now());
         massTask.setTemplateId(templateId);
 
@@ -142,7 +154,7 @@ public class GroupMassMessageService {
                 return false;
             }
 
-            massTaskService.updateTaskStatus(taskId, 1);
+            massTaskService.updateTaskStatus(taskId, MassTaskSendStatusEnum.SENDING.getCode());
 
             int successCount = 0;
             for (MassTaskDetail detail : details) {
@@ -152,11 +164,11 @@ public class GroupMassMessageService {
             }
 
             massTaskService.updateTaskStatistics(taskId, details.size(), successCount);
-            massTaskService.updateTaskStatus(taskId, 2);
+            massTaskService.updateTaskStatus(taskId, MassTaskSendStatusEnum.COMPLETED.getCode());
             return true;
         } catch (Exception e) {
             log.error("触发群发任务失败，任务ID: {}", taskId, e);
-            massTaskService.updateTaskStatus(taskId, 3);
+            massTaskService.updateTaskStatus(taskId, MassTaskSendStatusEnum.CANCELLED.getCode());
             return false;
         }
     }
@@ -168,14 +180,14 @@ public class GroupMassMessageService {
         List<MassTaskDetail> details = new ArrayList<>();
         for (Long userId : userIds) {
             MassTaskDetail detail = new MassTaskDetail();
-            detail.setReceiverType(1);
+            detail.setReceiverType(MassTaskReceiverTypeEnum.EXTERNAL_CONTACT.getCode());
             detail.setReceiverId(userId);
-            detail.setIsSent(0);
-            detail.setSendStatus(0);
+            detail.setIsSent(MassTaskDetailSentFlagEnum.UNSENT.getCode());
+            detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
             detail.setCreateTime(LocalDateTime.now());
 
-            WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(userId);
-            detail.setReceiverName(userInfo != null ? userInfo.getRealname() : "未知用户");
+            WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(userId);
+            detail.setReceiverName(resolveFriendName(friendInfo));
             details.add(detail);
         }
         return details;
@@ -188,10 +200,10 @@ public class GroupMassMessageService {
         List<MassTaskDetail> details = new ArrayList<>();
         for (Long groupId : groupIds) {
             MassTaskDetail detail = new MassTaskDetail();
-            detail.setReceiverType(2);
+            detail.setReceiverType(MassTaskReceiverTypeEnum.GROUP_CHAT.getCode());
             detail.setReceiverId(groupId);
-            detail.setIsSent(0);
-            detail.setSendStatus(0);
+            detail.setIsSent(MassTaskDetailSentFlagEnum.UNSENT.getCode());
+            detail.setSendStatus(MassTaskDetailSendStatusEnum.UNSUCCESSFUL.getCode());
             detail.setCreateTime(LocalDateTime.now());
 
             WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(groupId);
@@ -217,21 +229,32 @@ public class GroupMassMessageService {
             boolean isRoom;
             String receiverName;
 
-            if (detail.getReceiverType() == 1) {
-                WxUserInfo userInfo = wxUserInfoService.selectByPrimaryKey(detail.getReceiverId());
-                if (userInfo == null) {
-                    log.error("找不到对应的用户信息，接收方ID: {}", detail.getReceiverId());
-                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "接收用户不存在");
+            if (MassTaskReceiverTypeEnum.EXTERNAL_CONTACT.getCode().equals(detail.getReceiverType())) {
+                WxFriendInfo friendInfo = wxFriendInfoService.selectByPrimaryKey(detail.getReceiverId());
+                if (friendInfo == null) {
+                    log.error("找不到对应的好友信息，接收方ID: {}", detail.getReceiverId());
+                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "接收好友不存在");
                     return false;
                 }
-                sendUserId = userInfo.getUserId();
-                receiverName = userInfo.getRealname();
+                WxUserInfo senderUserInfo = resolveSenderUserInfo(friendInfo.getOwnerUserId());
+                if (senderUserInfo == null || !StringUtils.hasText(senderUserInfo.getUuid())) {
+                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "发送账号uuid不存在");
+                    return false;
+                }
+                sendUserId = friendInfo.getUserId();
+                receiverName = resolveFriendName(friendInfo);
                 isRoom = false;
-            } else if (detail.getReceiverType() == 2) {
+                task.setCreator(senderUserInfo.getUuid());
+            } else if (MassTaskReceiverTypeEnum.GROUP_CHAT.getCode().equals(detail.getReceiverType())) {
                 WxGroupInfo groupInfo = wxGroupInfoService.selectByPrimaryKey(detail.getReceiverId());
                 if (groupInfo == null) {
                     log.error("找不到对应的群信息，群ID: {}", detail.getReceiverId());
                     massTaskDetailService.updateSendFailureStatus(detail.getId(), "群聊不存在");
+                    return false;
+                }
+                WxUserInfo senderUserInfo = resolveSenderUserInfo(groupInfo.getCreateUserId());
+                if (senderUserInfo == null || !StringUtils.hasText(senderUserInfo.getUuid())) {
+                    massTaskDetailService.updateSendFailureStatus(detail.getId(), "发送账号uuid不存在");
                     return false;
                 }
                 sendUserId = parseLongSafely(groupInfo.getRoomId());
@@ -242,6 +265,7 @@ public class GroupMassMessageService {
                 }
                 receiverName = groupInfo.getNickname();
                 isRoom = true;
+                task.setCreator(senderUserInfo.getUuid());
             } else {
                 log.error("未知的接收方类型: {}", detail.getReceiverType());
                 massTaskDetailService.updateSendFailureStatus(detail.getId(), "未知的接收方类型");
@@ -249,24 +273,29 @@ public class GroupMassMessageService {
             }
 
             SendTextRequest request = SendTextRequest.builder()
+                    .uuid(task.getCreator())
                     .send_userid(sendUserId)
                     .isRoom(isRoom)
                     .content(resolveContent(task, receiverName))
                     .build();
 
             JSONObject result = wxWorkApiClient.post(
-                    "/wxwork/sendtext",
+                    "/wxwork/SendTextMsg",
                     JSON.parseObject(JSON.toJSONString(request))
             );
             log.info("发送群发消息，结果: {}", result);
+            if (result == null) {
+                massTaskDetailService.updateSendFailureStatus(detail.getId(), "下游发送接口无响应");
+                return false;
+            }
 
-            Integer code = result.getInteger("code");
+            Integer code = resolveResponseCode(result);
             if (code != null && code == 0) {
                 massTaskDetailService.updateSendSuccessStatus(detail.getId());
                 return true;
             }
 
-            String errorMsg = result.getString("msg");
+            String errorMsg = resolveResponseMessage(result);
             massTaskDetailService.updateSendFailureStatus(detail.getId(), errorMsg != null ? errorMsg : "发送失败");
             return false;
         } catch (Exception e) {
@@ -290,6 +319,48 @@ public class GroupMassMessageService {
         }
 
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
+    }
+
+    private Integer resolveResponseCode(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.containsKey("errcode")) {
+            return result.getInteger("errcode");
+        }
+        return result.getInteger("code");
+    }
+
+    private String resolveResponseMessage(JSONObject result) {
+        if (result == null) {
+            return null;
+        }
+        String errorMsg = result.getString("errmsg");
+        return StringUtils.hasText(errorMsg) ? errorMsg : result.getString("msg");
+    }
+
+    private WxUserInfo resolveSenderUserInfo(Long senderUserId) {
+        if (senderUserId == null) {
+            return null;
+        }
+        WxUserInfo userInfo = wxUserInfoService.selectByVid(senderUserId);
+        if (userInfo != null) {
+            return userInfo;
+        }
+        return wxUserInfoService.selectByUserId(senderUserId);
+    }
+
+    private String resolveFriendName(WxFriendInfo friendInfo) {
+        if (friendInfo == null) {
+            return "未知用户";
+        }
+        if (StringUtils.hasText(friendInfo.getRealname())) {
+            return friendInfo.getRealname();
+        }
+        if (StringUtils.hasText(friendInfo.getNickname())) {
+            return friendInfo.getNickname();
+        }
+        return "未知用户";
     }
 
     /**

@@ -1,0 +1,6 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sun Apr 12 23:25:34 CST 2026
+javax.inject-1.jar>central=
+javax.inject-1.pom>mirror=
+javax.inject-1.pom>central=
+javax.inject-1.jar>mirror=

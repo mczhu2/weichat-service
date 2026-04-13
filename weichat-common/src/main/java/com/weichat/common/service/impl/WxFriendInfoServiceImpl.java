@@ -66,4 +66,9 @@ public class WxFriendInfoServiceImpl implements WxFriendInfoService {
     public List<WxFriendInfo> selectByCorpId(Long corpId) {
         return wxFriendInfoMapper.selectByCorpId(corpId);
     }
+
+    @Override
+    public List<WxFriendInfo> selectExternalByFiltersWithPaging(List<Long> userIdList, List<Long> corpIds, int offset, int limit) {
+        return wxFriendInfoMapper.selectExternalByFiltersWithPaging(userIdList, corpIds, offset, limit);
+    }
 }

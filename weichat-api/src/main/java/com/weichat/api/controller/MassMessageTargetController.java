@@ -1,10 +1,10 @@
 package com.weichat.api.controller;
 
 import com.weichat.api.entity.ApiResult;
+import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
-import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.service.WxFriendInfoService;
 import com.weichat.common.service.WxGroupInfoService;
-import com.weichat.common.service.WxUserInfoService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,19 +24,19 @@ import java.util.List;
 public class MassMessageTargetController {
 
     @Autowired
-    private WxUserInfoService wxUserInfoService;
+    private WxFriendInfoService wxFriendInfoService;
 
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
     /**
      * 分页查询圈人目标。
-     * uuid 和 corpIds 都是可选条件，corpIds 支持多选筛选。
+     * userIdList 和 corpIds 都是可选条件，corpIds 支持多选筛选。
      */
     @ApiOperation("分页查询圈人目标")
     @GetMapping("/external-contacts")
-    public ApiResult<List<WxUserInfo>> listExternalContacts(
-            @RequestParam(required = false) String uuid,
+    public ApiResult<List<WxFriendInfo>> listExternalContacts(
+            @RequestParam(required = false) List<Long> userIdList,
             @RequestParam(required = false) List<Long> corpIds,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
@@ -45,10 +45,10 @@ public class MassMessageTargetController {
         int safePageSize = Math.max(pageSize, 1);
         int offset = (safePageNum - 1) * safePageSize;
 
-        String normalizedUuid = normalize(uuid);
+        List<Long> normalizedUserIdList = userIdList == null || userIdList.isEmpty() ? null : userIdList;
         List<Long> normalizedCorpIds = corpIds == null || corpIds.isEmpty() ? null : corpIds;
-        List<WxUserInfo> contacts = wxUserInfoService.selectByFiltersWithPaging(
-                normalizedUuid,
+        List<WxFriendInfo> contacts = wxFriendInfoService.selectExternalByFiltersWithPaging(
+                normalizedUserIdList,
                 normalizedCorpIds,
                 offset,
                 safePageSize
@@ -59,13 +59,13 @@ public class MassMessageTargetController {
 
     /**
      * 分页查询圈群目标。
-     * corpIds 为必填条件，uuid 为可选条件，corpIds 支持多选筛选。
+     * corpIds 和 userIdList 都是可选条件，corpIds 支持多选筛选。
      */
     @ApiOperation("分页查询圈群目标")
     @GetMapping("/groups")
     public ApiResult<List<WxGroupInfo>> listGroups(
-            @RequestParam(required = false) String uuid,
-            @RequestParam List<Long> corpIds,
+            @RequestParam(required = false) List<Long> userIdList,
+            @RequestParam(required = false) List<Long> corpIds,
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "20") int pageSize) {
 
@@ -73,28 +73,15 @@ public class MassMessageTargetController {
         int safePageSize = Math.max(pageSize, 1);
         int offset = (safePageNum - 1) * safePageSize;
 
+        List<Long> normalizedUserIdList = userIdList == null || userIdList.isEmpty() ? null : userIdList;
         List<Long> normalizedCorpIds = corpIds == null || corpIds.isEmpty() ? null : corpIds;
         List<WxGroupInfo> groups = wxGroupInfoService.selectByFiltersWithPaging(
                 normalizedCorpIds,
-                normalize(uuid),
+                normalizedUserIdList,
                 offset,
                 safePageSize
         );
 
         return ApiResult.success(groups);
-    }
-
-    /**
-     * 统一处理空白字符串，避免把空串传入查询条件。
-     */
-    private String normalize(String value) {
-        return hasText(value) ? value.trim() : null;
-    }
-
-    /**
-     * 判断字符串是否包含有效文本。
-     */
-    private boolean hasText(String value) {
-        return value != null && !value.trim().isEmpty();
     }
 }
