@@ -103,12 +103,41 @@ public class WxWorkApiClient {
                                     String filename,
                                     String contentType,
                                     byte[] fileBytes) {
+        return postMultipart(path, uuid, fileFieldName, filename, contentType, fileBytes, null);
+    }
+
+    /**
+     * 使用原始字节数组转发 multipart/form-data 请求，支持额外参数
+     *
+     * @param path          请求路径
+     * @param uuid          设备UUID
+     * @param fileFieldName 文件字段名
+     * @param filename      文件名
+     * @param contentType   内容类型
+     * @param fileBytes     文件字节数组
+     * @param extraParams   额外参数（可选）
+     * @return 响应JSON对象
+     */
+    public JSONObject postMultipart(String path,
+                                    String uuid,
+                                    String fileFieldName,
+                                    String filename,
+                                    String contentType,
+                                    byte[] fileBytes,
+                                    JSONObject extraParams) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("uuid", uuid);
         body.add(fileFieldName, buildFilePart(fileFieldName, filename, contentType, fileBytes));
+
+        // 添加额外参数
+        if (extraParams != null && !extraParams.isEmpty()) {
+            for (String key : extraParams.keySet()) {
+                body.add(key, extraParams.get(key));
+            }
+        }
 
         HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
         return executePost(path, entity);
