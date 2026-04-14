@@ -31,4 +31,8 @@ public class MassTaskAppPayload {
 
     @ApiModelProperty(value = "Mini program cover media")
     private MassTaskMediaPayload cover;
+
+    // 封面图片的url地址
+    @ApiModelProperty(value = "封面图片的url地址")
+    private String coverUrl;
 }

@@ -12,6 +12,8 @@ public class MassTaskAppMessageMaterial {
     private String pagepath;
     private String username;
     private String appid;
+    // 封面图片的url地址
+    private String coverUrl;
     private MassTaskMediaMaterial coverMaterial;
 
     public static MassTaskAppMessageMaterial fromPayload(MassTaskAppPayload payload) {
@@ -23,8 +25,10 @@ public class MassTaskAppMessageMaterial {
         material.pagepath = payload.getPagepath();
         material.username = payload.getUsername();
         material.appid = payload.getAppid();
+        material.coverUrl = payload.getCoverUrl();
         if (payload.getCover() != null) {
             material.coverMaterial = MassTaskMediaMaterial.fromPayload(payload.getCover());
+            material.coverMaterial.setUrl(material.coverUrl);
         }
         return material;
     }
@@ -38,11 +42,14 @@ public class MassTaskAppMessageMaterial {
         material.pagepath = json.getString("pagepath");
         material.username = json.getString("username");
         material.appid = json.getString("appid");
+        material.coverUrl = MassTaskMediaMaterial.readText(json, "coverUrl", "cover_url");
         JSONObject coverJson = json.getJSONObject("cover");
         if (coverJson != null) {
             material.coverMaterial = MassTaskMediaMaterial.fromJson(coverJson);
+            material.coverMaterial.setUrl(material.coverUrl);
         } else if (json.containsKey("cdnkey") || json.containsKey("cdn_key") || json.containsKey("fileid")) {
             material.coverMaterial = MassTaskMediaMaterial.fromJson(json);
+            material.coverMaterial.setUrl(material.coverUrl);
         }
         return material;
     }
@@ -55,4 +62,8 @@ public class MassTaskAppMessageMaterial {
     public String getUsername() { return username; }
     public String getAppid() { return appid; }
     public MassTaskMediaMaterial getCoverMaterial() { return coverMaterial; }
+
+    public String getCoverUrl() {
+        return coverUrl;
+    }
 }

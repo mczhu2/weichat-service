@@ -25,4 +25,7 @@ public class MassTaskMediaPayload {
 
     @ApiModelProperty(value = "HD flag for image forwarding", example = "1")
     private Integer isHd;
+
+    @ApiModelProperty(value = "Cover URL for videos", example = "https://example.com/cover.jpg")
+    private String coverUrl;
 }
