@@ -47,7 +47,7 @@ public class MassTaskAppMessageMaterial {
         if (coverJson != null) {
             material.coverMaterial = MassTaskMediaMaterial.fromJson(coverJson);
             material.coverMaterial.setUrl(material.coverUrl);
-        } else if (json.containsKey("cdnkey") || json.containsKey("cdn_key") || json.containsKey("fileid")) {
+        } else if (json.containsKey("cdnkey") || json.containsKey("cdn_key") || json.containsKey("fileid")|| json.containsKey("coverUrl")) {
             material.coverMaterial = MassTaskMediaMaterial.fromJson(json);
             material.coverMaterial.setUrl(material.coverUrl);
         }
