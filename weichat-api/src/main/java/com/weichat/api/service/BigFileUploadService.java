@@ -262,7 +262,7 @@ public class BigFileUploadService {
         JSONObject data = response.getJSONObject("data");
         JSONObject source = data != null ? data : response;
 
-        uploadResponse.setFileid(source.getString("fileid"));
+        uploadResponse.setFileid(source.getString("file_id"));
 
         // aes_key 或 aesKey
         String aesKey = source.getString("aes_key");
