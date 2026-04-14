@@ -86,6 +86,30 @@ public class CdnFileService {
     }
 
     /**
+     * Upload a file by remote URL with preferred content type metadata.
+     */
+    public CdnUploadResponse uploadImageByUrl(String uuid,
+                                             String fileUrl,
+                                             String fileName,
+                                             String contentType) {
+        RemoteMediaResource fileResource = remoteMediaDownloadService.download(
+                fileUrl,
+                fileName,
+                StringUtils.hasText(contentType) ? contentType : "application/octet-stream",
+                "file"
+        );
+        JSONObject response = client.postMultipart(
+                "/wxwork/CdnUploadImg",
+                uuid,
+                "file",
+                fileResource.getFilename(),
+                fileResource.getContentType(),
+                fileResource.getBytes()
+        );
+        return extractUploadResponse(response, "url");
+    }
+
+    /**
      * Upload a file by base64 payload.
      */
     public CdnUploadResponse uploadFileByBase64(String uuid,
@@ -139,6 +163,32 @@ public class CdnFileService {
         }
         if (StringUtils.hasText(filePayload.getUrl())) {
             return uploadVideoFileByUrl(
+                    uuid,
+                    filePayload.getUrl(),
+                    filePayload.getFilename(),
+                    filePayload.getContentType()
+            );
+        }
+        if (StringUtils.hasText(filePayload.getBase64())) {
+            return uploadFileByBase64(
+                    uuid,
+                    filePayload.getBase64(),
+                    filePayload.getFilename(),
+                    filePayload.getContentType()
+            );
+        }
+        throw new IllegalArgumentException("Reply file must contain url or base64 data");
+    }
+
+    /**
+     * Upload a normalized reply file or voice payload.
+     */
+    public CdnUploadResponse uploadImageFile(String uuid, ReplyMediaItem filePayload) {
+        if (filePayload == null) {
+            throw new IllegalArgumentException("Reply file payload is empty");
+        }
+        if (StringUtils.hasText(filePayload.getUrl())) {
+            return uploadImageByUrl(
                     uuid,
                     filePayload.getUrl(),
                     filePayload.getFilename(),

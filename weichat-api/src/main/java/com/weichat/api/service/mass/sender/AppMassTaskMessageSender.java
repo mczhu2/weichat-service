@@ -33,7 +33,7 @@ public class AppMassTaskMessageSender implements MassTaskMessageSender {
 
         CdnUploadResponse uploadResponse = coverMaterial.hasSourcePayload()
                 ? messageSupport.validateFileUploadResponse(
-                cdnFileService.uploadFile(receiverContext.getSenderUuid(), coverMaterial.toReplyMediaItem()))
+                cdnFileService.uploadImageFile(receiverContext.getSenderUuid(), coverMaterial.toReplyMediaItem()))
                 : messageSupport.buildUploadResponseFromMaterial(coverMaterial);
 
         SendAppRequest request = SendAppRequest.builder()
