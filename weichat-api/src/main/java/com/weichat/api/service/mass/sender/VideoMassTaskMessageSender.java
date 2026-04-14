@@ -46,7 +46,7 @@ public class VideoMassTaskMessageSender implements MassTaskMessageSender {
             SendVideoRequest request;
             if (material.hasSourcePayload()) {
                 CdnUploadResponse uploadResponse = messageSupport.validateFileUploadResponse(
-                        cdnFileService.uploadFile(receiverContext.getSenderUuid(), material.toReplyMediaItem())
+                        cdnFileService.uploadVideoFile(receiverContext.getSenderUuid(), material.toReplyMediaItem())
                 );
                 request = SendVideoRequest.builder()
                         .uuid(receiverContext.getSenderUuid())
@@ -55,7 +55,7 @@ public class VideoMassTaskMessageSender implements MassTaskMessageSender {
                         .cdnkey(messageSupport.resolveCdnKey(uploadResponse))
                         .aeskey(uploadResponse.getAes_key())
                         .md5(uploadResponse.getMd5())
-                        .video_duration(messageSupport.resolveVideoDuration(material))
+                        .video_duration(uploadResponse.getVideoDuration())
                         .video_width(messageSupport.firstNonNull(material.getVideoWidth(), uploadResponse.getWidth()))
                         .video_height(messageSupport.firstNonNull(material.getVideoHeight(), uploadResponse.getHeight()))
                         .fileSize(uploadResponse.getSize())
@@ -68,7 +68,7 @@ public class VideoMassTaskMessageSender implements MassTaskMessageSender {
                         .cdnkey(messageSupport.requireText(messageSupport.resolveMaterialCdnKey(material), "video cdnkey is required"))
                         .aeskey(messageSupport.requireText(material.getAeskey(), "video aeskey is required"))
                         .md5(messageSupport.requireText(material.getMd5(), "video md5 is required"))
-                        .video_duration(messageSupport.resolveVideoDuration(material))
+                        .video_duration(0)
                         .video_width(material.getVideoWidth())
                         .video_height(material.getVideoHeight())
                         .fileSize(messageSupport.requireInteger(material.getFileSize(), "video fileSize is required"))

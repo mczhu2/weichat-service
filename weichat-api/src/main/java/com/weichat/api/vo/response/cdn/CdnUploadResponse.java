@@ -51,4 +51,7 @@ public class CdnUploadResponse {
 
     @ApiModelProperty(value = "返回码", example = "0")
     private String retcode;
+
+    @ApiModelProperty(value = "视频时长", example = "123")
+    private Integer VideoDuration;
 }

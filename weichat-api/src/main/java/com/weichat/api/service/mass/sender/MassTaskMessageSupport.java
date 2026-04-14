@@ -214,36 +214,8 @@ public class MassTaskMessageSupport {
         return result;
     }
 
-    public Integer resolveVoiceDuration(MassTaskMediaMaterial material) {
-        if (material == null) {
-            throw new IllegalArgumentException("voice material is empty");
-        }
-        if (material.getVoiceTime() != null) {
-            return material.getVoiceTime();
-        }
-
-        byte[] audioBytes = loadSourceBytes(material, "voice");
-        Integer inferredDuration = inferVoiceDuration(audioBytes);
-        if (inferredDuration != null) {
-            return inferredDuration;
-        }
-        throw new IllegalArgumentException("voice_time is required");
-    }
-
-    public Integer resolveVideoDuration(MassTaskMediaMaterial material) {
-        if (material == null) {
-            throw new IllegalArgumentException("video material is empty");
-        }
-        if (material.getVideoDuration() != null) {
-            return material.getVideoDuration();
-        }
-
-        byte[] videoBytes = loadSourceBytes(material, "video");
-        Integer inferredDuration = inferVideoDuration(videoBytes);
-        if (inferredDuration != null) {
-            return inferredDuration;
-        }
-        throw new IllegalArgumentException("video_duration is required");
+    public Integer resolveVoiceDuration(CdnUploadResponse uploadResponse) {
+        return uploadResponse.getVideoDuration();
     }
 
     public String requireText(String value, String message) {

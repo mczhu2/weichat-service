@@ -31,6 +31,13 @@ public class CdnFileService {
     }
 
     /**
+     * Upload a file by remote URL.
+     */
+    public CdnUploadResponse uploadVideoByUrl(String uuid, String fileUrl, String fileName) {
+        return uploadVideoFileByUrl(uuid, fileUrl, fileName, null);
+    }
+
+    /**
      * Upload a file by remote URL with preferred content type metadata.
      */
     public CdnUploadResponse uploadFileByUrl(String uuid,
@@ -45,6 +52,30 @@ public class CdnFileService {
         );
         JSONObject response = client.postMultipart(
                 "/wxwork/CdnUploadFile",
+                uuid,
+                "file",
+                fileResource.getFilename(),
+                fileResource.getContentType(),
+                fileResource.getBytes()
+        );
+        return extractUploadResponse(response, "url");
+    }
+
+    /**
+     * Upload a file by remote URL with preferred content type metadata.
+     */
+    public CdnUploadResponse uploadVideoFileByUrl(String uuid,
+                                             String fileUrl,
+                                             String fileName,
+                                             String contentType) {
+        RemoteMediaResource fileResource = remoteMediaDownloadService.download(
+                fileUrl,
+                fileName,
+                StringUtils.hasText(contentType) ? contentType : "application/octet-stream",
+                "file"
+        );
+        JSONObject response = client.postMultipart(
+                "/wxwork/CdnUploadVideo",
                 uuid,
                 "file",
                 fileResource.getFilename(),
@@ -82,6 +113,32 @@ public class CdnFileService {
         }
         if (StringUtils.hasText(filePayload.getUrl())) {
             return uploadFileByUrl(
+                    uuid,
+                    filePayload.getUrl(),
+                    filePayload.getFilename(),
+                    filePayload.getContentType()
+            );
+        }
+        if (StringUtils.hasText(filePayload.getBase64())) {
+            return uploadFileByBase64(
+                    uuid,
+                    filePayload.getBase64(),
+                    filePayload.getFilename(),
+                    filePayload.getContentType()
+            );
+        }
+        throw new IllegalArgumentException("Reply file must contain url or base64 data");
+    }
+
+    /**
+     * Upload a normalized reply file or voice payload.
+     */
+    public CdnUploadResponse uploadVideoFile(String uuid, ReplyMediaItem filePayload) {
+        if (filePayload == null) {
+            throw new IllegalArgumentException("Reply file payload is empty");
+        }
+        if (StringUtils.hasText(filePayload.getUrl())) {
+            return uploadVideoFileByUrl(
                     uuid,
                     filePayload.getUrl(),
                     filePayload.getFilename(),

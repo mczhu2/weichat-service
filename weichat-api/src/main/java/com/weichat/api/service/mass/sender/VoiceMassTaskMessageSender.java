@@ -46,7 +46,7 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
             SendVoiceRequest request;
             if (material.hasSourcePayload()) {
                 CdnUploadResponse uploadResponse = messageSupport.validateFileUploadResponse(
-                        cdnFileService.uploadFile(receiverContext.getSenderUuid(), material.toReplyMediaItem())
+                        cdnFileService.uploadVideoFile(receiverContext.getSenderUuid(), material.toReplyMediaItem())
                 );
                 request = SendVoiceRequest.builder()
                         .uuid(receiverContext.getSenderUuid())
@@ -55,7 +55,7 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
                         .cdnkey(messageSupport.resolveCdnKey(uploadResponse))
                         .aeskey(uploadResponse.getAes_key())
                         .md5(uploadResponse.getMd5())
-                        .voice_time(messageSupport.resolveVoiceDuration(material))
+                        .voice_time(messageSupport.resolveVoiceDuration(uploadResponse))
                         .fileSize(uploadResponse.getSize())
                         .build();
             } else {
@@ -66,7 +66,7 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
                         .cdnkey(messageSupport.requireText(messageSupport.resolveMaterialCdnKey(material), "voice cdnkey is required"))
                         .aeskey(messageSupport.requireText(material.getAeskey(), "voice aeskey is required"))
                         .md5(messageSupport.requireText(material.getMd5(), "voice md5 is required"))
-                        .voice_time(messageSupport.resolveVoiceDuration(material))
+                        .voice_time(0)
                         .fileSize(messageSupport.requireInteger(material.getFileSize(), "voice fileSize is required"))
                         .build();
             }

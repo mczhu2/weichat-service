@@ -71,6 +71,7 @@ public class WxWorkApiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
+        logger.info("Preparing downstream request. path={}, params={}", path, params);
         HttpEntity<String> entity = new HttpEntity<>(params.toJSONString(), headers);
         return executePost(path, entity);
     }
@@ -156,8 +157,9 @@ public class WxWorkApiClient {
         try {
             ResponseEntity<String> response = restTemplate.exchange(
                 url, HttpMethod.POST, entity, String.class);
-            logger.info("API call succeeded: {}, response={}", path, response.getBody());
-            return JSONObject.parseObject(response.getBody());
+            String responseBody = response.getBody();
+            logger.info("API call succeeded: {}, response={}", path, responseBody != null && responseBody.length() > 150 ? responseBody.substring(0, 150) : responseBody);
+            return JSONObject.parseObject(responseBody);
         } catch (Exception e) {
             logger.error("API call failed: {}", path, e);
             return null;
