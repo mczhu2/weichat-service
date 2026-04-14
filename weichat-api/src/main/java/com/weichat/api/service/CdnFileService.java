@@ -27,10 +27,20 @@ public class CdnFileService {
      * Upload a file by remote URL.
      */
     public CdnUploadResponse uploadFileByUrl(String uuid, String fileUrl, String fileName) {
+        return uploadFileByUrl(uuid, fileUrl, fileName, null);
+    }
+
+    /**
+     * Upload a file by remote URL with preferred content type metadata.
+     */
+    public CdnUploadResponse uploadFileByUrl(String uuid,
+                                             String fileUrl,
+                                             String fileName,
+                                             String contentType) {
         RemoteMediaResource fileResource = remoteMediaDownloadService.download(
                 fileUrl,
                 fileName,
-                "application/octet-stream",
+                StringUtils.hasText(contentType) ? contentType : "application/octet-stream",
                 "file"
         );
         JSONObject response = client.postMultipart(
@@ -71,7 +81,12 @@ public class CdnFileService {
             throw new IllegalArgumentException("Reply file payload is empty");
         }
         if (StringUtils.hasText(filePayload.getUrl())) {
-            return uploadFileByUrl(uuid, filePayload.getUrl(), filePayload.getFilename());
+            return uploadFileByUrl(
+                    uuid,
+                    filePayload.getUrl(),
+                    filePayload.getFilename(),
+                    filePayload.getContentType()
+            );
         }
         if (StringUtils.hasText(filePayload.getBase64())) {
             return uploadFileByBase64(

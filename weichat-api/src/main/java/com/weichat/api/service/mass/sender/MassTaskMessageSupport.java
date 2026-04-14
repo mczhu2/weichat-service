@@ -222,12 +222,28 @@ public class MassTaskMessageSupport {
             return material.getVoiceTime();
         }
 
-        byte[] audioBytes = loadSourceBytes(material);
+        byte[] audioBytes = loadSourceBytes(material, "voice");
         Integer inferredDuration = inferVoiceDuration(audioBytes);
         if (inferredDuration != null) {
             return inferredDuration;
         }
         throw new IllegalArgumentException("voice_time is required");
+    }
+
+    public Integer resolveVideoDuration(MassTaskMediaMaterial material) {
+        if (material == null) {
+            throw new IllegalArgumentException("video material is empty");
+        }
+        if (material.getVideoDuration() != null) {
+            return material.getVideoDuration();
+        }
+
+        byte[] videoBytes = loadSourceBytes(material, "video");
+        Integer inferredDuration = inferVideoDuration(videoBytes);
+        if (inferredDuration != null) {
+            return inferredDuration;
+        }
+        throw new IllegalArgumentException("video_duration is required");
     }
 
     public String requireText(String value, String message) {
@@ -299,7 +315,7 @@ public class MassTaskMessageSupport {
         return materials;
     }
 
-    private byte[] loadSourceBytes(MassTaskMediaMaterial material) {
+    private byte[] loadSourceBytes(MassTaskMediaMaterial material, String defaultFilenamePrefix) {
         if (material == null) {
             return null;
         }
@@ -311,7 +327,7 @@ public class MassTaskMessageSupport {
                     material.getUrl(),
                     resolveFileName(material),
                     material.getContentType(),
-                    "voice"
+                    defaultFilenamePrefix
             );
             return resource.getBytes();
         }
@@ -333,6 +349,13 @@ public class MassTaskMessageSupport {
             return mp3Duration;
         }
         return null;
+    }
+
+    private Integer inferVideoDuration(byte[] videoBytes) {
+        if (videoBytes == null || videoBytes.length == 0) {
+            return null;
+        }
+        return inferMp4Duration(videoBytes);
     }
 
     private byte[] decodeBase64Bytes(String base64Payload) {
@@ -501,6 +524,90 @@ public class MassTaskMessageSupport {
         return versionBits == 3 ? mpeg1Layer3[bitrateIndex] : mpeg2Layer3[bitrateIndex];
     }
 
+    private Integer inferMp4Duration(byte[] bytes) {
+        int offset = 0;
+        while (offset + 8 <= bytes.length) {
+            Mp4Box box = readMp4Box(bytes, offset, bytes.length);
+            if (box == null) {
+                return null;
+            }
+            if ("moov".equals(box.type)) {
+                return extractMp4DurationFromMoov(bytes, box.contentOffset, box.endOffset);
+            }
+            offset = box.endOffset;
+        }
+        return null;
+    }
+
+    private Integer extractMp4DurationFromMoov(byte[] bytes, int startOffset, int endOffset) {
+        int offset = startOffset;
+        while (offset + 8 <= endOffset) {
+            Mp4Box box = readMp4Box(bytes, offset, endOffset);
+            if (box == null) {
+                return null;
+            }
+            if ("mvhd".equals(box.type)) {
+                return parseMvhdDuration(bytes, box.contentOffset, box.endOffset);
+            }
+            offset = box.endOffset;
+        }
+        return null;
+    }
+
+    private Integer parseMvhdDuration(byte[] bytes, int contentOffset, int endOffset) {
+        if (contentOffset + 20 > endOffset || contentOffset >= bytes.length) {
+            return null;
+        }
+
+        int version = bytes[contentOffset] & 0xFF;
+        long timescale;
+        long duration;
+        if (version == 1) {
+            if (contentOffset + 32 > endOffset) {
+                return null;
+            }
+            timescale = readUnsignedInt(bytes, contentOffset + 20);
+            duration = readLong(bytes, contentOffset + 24);
+        } else {
+            timescale = readUnsignedInt(bytes, contentOffset + 12);
+            duration = readUnsignedInt(bytes, contentOffset + 16);
+        }
+
+        if (timescale <= 0 || duration <= 0) {
+            return null;
+        }
+        return Math.max(1, (int) Math.ceil((double) duration / (double) timescale));
+    }
+
+    private Mp4Box readMp4Box(byte[] bytes, int offset, int limit) {
+        if (offset < 0 || offset + 8 > limit || offset + 8 > bytes.length) {
+            return null;
+        }
+
+        long boxSize = readUnsignedInt(bytes, offset);
+        String boxType = new String(bytes, offset + 4, 4, StandardCharsets.US_ASCII);
+        int headerSize = 8;
+        if (boxSize == 1L) {
+            long extendedSize = readLong(bytes, offset + 8);
+            if (extendedSize < 16L) {
+                return null;
+            }
+            boxSize = extendedSize;
+            headerSize = 16;
+        } else if (boxSize == 0L) {
+            boxSize = limit - offset;
+        }
+
+        if (boxSize < headerSize) {
+            return null;
+        }
+        long endOffset = offset + boxSize;
+        if (endOffset > limit || endOffset > bytes.length) {
+            return null;
+        }
+        return new Mp4Box(boxType, offset + headerSize, (int) endOffset);
+    }
+
     private boolean startsWith(byte[] bytes, String value) {
         return matchesAt(bytes, 0, value);
     }
@@ -538,6 +645,30 @@ public class MassTaskMessageSupport {
                 | (bytes[offset + 3] & 0xFF);
     }
 
+    private long readUnsignedInt(byte[] bytes, int offset) {
+        if (offset + 4 > bytes.length) {
+            return -1L;
+        }
+        return ((long) (bytes[offset] & 0xFF) << 24)
+                | ((long) (bytes[offset + 1] & 0xFF) << 16)
+                | ((long) (bytes[offset + 2] & 0xFF) << 8)
+                | (bytes[offset + 3] & 0xFF);
+    }
+
+    private long readLong(byte[] bytes, int offset) {
+        if (offset + 8 > bytes.length) {
+            return -1L;
+        }
+        return ((long) (bytes[offset] & 0xFF) << 56)
+                | ((long) (bytes[offset + 1] & 0xFF) << 48)
+                | ((long) (bytes[offset + 2] & 0xFF) << 40)
+                | ((long) (bytes[offset + 3] & 0xFF) << 32)
+                | ((long) (bytes[offset + 4] & 0xFF) << 24)
+                | ((long) (bytes[offset + 5] & 0xFF) << 16)
+                | ((long) (bytes[offset + 6] & 0xFF) << 8)
+                | (bytes[offset + 7] & 0xFF);
+    }
+
     private static class Mp3Frame {
         private final int frameLength;
         private final int sampleRate;
@@ -547,6 +678,18 @@ public class MassTaskMessageSupport {
             this.frameLength = frameLength;
             this.sampleRate = sampleRate;
             this.samplesPerFrame = samplesPerFrame;
+        }
+    }
+
+    private static class Mp4Box {
+        private final String type;
+        private final int contentOffset;
+        private final int endOffset;
+
+        private Mp4Box(String type, int contentOffset, int endOffset) {
+            this.type = type;
+            this.contentOffset = contentOffset;
+            this.endOffset = endOffset;
         }
     }
 
