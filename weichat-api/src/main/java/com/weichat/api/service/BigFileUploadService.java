@@ -72,18 +72,21 @@ public class BigFileUploadService {
         // 3. 获取AuthKey和FileKey
         AuthKeyInfo authKeyInfo = getAuthKey(uuid);
 
-        // 4. 上传大文件
-        return uploadBigFile(
+        // 4. 上传大文件（不传宽高）
+        BigFileUploadResponse response = uploadBigFile(
                 uuid,
                 authKeyInfo.getAuthKey(),
                 authKeyInfo.getFileKey(),
                 imageResource.getBytes(),
                 imageResource.getFilename(),
-                imageResource.getContentType(),
-                dimension.getWidth(),
-                dimension.getHeight(),
-                null
+                imageResource.getContentType()
         );
+
+        // 5. 补充计算的宽高信息
+        response.setWidth(dimension.getWidth());
+        response.setHeight(dimension.getHeight());
+
+        return response;
     }
 
     /**
@@ -117,10 +120,7 @@ public class BigFileUploadService {
                 authKeyInfo.getFileKey(),
                 videoResource.getBytes(),
                 videoResource.getFilename(),
-                videoResource.getContentType(),
-                null,
-                null,
-                null
+                videoResource.getContentType()
         );
     }
 
@@ -173,7 +173,7 @@ public class BigFileUploadService {
                 if (!StringUtils.hasText(authKey)) {
                     authKey = data.getString("AuthKey");
                 }
-                filekey = response.getString("filekey");
+                filekey = data.getString("filekey");
             }
         }
 
@@ -182,7 +182,7 @@ public class BigFileUploadService {
             throw new IllegalStateException("AuthKey为空");
         }
 
-        logger.debug("获取AuthKey成功: {}, filekey: {}", authKey, filekey);
+        logger.debug("获取filekey: {},AuthKey成功: {}", filekey, authKey );
         return new AuthKeyInfo(authKey, filekey);
     }
 
@@ -191,38 +191,24 @@ public class BigFileUploadService {
      *
      * @param uuid        设备UUID
      * @param authKey     AuthKey
+     * @param fileKey     FileKey
      * @param fileBytes   文件字节数组
      * @param filename    文件名
      * @param contentType 内容类型
-     * @param width       图片宽度（图片类型必填）
-     * @param height      图片高度（图片类型必填）
-     * @param videoLen    视频时长（视频类型选填）
      * @return 上传响应
      */
     private BigFileUploadResponse uploadBigFile(String uuid,
                                                 String authKey,
-                                                String filekey,
+                                                String fileKey,
                                                 byte[] fileBytes,
                                                 String filename,
-                                                String contentType,
-                                                Integer width,
-                                                Integer height,
-                                                Integer videoLen) {
+                                                String contentType) {
         logger.debug("上传大文件, uuid: {}, filename: {}, size: {}", uuid, filename, fileBytes.length);
 
-        // 构建额外参数（使用下划线格式）
+        // 构建额外参数（只传递 authkey 和 filekey）
         JSONObject extraParams = new JSONObject();
         extraParams.put("authkey", authKey);
-        extraParams.put("filekey", filekey);
-        if (width != null) {
-            extraParams.put("width", width);
-        }
-        if (height != null) {
-            extraParams.put("height", height);
-        }
-        if (videoLen != null) {
-            extraParams.put("video_len", videoLen);
-        }
+        extraParams.put("filekey", fileKey);
 
         // 调用上传接口
         JSONObject response = wxWorkApiClient.postMultipart(
@@ -272,16 +258,7 @@ public class BigFileUploadService {
         uploadResponse.setAesKey(aesKey);
 
         uploadResponse.setMd5(source.getString("md5"));
-        uploadResponse.setSize(source.getInteger("size"));
-        uploadResponse.setWidth(source.getInteger("width"));
-        uploadResponse.setHeight(source.getInteger("height"));
-
-        // video_len 或 videoLen
-        Integer videoLength = source.getInteger("video_len");
-        if (videoLength == null) {
-            videoLength = source.getInteger("videoLen");
-        }
-        uploadResponse.setVideoLen(videoLength);
+        uploadResponse.setSize(source.getInteger("file_size"));
 
         if (!StringUtils.hasText(uploadResponse.getFileid())) {
             logger.error("上传响应中fileid为空");
