@@ -3,8 +3,10 @@ package com.weichat.api.service.mass.sender;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.vo.callback.ReplyMediaItem;
 import com.weichat.api.vo.request.mass.MassTaskMediaPayload;
+import lombok.Data;
 import org.springframework.util.StringUtils;
 
+@Data
 public class MassTaskMediaMaterial {
 
     private String url;
@@ -101,22 +103,76 @@ public class MassTaskMediaMaterial {
         return null;
     }
 
-    public String getFilename() { return filename; }
-    public String getFileName() { return fileName; }
-    public String getCdnkey() { return cdnkey; }
-    public String getAeskey() { return aeskey; }
-    public String getMd5() { return md5; }
-    public String getFileId() { return fileId; }
-    public Integer getFileSize() { return fileSize; }
-    public Integer getWidth() { return width; }
-    public Integer getHeight() { return height; }
-    public Integer getThumbImageHeight() { return thumbImageHeight; }
-    public Integer getThumbImageWidth() { return thumbImageWidth; }
-    public Integer getThumbFileSize() { return thumbFileSize; }
-    public String getThumbFileMd5() { return thumbFileMd5; }
-    public Integer getIsHd() { return isHd; }
-    public Integer getVoiceTime() { return voiceTime; }
-    public Integer getVideoDuration() { return videoDuration; }
-    public Integer getVideoWidth() { return videoWidth; }
-    public Integer getVideoHeight() { return videoHeight; }
+    public String getFilename() {
+        return filename;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public String getCdnkey() {
+        return cdnkey;
+    }
+
+    public String getAeskey() {
+        return aeskey;
+    }
+
+    public String getMd5() {
+        return md5;
+    }
+
+    public String getFileId() {
+        return fileId;
+    }
+
+    public Integer getFileSize() {
+        return fileSize;
+    }
+
+    public Integer getWidth() {
+        return width;
+    }
+
+    public Integer getHeight() {
+        return height;
+    }
+
+    public Integer getThumbImageHeight() {
+        return thumbImageHeight;
+    }
+
+    public Integer getThumbImageWidth() {
+        return thumbImageWidth;
+    }
+
+    public Integer getThumbFileSize() {
+        return thumbFileSize;
+    }
+
+    public String getThumbFileMd5() {
+        return thumbFileMd5;
+    }
+
+    public Integer getIsHd() {
+        return isHd;
+    }
+
+    public Integer getVoiceTime() {
+        return voiceTime;
+    }
+
+    public Integer getVideoDuration() {
+        return videoDuration;
+    }
+
+    public Integer getVideoWidth() {
+        return videoWidth;
+    }
+
+    public Integer getVideoHeight() {
+        return videoHeight;
+    }
+
 }
