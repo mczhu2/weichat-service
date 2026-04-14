@@ -1,5 +1,6 @@
 package com.weichat.api.vo.response.bigfile;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -15,6 +16,7 @@ import lombok.Data;
 public class BigAuthKeyResponse {
 
     @ApiModelProperty(value = "AuthKey", example = "xxx")
+    @JSONField(name = "auth_key")
     private String authKey;
 
     @ApiModelProperty(value = "返回码", example = "0")

@@ -1,5 +1,6 @@
 package com.weichat.api.vo.request.moment;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
@@ -27,12 +28,14 @@ public class PostPyqV2Request {
     private String content;
 
     @ApiModelProperty(value = "文件内容列表（图片、视频、封面图）")
+    @JSONField(name = "file_content")
     private List<FileContent> fileContent;
 
     @ApiModelProperty(value = "可见用户ID列表", example = "[7881301488924502]")
     private List<Long> vids;
 
     @ApiModelProperty(value = "链接信息（发送链接朋友圈时使用）")
+    @JSONField(name = "link_info")
     private LinkInfo linkInfo;
 
     /**
@@ -83,6 +86,7 @@ public class PostPyqV2Request {
         private String title;
 
         @ApiModelProperty(value = "链接URL", required = true)
+        @JSONField(name = "content_url")
         private String contentUrl;
     }
 }

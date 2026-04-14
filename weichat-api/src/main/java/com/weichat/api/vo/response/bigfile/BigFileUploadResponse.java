@@ -1,5 +1,6 @@
 package com.weichat.api.vo.response.bigfile;
 
+import com.alibaba.fastjson.annotation.JSONField;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class BigFileUploadResponse {
     private String fileid;
 
     @ApiModelProperty(value = "AES Key", example = "xxx")
+    @JSONField(name = "aes_key")
     private String aesKey;
 
     @ApiModelProperty(value = "文件MD5", example = "xxx")
@@ -33,6 +35,7 @@ public class BigFileUploadResponse {
     private Integer height;
 
     @ApiModelProperty(value = "视频时长（秒）", example = "60")
+    @JSONField(name = "video_len")
     private Integer videoLen;
 
     @ApiModelProperty(value = "返回码", example = "0")
