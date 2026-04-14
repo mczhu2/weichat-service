@@ -25,22 +25,66 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * 群发任务消息支持服务
+ * <p>
+ * 提供群发消息处理的核心支持功能，包括：
+ * <ul>
+ *   <li>消息内容解析与模板渲染</li>
+ *   <li>媒体素材处理（图片、视频、语音、文件）</li>
+ *   <li>CDN上传响应验证与转换</li>
+ *   <li>媒体文件时长推断（WAV、MP3、MP4格式）</li>
+ *   <li>Base64编码解码与数据URL处理</li>
+ *   <li>企业微信API消息发送</li>
+ *   <li>响应结果校验与异常处理</li>
+ * </ul>
+ * </p>
+ *
+ * @author weichat
+ * @since 1.0
+ */
 @Service
 public class MassTaskMessageSupport {
 
+    /**
+     * 企业微信API客户端，用于调用企业微信接口
+     */
     @Autowired
     private WxWorkApiClient wxWorkApiClient;
 
+    /**
+     * 消息模板服务，用于获取和渲染消息模板
+     */
     @Autowired
     private MessageTemplateService messageTemplateService;
 
+    /**
+     * 远程媒体下载服务，用于从URL下载媒体文件
+     */
     @Autowired
     private RemoteMediaDownloadService remoteMediaDownloadService;
 
+    /**
+     * 发送POST请求到企业微信API
+     *
+     * @param endpoint API端点路径
+     * @param request  请求对象
+     * @return API响应JSON对象
+     */
     public JSONObject postMessage(String endpoint, Object request) {
         return wxWorkApiClient.post(endpoint, JSON.parseObject(JSON.toJSONString(request)));
     }
 
+    /**
+     * 解析群发任务的消息内容
+     * <p>
+     * 优先解析结构化文本，若不存在则尝试使用模板渲染，最后返回原始内容。
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param receiverName 接收者姓名，用于模板变量替换
+     * @return 解析后的消息内容
+     */
     public String resolveContent(MassTask task, String receiverName) {
         String structuredText = resolveStructuredText(task, receiverName);
         if (StringUtils.hasText(structuredText)) {
@@ -57,6 +101,22 @@ public class MassTaskMessageSupport {
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
     }
 
+    /**
+     * 解析群发任务的媒体素材列表
+     * <p>
+     * 按优先级依次尝试：
+     * 1. 从任务载荷中的media字段解析
+     * 2. 从原始素材字符串解析
+     * 3. 从结构化任务对象中的media或items字段解析
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param rawMaterial  原始素材字符串（可能是JSON、URL或CDN key）
+     * @param receiverName 接收者姓名，用于模板渲染
+     * @param emptyMessage 素材为空时的异常提示信息
+     * @return 媒体素材列表
+     * @throws IllegalArgumentException 当所有解析方式都失败时抛出
+     */
     public List<MassTaskMediaMaterial> resolveMediaMaterials(MassTask task,
                                                              String rawMaterial,
                                                              String receiverName,
@@ -87,6 +147,17 @@ public class MassTaskMessageSupport {
         throw new IllegalArgumentException(emptyMessage);
     }
 
+    /**
+     * 解析群发任务的链接载荷
+     * <p>
+     * 优先从任务载荷中获取，若不存在则从结构化任务对象中解析。
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param receiverName 接收者姓名，用于模板渲染
+     * @return 链接载荷对象
+     * @throws IllegalArgumentException 当链接载荷为空时抛出
+     */
     public MassTaskLinkPayload resolveLinkPayload(MassTask task, String receiverName) {
         MassTaskPayload payload = resolveTaskPayload(task);
         if (payload != null && payload.getLink() != null) {
@@ -102,6 +173,17 @@ public class MassTaskMessageSupport {
         return (linkJson == null ? json : linkJson).toJavaObject(MassTaskLinkPayload.class);
     }
 
+    /**
+     * 解析群发任务的小程序消息素材
+     * <p>
+     * 优先从任务载荷中获取，若不存在则从结构化任务对象中解析。
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param receiverName 接收者姓名，用于模板渲染
+     * @return 小程序消息素材对象
+     * @throws IllegalArgumentException 当小程序载荷为空时抛出
+     */
     public MassTaskAppMessageMaterial resolveAppMessageMaterial(MassTask task, String receiverName) {
         MassTaskPayload payload = resolveTaskPayload(task);
         if (payload != null && payload.getApp() != null) {
@@ -117,6 +199,16 @@ public class MassTaskMessageSupport {
         return MassTaskAppMessageMaterial.fromJson(appJson == null ? json : appJson);
     }
 
+    /**
+     * 验证图片上传响应的完整性
+     * <p>
+     * 检查CDN key、AES key、MD5和文件大小是否都存在。
+     * </p>
+     *
+     * @param uploadResponse CDN上传响应对象
+     * @return 验证通过的上传响应对象
+     * @throws IllegalStateException 当响应不完整时抛出
+     */
     public CdnUploadResponse validateImageUploadResponse(CdnUploadResponse uploadResponse) {
         if (uploadResponse == null
                 || !StringUtils.hasText(uploadResponse.getCdn_key())
@@ -128,6 +220,16 @@ public class MassTaskMessageSupport {
         return uploadResponse;
     }
 
+    /**
+     * 验证文件上传响应的完整性
+     * <p>
+     * 检查CDN key（或file_id）、AES key、MD5和文件大小是否都存在。
+     * </p>
+     *
+     * @param uploadResponse CDN上传响应对象
+     * @return 验证通过的上传响应对象
+     * @throws IllegalStateException 当响应不完整时抛出
+     */
     public CdnUploadResponse validateFileUploadResponse(CdnUploadResponse uploadResponse) {
         if (uploadResponse == null
                 || !StringUtils.hasText(resolveCdnKey(uploadResponse))
@@ -139,6 +241,16 @@ public class MassTaskMessageSupport {
         return uploadResponse;
     }
 
+    /**
+     * 从媒体素材构建CDN上传响应对象
+     * <p>
+     * 将已上传的媒体素材信息转换为CDN上传响应格式，并进行完整性验证。
+     * </p>
+     *
+     * @param material 媒体素材对象
+     * @return CDN上传响应对象
+     * @throws IllegalStateException 当响应不完整时抛出
+     */
     public CdnUploadResponse buildUploadResponseFromMaterial(MassTaskMediaMaterial material) {
         CdnUploadResponse uploadResponse = new CdnUploadResponse();
         uploadResponse.setCdn_key(resolveMaterialCdnKey(material));
@@ -155,18 +267,55 @@ public class MassTaskMessageSupport {
         return validateFileUploadResponse(uploadResponse);
     }
 
+    /**
+     * 解析CDN上传响应中的CDN key
+     * <p>
+     * 优先返回cdn_key字段，若为空则返回fileid字段。
+     * </p>
+     *
+     * @param uploadResponse CDN上传响应对象
+     * @return CDN key或file_id
+     */
     public String resolveCdnKey(CdnUploadResponse uploadResponse) {
         return StringUtils.hasText(uploadResponse.getCdn_key()) ? uploadResponse.getCdn_key() : uploadResponse.getFileid();
     }
 
+    /**
+     * 解析媒体素材中的CDN key
+     * <p>
+     * 优先返回cdnkey字段，若为空则返回fileId字段。
+     * </p>
+     *
+     * @param material 媒体素材对象
+     * @return CDN key或file_id
+     */
     public String resolveMaterialCdnKey(MassTaskMediaMaterial material) {
         return StringUtils.hasText(material.getCdnkey()) ? material.getCdnkey() : material.getFileId();
     }
 
+    /**
+     * 解析媒体素材的文件名
+     * <p>
+     * 优先返回fileName字段，若为空则返回filename字段。
+     * </p>
+     *
+     * @param material 媒体素材对象
+     * @return 文件名
+     */
     public String resolveFileName(MassTaskMediaMaterial material) {
         return firstNonBlank(material.getFileName(), material.getFilename());
     }
 
+    /**
+     * 解析结构化任务对象中的文本内容
+     * <p>
+     * 从结构化JSON对象中提取text或content字段。
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param receiverName 接收者姓名，用于模板渲染
+     * @return 文本内容，若不存在则返回null
+     */
     public String resolveStructuredText(MassTask task, String receiverName) {
         JSONObject structuredObject = resolveStructuredTaskObject(task, receiverName);
         if (structuredObject == null) {
@@ -178,6 +327,13 @@ public class MassTaskMessageSupport {
         );
     }
 
+    /**
+     * 发送文本消息
+     *
+     * @param receiverContext 接收者上下文信息
+     * @param content         消息文本内容
+     * @return API响应JSON对象
+     */
     public JSONObject sendTextMessage(MassTaskReceiverContext receiverContext, String content) {
         SendTextRequest request = SendTextRequest.builder()
                 .uuid(receiverContext.getSenderUuid())
@@ -188,6 +344,16 @@ public class MassTaskMessageSupport {
         return postMessage("/wxwork/SendTextMsg", request);
     }
 
+    /**
+     * 确保API响应成功
+     * <p>
+     * 检查响应中的errcode或code字段，若不为0则抛出异常。
+     * </p>
+     *
+     * @param result API响应JSON对象
+     * @param action 操作描述，用于异常信息
+     * @throws IllegalStateException 当响应为空或返回错误码时抛出
+     */
     public void ensureSuccess(JSONObject result, String action) {
         if (result == null) {
             throw new IllegalStateException(action + " response is empty");
@@ -207,6 +373,11 @@ public class MassTaskMessageSupport {
         throw new IllegalStateException(StringUtils.hasText(message) ? message : action + " failed");
     }
 
+    /**
+     * 创建成功响应对象
+     *
+     * @return 包含code=0和msg=ok的JSON对象
+     */
     public JSONObject successResult() {
         JSONObject result = new JSONObject();
         result.put("code", 0);
@@ -214,10 +385,27 @@ public class MassTaskMessageSupport {
         return result;
     }
 
+    /**
+     * 解析语音时长
+     * <p>
+     * 从CDN上传响应中获取视频时长字段（实际用于语音时长）。
+     * </p>
+     *
+     * @param uploadResponse CDN上传响应对象
+     * @return 语音时长（秒）
+     */
     public Integer resolveVoiceDuration(CdnUploadResponse uploadResponse) {
         return uploadResponse.getVideoDuration();
     }
 
+    /**
+     * 要求字符串值非空
+     *
+     * @param value   待检查的字符串值
+     * @param message 为空时的异常信息
+     * @return 非空的字符串值
+     * @throws IllegalArgumentException 当值为空时抛出
+     */
     public String requireText(String value, String message) {
         if (!StringUtils.hasText(value)) {
             throw new IllegalArgumentException(message);
@@ -225,6 +413,14 @@ public class MassTaskMessageSupport {
         return value;
     }
 
+    /**
+     * 要求整数值非null
+     *
+     * @param value   待检查的整数值
+     * @param message 为null时的异常信息
+     * @return 非null的整数值
+     * @throws IllegalArgumentException 当值为null时抛出
+     */
     public Integer requireInteger(Integer value, String message) {
         if (value == null) {
             throw new IllegalArgumentException(message);
@@ -232,24 +428,67 @@ public class MassTaskMessageSupport {
         return value;
     }
 
+    /**
+     * 返回第一个非null的整数值
+     *
+     * @param first  第一个候选值
+     * @param second 第二个候选值
+     * @return 第一个非null的值，若都为null则返回null
+     */
     public Integer firstNonNull(Integer first, Integer second) {
         return first != null ? first : second;
     }
 
+    /**
+     * 返回第一个非空的字符串值
+     *
+     * @param first  第一个候选值
+     * @param second 第二个候选值
+     * @return 第一个非空的值，若都为空则返回第二个值
+     */
     public String firstNonBlank(String first, String second) {
         return StringUtils.hasText(first) ? first : second;
     }
 
+    /**
+     * 解析群发任务的载荷对象
+     * <p>
+     * 按优先级从payloadJson、content、remark字段中查找并解析JSON对象。
+     * </p>
+     *
+     * @param task 群发任务对象
+     * @return 任务载荷对象，若无法解析则返回null
+     */
     private MassTaskPayload resolveTaskPayload(MassTask task) {
         JSONObject json = firstStructuredObject(task.getPayloadJson(), task.getContent(), task.getRemark());
         return json == null ? null : json.toJavaObject(MassTaskPayload.class);
     }
 
+    /**
+     * 解析结构化任务对象
+     * <p>
+     * 先渲染模板内容，再按优先级从payloadJson、渲染后内容、remark字段中查找并解析JSON对象。
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param receiverName 接收者姓名，用于模板渲染
+     * @return 结构化JSON对象，若无法解析则返回null
+     */
     private JSONObject resolveStructuredTaskObject(MassTask task, String receiverName) {
         String renderedContent = resolveRenderedContentCandidate(task, receiverName);
         return firstStructuredObject(task.getPayloadJson(), renderedContent, task.getRemark());
     }
 
+    /**
+     * 解析渲染后的内容候选值
+     * <p>
+     * 若任务关联了模板，则渲染模板内容；否则返回原始内容。
+     * </p>
+     *
+     * @param task         群发任务对象
+     * @param receiverName 接收者姓名，用于模板变量替换
+     * @return 渲染后的内容
+     */
     private String resolveRenderedContentCandidate(MassTask task, String receiverName) {
         if (task == null) {
             return null;
@@ -264,6 +503,15 @@ public class MassTaskMessageSupport {
         return MessageTemplateUtil.renderTemplate(template.getTemplateContent(), receiverName);
     }
 
+    /**
+     * 从结构化对象中解析媒体素材列表
+     * <p>
+     * 从JSON对象的items数组中提取多个媒体素材。
+     * </p>
+     *
+     * @param json 结构化JSON对象
+     * @return 媒体素材列表，若items不存在或为空则返回空列表
+     */
     private List<MassTaskMediaMaterial> resolveItemMaterials(JSONObject json) {
         if (json == null) {
             return Collections.emptyList();
@@ -287,384 +535,19 @@ public class MassTaskMessageSupport {
         return materials;
     }
 
-    private byte[] loadSourceBytes(MassTaskMediaMaterial material, String defaultFilenamePrefix) {
-        if (material == null) {
-            return null;
-        }
-        if (StringUtils.hasText(material.getBase64())) {
-            return decodeBase64Bytes(material.getBase64());
-        }
-        if (StringUtils.hasText(material.getUrl())) {
-            RemoteMediaResource resource = remoteMediaDownloadService.download(
-                    material.getUrl(),
-                    resolveFileName(material),
-                    material.getContentType(),
-                    defaultFilenamePrefix
-            );
-            return resource.getBytes();
-        }
-        return null;
-    }
-
-    private Integer inferVoiceDuration(byte[] audioBytes) {
-        if (audioBytes == null || audioBytes.length == 0) {
-            return null;
-        }
-
-        Integer wavDuration = inferWavDuration(audioBytes);
-        if (wavDuration != null) {
-            return wavDuration;
-        }
-
-        Integer mp3Duration = inferMp3Duration(audioBytes);
-        if (mp3Duration != null) {
-            return mp3Duration;
-        }
-        return null;
-    }
-
-    private Integer inferVideoDuration(byte[] videoBytes) {
-        if (videoBytes == null || videoBytes.length == 0) {
-            return null;
-        }
-        return inferMp4Duration(videoBytes);
-    }
-
-    private byte[] decodeBase64Bytes(String base64Payload) {
-        String trimmed = base64Payload == null ? "" : base64Payload.trim();
-        String encoded = trimmed;
-        int commaIndex = trimmed.indexOf(',');
-        if (trimmed.startsWith("data:") && commaIndex > 0) {
-            encoded = trimmed.substring(commaIndex + 1);
-        }
-
-        String normalized = encoded.replaceAll("\\s", "");
-        int remainder = normalized.length() % 4;
-        if (remainder != 0) {
-            StringBuilder builder = new StringBuilder(normalized);
-            for (int i = remainder; i < 4; i++) {
-                builder.append('=');
-            }
-            normalized = builder.toString();
-        }
-
-        try {
-            return Base64.getDecoder().decode(normalized);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    private Integer inferWavDuration(byte[] bytes) {
-        if (bytes.length < 44) {
-            return null;
-        }
-        if (!startsWith(bytes, "RIFF") || !matchesAt(bytes, 8, "WAVE")) {
-            return null;
-        }
-
-        int offset = 12;
-        Integer dataSize = null;
-        Integer byteRate = null;
-        while (offset + 8 <= bytes.length) {
-            String chunkId = new String(bytes, offset, 4, StandardCharsets.US_ASCII);
-            int chunkSize = readLittleEndianInt(bytes, offset + 4);
-            int nextOffset = offset + 8 + chunkSize + (chunkSize % 2);
-            if (chunkSize < 0 || nextOffset > bytes.length + 1) {
-                return null;
-            }
-
-            if ("fmt ".equals(chunkId) && chunkSize >= 16 && offset + 24 <= bytes.length) {
-                byteRate = readLittleEndianInt(bytes, offset + 16);
-            } else if ("data".equals(chunkId)) {
-                dataSize = chunkSize;
-            }
-
-            if (dataSize != null && byteRate != null && byteRate > 0) {
-                return Math.max(1, (int) Math.ceil((double) dataSize / (double) byteRate));
-            }
-            offset = nextOffset;
-        }
-        return null;
-    }
-
-    private Integer inferMp3Duration(byte[] bytes) {
-        int offset = skipId3v2Tag(bytes);
-        long totalSamples = 0L;
-        int frameCount = 0;
-
-        while (offset + 4 <= bytes.length) {
-            int header = readBigEndianInt(bytes, offset);
-            Mp3Frame frame = parseMp3Frame(header);
-            if (frame == null) {
-                offset++;
-                continue;
-            }
-
-            if (frame.frameLength <= 0 || offset + frame.frameLength > bytes.length) {
-                break;
-            }
-
-            totalSamples += frame.samplesPerFrame;
-            frameCount++;
-            offset += frame.frameLength;
-        }
-
-        if (frameCount == 0) {
-            return null;
-        }
-
-        Mp3Frame firstFrame = findFirstMp3Frame(bytes, skipId3v2Tag(bytes));
-        int sampleRate = firstFrame == null || firstFrame.sampleRate <= 0 ? 44100 : firstFrame.sampleRate;
-        return Math.max(1, (int) Math.ceil((double) totalSamples / (double) sampleRate));
-    }
-
-    private Mp3Frame findFirstMp3Frame(byte[] bytes, int startOffset) {
-        for (int offset = startOffset; offset + 4 <= bytes.length; offset++) {
-            Mp3Frame frame = parseMp3Frame(readBigEndianInt(bytes, offset));
-            if (frame != null) {
-                return frame;
-            }
-        }
-        return null;
-    }
-
-    private int skipId3v2Tag(byte[] bytes) {
-        if (bytes.length < 10 || !startsWith(bytes, "ID3")) {
-            return 0;
-        }
-        int size = ((bytes[6] & 0x7F) << 21)
-                | ((bytes[7] & 0x7F) << 14)
-                | ((bytes[8] & 0x7F) << 7)
-                | (bytes[9] & 0x7F);
-        int tagSize = 10 + size;
-        return tagSize > bytes.length ? 0 : tagSize;
-    }
-
-    private Mp3Frame parseMp3Frame(int header) {
-        if ((header & 0xFFE00000) != 0xFFE00000) {
-            return null;
-        }
-
-        int versionBits = (header >>> 19) & 0x3;
-        int layerBits = (header >>> 17) & 0x3;
-        int bitrateIndex = (header >>> 12) & 0xF;
-        int sampleRateIndex = (header >>> 10) & 0x3;
-        int paddingBit = (header >>> 9) & 0x1;
-
-        if (versionBits == 1 || layerBits != 1 || bitrateIndex == 0 || bitrateIndex == 15 || sampleRateIndex == 3) {
-            return null;
-        }
-
-        int sampleRate = resolveMp3SampleRate(versionBits, sampleRateIndex);
-        int bitrate = resolveMp3Bitrate(versionBits, bitrateIndex);
-        if (sampleRate <= 0 || bitrate <= 0) {
-            return null;
-        }
-
-        int frameLength;
-        int samplesPerFrame;
-        if (versionBits == 3) {
-            frameLength = (144 * bitrate * 1000) / sampleRate + paddingBit;
-            samplesPerFrame = 1152;
-        } else {
-            frameLength = (72 * bitrate * 1000) / sampleRate + paddingBit;
-            samplesPerFrame = 576;
-        }
-
-        if (frameLength <= 4) {
-            return null;
-        }
-        return new Mp3Frame(frameLength, sampleRate, samplesPerFrame);
-    }
-
-    private int resolveMp3SampleRate(int versionBits, int sampleRateIndex) {
-        int[] baseRates = new int[]{44100, 48000, 32000};
-        int sampleRate = baseRates[sampleRateIndex];
-        if (versionBits == 2) {
-            return sampleRate / 2;
-        }
-        if (versionBits == 0) {
-            return sampleRate / 4;
-        }
-        return sampleRate;
-    }
-
-    private int resolveMp3Bitrate(int versionBits, int bitrateIndex) {
-        int[] mpeg1Layer3 = new int[]{0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0};
-        int[] mpeg2Layer3 = new int[]{0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0};
-        return versionBits == 3 ? mpeg1Layer3[bitrateIndex] : mpeg2Layer3[bitrateIndex];
-    }
-
-    private Integer inferMp4Duration(byte[] bytes) {
-        int offset = 0;
-        while (offset + 8 <= bytes.length) {
-            Mp4Box box = readMp4Box(bytes, offset, bytes.length);
-            if (box == null) {
-                return null;
-            }
-            if ("moov".equals(box.type)) {
-                return extractMp4DurationFromMoov(bytes, box.contentOffset, box.endOffset);
-            }
-            offset = box.endOffset;
-        }
-        return null;
-    }
-
-    private Integer extractMp4DurationFromMoov(byte[] bytes, int startOffset, int endOffset) {
-        int offset = startOffset;
-        while (offset + 8 <= endOffset) {
-            Mp4Box box = readMp4Box(bytes, offset, endOffset);
-            if (box == null) {
-                return null;
-            }
-            if ("mvhd".equals(box.type)) {
-                return parseMvhdDuration(bytes, box.contentOffset, box.endOffset);
-            }
-            offset = box.endOffset;
-        }
-        return null;
-    }
-
-    private Integer parseMvhdDuration(byte[] bytes, int contentOffset, int endOffset) {
-        if (contentOffset + 20 > endOffset || contentOffset >= bytes.length) {
-            return null;
-        }
-
-        int version = bytes[contentOffset] & 0xFF;
-        long timescale;
-        long duration;
-        if (version == 1) {
-            if (contentOffset + 32 > endOffset) {
-                return null;
-            }
-            timescale = readUnsignedInt(bytes, contentOffset + 20);
-            duration = readLong(bytes, contentOffset + 24);
-        } else {
-            timescale = readUnsignedInt(bytes, contentOffset + 12);
-            duration = readUnsignedInt(bytes, contentOffset + 16);
-        }
-
-        if (timescale <= 0 || duration <= 0) {
-            return null;
-        }
-        return Math.max(1, (int) Math.ceil((double) duration / (double) timescale));
-    }
-
-    private Mp4Box readMp4Box(byte[] bytes, int offset, int limit) {
-        if (offset < 0 || offset + 8 > limit || offset + 8 > bytes.length) {
-            return null;
-        }
-
-        long boxSize = readUnsignedInt(bytes, offset);
-        String boxType = new String(bytes, offset + 4, 4, StandardCharsets.US_ASCII);
-        int headerSize = 8;
-        if (boxSize == 1L) {
-            long extendedSize = readLong(bytes, offset + 8);
-            if (extendedSize < 16L) {
-                return null;
-            }
-            boxSize = extendedSize;
-            headerSize = 16;
-        } else if (boxSize == 0L) {
-            boxSize = limit - offset;
-        }
-
-        if (boxSize < headerSize) {
-            return null;
-        }
-        long endOffset = offset + boxSize;
-        if (endOffset > limit || endOffset > bytes.length) {
-            return null;
-        }
-        return new Mp4Box(boxType, offset + headerSize, (int) endOffset);
-    }
-
-    private boolean startsWith(byte[] bytes, String value) {
-        return matchesAt(bytes, 0, value);
-    }
-
-    private boolean matchesAt(byte[] bytes, int offset, String value) {
-        byte[] ascii = value.getBytes(StandardCharsets.US_ASCII);
-        if (offset < 0 || bytes.length < offset + ascii.length) {
-            return false;
-        }
-        for (int i = 0; i < ascii.length; i++) {
-            if (bytes[offset + i] != ascii[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private int readLittleEndianInt(byte[] bytes, int offset) {
-        if (offset + 4 > bytes.length) {
-            return -1;
-        }
-        return (bytes[offset] & 0xFF)
-                | ((bytes[offset + 1] & 0xFF) << 8)
-                | ((bytes[offset + 2] & 0xFF) << 16)
-                | ((bytes[offset + 3] & 0xFF) << 24);
-    }
-
-    private int readBigEndianInt(byte[] bytes, int offset) {
-        if (offset + 4 > bytes.length) {
-            return -1;
-        }
-        return ((bytes[offset] & 0xFF) << 24)
-                | ((bytes[offset + 1] & 0xFF) << 16)
-                | ((bytes[offset + 2] & 0xFF) << 8)
-                | (bytes[offset + 3] & 0xFF);
-    }
-
-    private long readUnsignedInt(byte[] bytes, int offset) {
-        if (offset + 4 > bytes.length) {
-            return -1L;
-        }
-        return ((long) (bytes[offset] & 0xFF) << 24)
-                | ((long) (bytes[offset + 1] & 0xFF) << 16)
-                | ((long) (bytes[offset + 2] & 0xFF) << 8)
-                | (bytes[offset + 3] & 0xFF);
-    }
-
-    private long readLong(byte[] bytes, int offset) {
-        if (offset + 8 > bytes.length) {
-            return -1L;
-        }
-        return ((long) (bytes[offset] & 0xFF) << 56)
-                | ((long) (bytes[offset + 1] & 0xFF) << 48)
-                | ((long) (bytes[offset + 2] & 0xFF) << 40)
-                | ((long) (bytes[offset + 3] & 0xFF) << 32)
-                | ((long) (bytes[offset + 4] & 0xFF) << 24)
-                | ((long) (bytes[offset + 5] & 0xFF) << 16)
-                | ((long) (bytes[offset + 6] & 0xFF) << 8)
-                | (bytes[offset + 7] & 0xFF);
-    }
-
-    private static class Mp3Frame {
-        private final int frameLength;
-        private final int sampleRate;
-        private final int samplesPerFrame;
-
-        private Mp3Frame(int frameLength, int sampleRate, int samplesPerFrame) {
-            this.frameLength = frameLength;
-            this.sampleRate = sampleRate;
-            this.samplesPerFrame = samplesPerFrame;
-        }
-    }
-
-    private static class Mp4Box {
-        private final String type;
-        private final int contentOffset;
-        private final int endOffset;
-
-        private Mp4Box(String type, int contentOffset, int endOffset) {
-            this.type = type;
-            this.contentOffset = contentOffset;
-            this.endOffset = endOffset;
-        }
-    }
-
+    /**
+     * 解析原始素材字符串为JSON对象
+     * <p>
+     * 支持三种格式：
+     * 1. JSON对象字符串（以"{"开头）
+     * 2. HTTP/HTTPS URL
+     * 3. Data URL（Base64编码）
+     * 4. CDN key（其他情况）
+     * </p>
+     *
+     * @param rawMaterial 原始素材字符串
+     * @return JSON对象，若为空则返回null
+     */
     private JSONObject parseMaterialObject(String rawMaterial) {
         if (!StringUtils.hasText(rawMaterial)) {
             return null;
@@ -686,6 +569,15 @@ public class MassTaskMessageSupport {
         return json;
     }
 
+    /**
+     * 从候选字符串中查找第一个结构化JSON对象
+     * <p>
+     * 按顺序遍历候选字符串，返回第一个以"{"开头的有效JSON对象。
+     * </p>
+     *
+     * @param candidates 候选字符串数组
+     * @return 第一个有效的JSON对象，若都无效则返回null
+     */
     private JSONObject firstStructuredObject(String... candidates) {
         if (candidates == null) {
             return null;
@@ -704,10 +596,22 @@ public class MassTaskMessageSupport {
         return null;
     }
 
+    /**
+     * 判断字符串是否为HTTP/HTTPS URL
+     *
+     * @param value 待判断的字符串
+     * @return true-是URL，false-不是URL
+     */
     private boolean isUrl(String value) {
         return value.startsWith("http://") || value.startsWith("https://");
     }
 
+    /**
+     * 判断字符串是否为Data URL（Base64编码）
+     *
+     * @param value 待判断的字符串
+     * @return true-是Data URL，false-不是Data URL
+     */
     private boolean isDataUrl(String value) {
         return value.startsWith("data:") || value.contains(";base64,");
     }
