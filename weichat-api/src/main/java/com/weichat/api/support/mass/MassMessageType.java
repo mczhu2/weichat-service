@@ -4,9 +4,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/**
- * Mass message type definitions used by task creation and UI schema.
- */
 public final class MassMessageType {
 
     public static final int TEXT = 0;
@@ -16,18 +13,20 @@ public final class MassMessageType {
     public static final int VIDEO = 4;
     public static final int LINK = 5;
     public static final int APP = 6;
+    public static final int COMPOSITE = 7;
 
     private static final Map<Integer, String> LABELS;
 
     static {
         Map<Integer, String> labels = new LinkedHashMap<>();
-        labels.put(TEXT, "文本");
-        labels.put(IMAGE, "图片");
-        labels.put(FILE, "文件");
-        labels.put(VOICE, "音频");
-        labels.put(VIDEO, "视频");
-        labels.put(LINK, "链接卡片");
-        labels.put(APP, "小程序消息");
+        labels.put(TEXT, "text");
+        labels.put(IMAGE, "image");
+        labels.put(FILE, "file");
+        labels.put(VOICE, "voice");
+        labels.put(VIDEO, "video");
+        labels.put(LINK, "link");
+        labels.put(APP, "app");
+        labels.put(COMPOSITE, "composite");
         LABELS = Collections.unmodifiableMap(labels);
     }
 
@@ -39,6 +38,6 @@ public final class MassMessageType {
     }
 
     public static String labelOf(Integer msgType) {
-        return LABELS.getOrDefault(msgType, "未知类型");
+        return LABELS.getOrDefault(msgType, "unknown");
     }
 }

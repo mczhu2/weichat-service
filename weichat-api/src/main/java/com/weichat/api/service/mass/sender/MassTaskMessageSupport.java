@@ -200,6 +200,43 @@ public class MassTaskMessageSupport {
     }
 
     /**
+     * 解析组合模板内容，并按顺序转换为可发送的子消息定义。
+     *
+     * @param task         群发任务
+     * @param receiverName 接收者名称，用于模板变量渲染
+     * @return 组合消息子项列表
+     */
+    public List<MassTaskCompositeItem> resolveCompositeItems(MassTask task, String receiverName) {
+        String renderedContent = resolveRenderedContentCandidate(task, receiverName);
+        if (!StringUtils.hasText(renderedContent)) {
+            return Collections.emptyList();
+        }
+
+        String trimmed = renderedContent.trim();
+        if (!trimmed.startsWith("[")) {
+            throw new IllegalArgumentException("composite template content must be a JSON array");
+        }
+
+        JSONArray array = JSON.parseArray(trimmed);
+        if (array == null || array.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<MassTaskCompositeItem> items = new ArrayList<>(array.size());
+        for (int i = 0; i < array.size(); i++) {
+            Object value = array.get(i);
+            JSONObject jsonObject;
+            if (value instanceof JSONObject) {
+                jsonObject = (JSONObject) value;
+            } else {
+                jsonObject = JSON.parseObject(JSON.toJSONString(value));
+            }
+            items.add(jsonObject.toJavaObject(MassTaskCompositeItem.class));
+        }
+        return items;
+    }
+
+    /**
      * 验证图片上传响应的完整性
      * <p>
      * 检查CDN key、AES key、MD5和文件大小是否都存在。

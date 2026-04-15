@@ -61,6 +61,9 @@ public class GroupMassMessageService {
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
 
+    @Autowired
+    private MassMessageService massMessageService;
+
     /**
      * 创建面向外部联系人的文本群发任务。
      */
@@ -158,7 +161,7 @@ public class GroupMassMessageService {
 
             int successCount = 0;
             for (MassTaskDetail detail : details) {
-                if (sendSingleMassMessage(detail)) {
+                if (massMessageService.sendMassMessageToReceiver(detail)) {
                     successCount++;
                 }
             }

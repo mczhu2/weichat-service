@@ -5,16 +5,19 @@
   <resultMap id="BaseResultMap" type="com.weichat.common.entity.MessageTemplate">
     <id column="id" jdbcType="BIGINT" property="id" />
     <result column="template_name" jdbcType="VARCHAR" property="templateName" />
-    <result column="template_content" jdbcType="LONGVARCHAR" property="templateContent" />
-    <result column="variables" jdbcType="LONGVARCHAR" property="variables" />
     <result column="msg_type" jdbcType="TINYINT" property="msgType" />
+    <result column="template_content" jdbcType="LONGVARCHAR" property="templateContent" />
+    <result column="payload_version" jdbcType="VARCHAR" property="payloadVersion" />
+    <result column="payload_json" jdbcType="LONGVARCHAR" property="payloadJson" />
+    <result column="variables" jdbcType="LONGVARCHAR" property="variables" />
+    <result column="remark" jdbcType="LONGVARCHAR" property="remark" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
     <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
     <result column="creator" jdbcType="VARCHAR" property="creator" />
   </resultMap>
 
   <sql id="Base_Column_List">
-    id, template_name, template_content, variables, msg_type, create_time, update_time, creator
+    id, template_name, msg_type, template_content, payload_version, payload_json, variables, remark, create_time, update_time, creator
   </sql>
 
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
@@ -46,11 +49,12 @@
 
   <insert id="insert" parameterType="com.weichat.common.entity.MessageTemplate" useGeneratedKeys="true" keyProperty="id">
     insert into message_template (
-      template_name, template_content, variables, msg_type, create_time, update_time, creator
+      template_name, msg_type, template_content, payload_version, payload_json, variables, remark, create_time, update_time, creator
     )
     values (
-      #{templateName,jdbcType=VARCHAR}, #{templateContent,jdbcType=LONGVARCHAR}, #{variables,jdbcType=LONGVARCHAR},
-      #{msgType,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP},
+      #{templateName,jdbcType=VARCHAR}, #{msgType,jdbcType=TINYINT}, #{templateContent,jdbcType=LONGVARCHAR},
+      #{payloadVersion,jdbcType=VARCHAR}, #{payloadJson,jdbcType=LONGVARCHAR}, #{variables,jdbcType=LONGVARCHAR},
+      #{remark,jdbcType=LONGVARCHAR}, #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP},
       #{creator,jdbcType=VARCHAR}
     )
   </insert>
@@ -59,9 +63,12 @@
     update message_template
     <set>
       <if test="templateName != null">template_name = #{templateName,jdbcType=VARCHAR},</if>
-      <if test="templateContent != null">template_content = #{templateContent,jdbcType=LONGVARCHAR},</if>
-      <if test="variables != null">variables = #{variables,jdbcType=LONGVARCHAR},</if>
       <if test="msgType != null">msg_type = #{msgType,jdbcType=TINYINT},</if>
+      <if test="templateContent != null">template_content = #{templateContent,jdbcType=LONGVARCHAR},</if>
+      <if test="payloadVersion != null">payload_version = #{payloadVersion,jdbcType=VARCHAR},</if>
+      <if test="payloadJson != null">payload_json = #{payloadJson,jdbcType=LONGVARCHAR},</if>
+      <if test="variables != null">variables = #{variables,jdbcType=LONGVARCHAR},</if>
+      <if test="remark != null">remark = #{remark,jdbcType=LONGVARCHAR},</if>
       <if test="createTime != null">create_time = #{createTime,jdbcType=TIMESTAMP},</if>
       <if test="updateTime != null">update_time = #{updateTime,jdbcType=TIMESTAMP},</if>
       <if test="creator != null">creator = #{creator,jdbcType=VARCHAR},</if>
