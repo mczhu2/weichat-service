@@ -37,6 +37,7 @@ import java.io.IOException;
 public class BigFileUploadService {
 
     private static final Logger logger = LoggerFactory.getLogger(BigFileUploadService.class);
+    private static final long FALLBACK_VIDEO_BITRATE_BPS = 3_000_000L;
 
     @Autowired
     private WxWorkApiClient wxWorkApiClient;
@@ -110,11 +111,14 @@ public class BigFileUploadService {
                 "pyq-video"
         );
 
+        // 2. 基于源视频估算时长（秒）
+        Integer estimatedVideoLen = estimateVideoDurationSeconds(videoResource.getBytes());
+
         // 2. 获取AuthKey和FileKey
         AuthKeyInfo authKeyInfo = getAuthKey(uuid);
 
         // 3. 上传大文件
-        return uploadBigFile(
+        BigFileUploadResponse response = uploadBigFile(
                 uuid,
                 authKeyInfo.getAuthKey(),
                 authKeyInfo.getFileKey(),
@@ -122,6 +126,12 @@ public class BigFileUploadService {
                 videoResource.getFilename(),
                 videoResource.getContentType()
         );
+
+        if (response.getVideoLen() == null || response.getVideoLen() <= 0) {
+            response.setVideoLen(estimatedVideoLen);
+        }
+
+        return response;
     }
 
     /**
@@ -287,5 +297,20 @@ public class BigFileUploadService {
             logger.error("计算图片尺寸失败", e);
             return new ImageDimension(0, 0);
         }
+    }
+
+    private Integer estimateVideoDurationSeconds(byte[] videoBytes) {
+        int estimated = estimateVideoDurationBySize(videoBytes == null ? 0 : videoBytes.length);
+        logger.debug("按视频文件大小粗估时长: {}s", estimated);
+        return estimated;
+    }
+
+    private int estimateVideoDurationBySize(int sizeBytes) {
+        if (sizeBytes <= 0) {
+            return 10;
+        }
+        long estimatedSeconds = (long) Math.ceil((sizeBytes * 8D) / FALLBACK_VIDEO_BITRATE_BPS);
+        estimatedSeconds = Math.max(1L, estimatedSeconds);
+        return estimatedSeconds > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) estimatedSeconds;
     }
 }
