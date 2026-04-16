@@ -98,6 +98,11 @@ public class MessageStrategy implements CallbackStrategy {
                 return;
             }
 
+            logger.info("Downstream callback payload resolved. msgId={}, receiver={}, payload={}",
+                    wxMessageInfo.getMsgId(),
+                    wxMessageInfo.getReceiver(),
+                    JSON.toJSONString(callbackPayload));
+
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
                     wecomCallbackUrl,
                     buildCallbackEntity(wxMessageInfo, receiverUser, callbackPayload),
