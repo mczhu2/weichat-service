@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author weichat
  */
-@Api(tags = "Callback")
+@Api(tags = "设备消息回溯接口")
 @RestController
 @RequestMapping("/api/v1/callback")
 public class CallbackController {
@@ -28,7 +28,6 @@ public class CallbackController {
     @ApiOperation("回拉消息记录")
     @PostMapping("/pull")
     public ApiResult<CallbackPullResponse> pullMessages(@RequestBody CallbackPullRequest request) {
-        CallbackPullResponse response = callbackPullService.pullCallbackMessages(request);
-        return ApiResult.success(response);
+        return callbackPullService.pullCallbackMessages(request);
     }
 }

@@ -1,5 +1,6 @@
 package com.weichat.api.service;
 
+import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.request.callback.CallbackPullRequest;
 import com.weichat.api.vo.response.callback.CallbackPullResponse;
 import com.weichat.common.entity.WxCallbackTask;
@@ -36,7 +37,7 @@ public class CallbackPullService {
      * @param request 回拉请求参数
      * @return 回拉响应
      */
-    public CallbackPullResponse pullCallbackMessages(CallbackPullRequest request) {
+    public ApiResult<CallbackPullResponse> pullCallbackMessages(CallbackPullRequest request) {
         String uuid = request.getUuid();
         Integer dataRangeType = request.getDataRangeType();
         Integer pageNum = request.getPageNum() != null ? request.getPageNum() : DEFAULT_PAGE_SIZE;
@@ -45,7 +46,7 @@ public class CallbackPullService {
         WxUserInfo userInfo = wxUserInfoMapper.selectByUuid(uuid);
         if (userInfo == null) {
             log.warn("未找到uuid为{}的用户信息", uuid);
-            throw new RuntimeException("未找到设备uuid对应的用户信息");
+            return ApiResult.fail("未找到设备uuid对应的用户信息");
         }
 
         // 确定起始ID
@@ -96,6 +97,6 @@ public class CallbackPullService {
         response.setHasMore(hasMore);
         response.setCurrentMaxId(currentMaxId);
 
-        return response;
+        return ApiResult.success(response);
     }
 }
