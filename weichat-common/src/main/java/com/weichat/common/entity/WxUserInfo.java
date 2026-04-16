@@ -126,4 +126,9 @@ public class WxUserInfo implements Serializable {
      * 注册设备uuid
      */
     private String uuid;
+
+    /**
+     * 上次拉取的最大消息ID
+     */
+    private Long lastPulledMessageId;
 }

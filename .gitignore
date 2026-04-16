@@ -72,3 +72,4 @@ vendor/
 # Ruby (if used)
 Gemfile.lock
 *.gem
+.omx/

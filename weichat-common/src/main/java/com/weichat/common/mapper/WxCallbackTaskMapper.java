@@ -22,4 +22,22 @@ public interface WxCallbackTaskMapper {
     int incrementRetryCount(Long id);
 
     int updateStatusToProcessing(@Param("id") Long id, @Param("oldStatus") Integer oldStatus);
+
+    /**
+     * 根据uuid和ID范围分页查询回调任务
+     * @param uuid 设备uuid
+     * @param startId 起始ID（大于此ID）
+     * @param limit 限制数量
+     * @return 回调任务列表
+     */
+    List<WxCallbackTask> selectByUuidAndIdRange(@Param("uuid") String uuid,
+                                                 @Param("startId") Long startId,
+                                                 @Param("limit") int limit);
+
+    /**
+     * 查询指定uuid的最小消息ID
+     * @param uuid 设备uuid
+     * @return 最小消息ID
+     */
+    Long selectMinIdByUuid(@Param("uuid") String uuid);
 }

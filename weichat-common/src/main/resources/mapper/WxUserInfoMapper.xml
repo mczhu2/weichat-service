@@ -24,7 +24,8 @@
             position,
             corp_desc,
             corp_logo,
-            uuid
+            uuid,
+            last_pulled_message_id
         ) VALUES (
             #{corpid},
             #{unionid},
@@ -46,7 +47,8 @@
             #{position},
             #{corpDesc},
             #{corpLogo},
-            #{uuid}
+            #{uuid},
+            #{lastPulledMessageId}
         )
     </insert>
 
@@ -88,7 +90,8 @@
             position = #{position},
             corp_desc = #{corpDesc},
             corp_logo = #{corpLogo},
-            uuid = #{uuid}
+            uuid = #{uuid},
+            last_pulled_message_id = #{lastPulledMessageId}
         WHERE id = #{id}
     </update>
 
@@ -199,4 +202,11 @@
         ORDER BY create_time DESC
         LIMIT #{offset}, #{limit}
     </select>
+
+    <!-- 更新用户的最后拉取消息ID -->
+    <update id="updateLastPulledMessageId">
+        UPDATE wx_user_info
+        SET last_pulled_message_id = #{lastPulledMessageId}
+        WHERE uuid = #{uuid} AND is_del = 0
+    </update>
 </mapper>

@@ -32,4 +32,21 @@
         UPDATE wx_callback_task SET status = 1, update_time = NOW() WHERE id = #{id} AND status = #{oldStatus}
     </update>
 
+    <!-- 根据uuid和ID范围分页查询回调任务 -->
+    <select id="selectByUuidAndIdRange" resultType="com.weichat.common.entity.WxCallbackTask">
+        SELECT * FROM wx_callback_task
+        WHERE uuid = #{uuid}
+        <if test="startId != null">
+            AND id &gt; #{startId}
+        </if>
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询指定uuid的最小消息ID -->
+    <select id="selectMinIdByUuid" resultType="java.lang.Long">
+        SELECT MIN(id) FROM wx_callback_task
+        WHERE uuid = #{uuid}
+    </select>
+
 </mapper>

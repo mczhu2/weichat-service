@@ -118,4 +118,13 @@ public interface WxUserInfoMapper {
                                                @Param("corpIds") List<Long> corpIds,
                                                @Param("offset") int offset,
                                                @Param("limit") int limit);
+
+    /**
+     * 更新用户的最后拉取消息ID
+     * @param uuid 设备uuid
+     * @param lastPulledMessageId 最后拉取的消息ID
+     * @return 影响行数
+     */
+    int updateLastPulledMessageId(@Param("uuid") String uuid,
+                                  @Param("lastPulledMessageId") Long lastPulledMessageId);
 }
