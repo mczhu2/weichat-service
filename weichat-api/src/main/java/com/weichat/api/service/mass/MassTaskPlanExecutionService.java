@@ -113,6 +113,11 @@ public class MassTaskPlanExecutionService {
         }
 
         MassTaskPlan plan = buildPlanEntity(request);
+        validateFirstExecutionWindow(plan, errors);
+        if (!errors.isEmpty()) {
+            return errors;
+        }
+
         LocalDateTime firstTriggerTime = resolveNextTriggerTime(plan, plan.getEffectiveStartAt().minusSeconds(1));
         if (firstTriggerTime == null) {
             errors.add("no valid execution time can be calculated from the schedule and window");
@@ -124,6 +129,23 @@ public class MassTaskPlanExecutionService {
             errors.add("receiverIds exceed the configured window capacity for the first execution");
         }
         return errors;
+    }
+
+    /**
+     * 首个可执行日如果就是 effectiveStartAt 当天，则要求 effectiveStartAt 仍在当天发送窗口内。
+     * 否则计划会被静默顺延到下一次窗口，用户容易误以为“已经到期但没有执行”。
+     */
+    private void validateFirstExecutionWindow(MassTaskPlan plan, List<String> errors) {
+        if (plan == null || plan.getEffectiveStartAt() == null || errors == null || !errors.isEmpty()) {
+            return;
+        }
+        LocalDate firstDate = plan.getEffectiveStartAt().toLocalDate();
+        if (!matchesSchedule(plan, firstDate)) {
+            return;
+        }
+        if (buildCandidateTriggerTime(plan, firstDate) == null) {
+            errors.add("effectiveStartAt is later than windowEndTime on the first executable day");
+        }
     }
 
     @Transactional
