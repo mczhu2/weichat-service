@@ -40,4 +40,12 @@ public interface WxCallbackTaskMapper {
      * @return 最小消息ID
      */
     Long selectMinIdByUuid(@Param("uuid") String uuid);
+
+    /**
+     * 查询指定uuid和时间之后的最小消息ID
+     * @param uuid 设备uuid
+     * @param time 时间点
+     * @return 最小消息ID
+     */
+    Long selectMinIdAfterTime(@Param("uuid") String uuid, @Param("time") java.util.Date time);
 }

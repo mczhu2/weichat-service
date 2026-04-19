@@ -11,7 +11,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +34,20 @@ public class CallbackPullService {
     private WxCallbackTaskMapper wxCallbackTaskMapper;
 
     private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final long FIVE_MINUTES_IN_MILLIS = TimeUnit.MINUTES.toMillis(5);
+
+    /**
+     * 获取最近5分钟内最小的回调任务ID
+     *
+     * @param uuid 用户UUID
+     * @return 最小ID，如果没有则返回null
+     */
+    private Long getMinIdFromLastFiveMinutes(String uuid) {
+        LocalDateTime fiveMinutesAgo = LocalDateTime.now().minusMinutes(5);
+        Date fiveMinutesAgoDate = Date.from(fiveMinutesAgo.atZone(ZoneId.systemDefault()).toInstant());
+        
+        return wxCallbackTaskMapper.selectMinIdAfterTime(uuid, fiveMinutesAgoDate);
+    }
 
     /**
      * 回拉消息记录
@@ -55,7 +73,9 @@ public class CallbackPullService {
             // 增量拉取：使用用户记录的lastPulledMessageId
             startId = userInfo.getLastPulledMessageId();
             if (startId == null) {
-                log.info("增量拉取但历史游标不存在，uuid={}，将从最小ID开始拉取", uuid);
+                // 如果没有历史记录，则取最近5分钟内的最小ID
+                startId = getMinIdFromLastFiveMinutes(uuid);
+                log.info("增量拉取但历史游标不存在，uuid={}，将从最近5分钟的最小ID={}开始拉取", uuid, startId);
             }
         }
         // dataRangeType == 0 时，startId 为 null，会从最小ID开始拉取

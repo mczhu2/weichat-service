@@ -49,4 +49,10 @@
         WHERE uuid = #{uuid}
     </select>
 
+    <!-- 查询指定uuid和时间之后的最小消息ID -->
+    <select id="selectMinIdAfterTime" resultType="java.lang.Long">
+        SELECT MIN(id) FROM wx_callback_task
+        WHERE uuid = #{uuid} AND create_time >= #{time}
+    </select>
+
 </mapper>
