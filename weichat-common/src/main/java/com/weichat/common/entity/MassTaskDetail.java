@@ -49,6 +49,8 @@ public class MassTaskDetail implements Serializable {
      */
     private LocalDateTime sendTime;
 
+    private LocalDateTime plannedSendTime;
+
     /**
      * 发送状态 (0-失败, 1-成功)
      */

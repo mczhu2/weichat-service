@@ -17,4 +17,6 @@ public interface MassTaskMapper {
     int updateByPrimaryKey(MassTask massTask);
 
     List<MassTask> selectAllWithPaging(@Param("offset") int offset, @Param("limit") int limit);
+
+    int countByPlanIdAndScheduleSlot(@Param("planId") Long planId, @Param("scheduleSlot") String scheduleSlot);
 }

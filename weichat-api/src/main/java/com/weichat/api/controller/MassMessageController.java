@@ -3,8 +3,16 @@ package com.weichat.api.controller;
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.service.GroupMassMessageService;
 import com.weichat.api.service.MassMessageService;
+import com.weichat.api.service.mass.MassMessageTypeSpecService;
+import com.weichat.api.service.mass.MassTaskPlanExecutionService;
+import com.weichat.api.service.mass.MassTaskRequestValidator;
+import com.weichat.api.vo.request.mass.MassTaskCreateRequest;
+import com.weichat.api.vo.request.mass.MassTaskPlanCreateRequest;
+import com.weichat.api.vo.response.mass.MassMessageTypeSpecResponse;
+import com.weichat.api.vo.response.mass.MassTaskValidationResponse;
 import com.weichat.common.entity.MassTask;
 import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.entity.MassTaskPlan;
 import com.weichat.common.entity.WxFriendInfo;
 import com.weichat.common.entity.WxGroupInfo;
 import com.weichat.common.entity.WxUserInfo;
@@ -52,6 +60,15 @@ public class MassMessageController {
 
     @Autowired
     private WxGroupInfoService wxGroupInfoService;
+
+    @Autowired
+    private MassTaskRequestValidator massTaskRequestValidator;
+
+    @Autowired
+    private MassMessageTypeSpecService massMessageTypeSpecService;
+
+    @Autowired
+    private MassTaskPlanExecutionService massTaskPlanExecutionService;
 
     /**
      * 创建面向外部联系人的文本群发任务。
@@ -111,6 +128,62 @@ public class MassMessageController {
     public ApiResult<Boolean> triggerMassTask(@PathVariable Long taskId) {
         boolean result = groupMassMessageService.triggerMassTask(taskId);
         return ApiResult.success(result);
+    }
+
+    @ApiOperation("获取消息类型配置")
+    @GetMapping("/message-type-specs")
+    public ApiResult<List<MassMessageTypeSpecResponse>> getMessageTypeSpecs() {
+        return ApiResult.success(massMessageTypeSpecService.getAllSpecs());
+    }
+
+    @ApiOperation("校验群发任务请求")
+    @PostMapping("/task/validate")
+    public ApiResult<MassTaskValidationResponse> validateMassTask(@RequestBody MassTaskCreateRequest request) {
+        MassTaskValidationResponse response = new MassTaskValidationResponse();
+        List<String> errors = massTaskRequestValidator.validateCreateRequest(request);
+        response.setValid(errors.isEmpty());
+        response.setErrors(errors);
+        return ApiResult.success(response);
+    }
+
+    @ApiOperation("创建群发计划")
+    @PostMapping("/plans")
+    public ApiResult<Long> createMassTaskPlan(@RequestBody MassTaskPlanCreateRequest request) {
+        try {
+            return ApiResult.success(massTaskPlanExecutionService.createPlan(request));
+        } catch (IllegalArgumentException ex) {
+            return ApiResult.fail(ex.getMessage());
+        }
+    }
+
+    @ApiOperation("获取群发计划列表")
+    @GetMapping("/plans")
+    public ApiResult<List<MassTaskPlan>> getMassTaskPlanList(
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "10") int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        return ApiResult.success(massTaskPlanExecutionService.getPlanList(offset, pageSize));
+    }
+
+    @ApiOperation("获取群发计划详情")
+    @GetMapping("/plan/{planId}")
+    public ApiResult<MassTaskPlan> getMassTaskPlan(@PathVariable Long planId) {
+        MassTaskPlan plan = massTaskPlanExecutionService.getPlanById(planId);
+        if (plan == null) {
+            return ApiResult.fail("群发计划不存在");
+        }
+        return ApiResult.success(plan);
+    }
+
+    @ApiOperation("更新群发计划状态")
+    @PutMapping("/plan/{planId}/status")
+    public ApiResult<Void> updateMassTaskPlanStatus(@PathVariable Long planId, @RequestParam Integer status) {
+        try {
+            massTaskPlanExecutionService.updatePlanStatus(planId, status);
+            return ApiResult.success(null);
+        } catch (IllegalArgumentException ex) {
+            return ApiResult.fail(ex.getMessage());
+        }
     }
 
     /**

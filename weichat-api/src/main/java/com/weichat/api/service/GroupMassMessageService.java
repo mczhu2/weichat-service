@@ -157,16 +157,35 @@ public class GroupMassMessageService {
                 return false;
             }
 
+            List<MassTaskDetail> unsentDetails = new ArrayList<>();
+            for (MassTaskDetail detail : details) {
+                if (!MassTaskDetailSentFlagEnum.SENT.getCode().equals(detail.getIsSent())) {
+                    unsentDetails.add(detail);
+                }
+            }
+            if (unsentDetails.isEmpty()) {
+                return true;
+            }
+
             massTaskService.updateTaskStatus(taskId, MassTaskSendStatusEnum.SENDING.getCode());
 
+            for (MassTaskDetail detail : unsentDetails) {
+                massMessageService.sendMassMessageToReceiver(detail);
+            }
+
+            List<MassTaskDetail> refreshedDetails = massTaskDetailService.getDetailsByTaskId(taskId);
+            int sentCount = 0;
             int successCount = 0;
-            for (MassTaskDetail detail : details) {
-                if (massMessageService.sendMassMessageToReceiver(detail)) {
-                    successCount++;
+            for (MassTaskDetail detail : refreshedDetails) {
+                if (MassTaskDetailSentFlagEnum.SENT.getCode().equals(detail.getIsSent())) {
+                    sentCount++;
+                    if (MassTaskDetailSendStatusEnum.SUCCESS.getCode().equals(detail.getSendStatus())) {
+                        successCount++;
+                    }
                 }
             }
 
-            massTaskService.updateTaskStatistics(taskId, details.size(), successCount);
+            massTaskService.updateTaskStatistics(taskId, sentCount, successCount);
             massTaskService.updateTaskStatus(taskId, MassTaskSendStatusEnum.COMPLETED.getCode());
             return true;
         } catch (Exception e) {

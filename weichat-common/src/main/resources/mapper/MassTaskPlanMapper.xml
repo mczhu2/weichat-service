@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weichat.common.mapper.MassTaskPlanMapper">
+
+  <resultMap id="BaseResultMap" type="com.weichat.common.entity.MassTaskPlan">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="plan_name" jdbcType="VARCHAR" property="planName" />
+    <result column="task_type" jdbcType="TINYINT" property="taskType" />
+    <result column="receiver_type" jdbcType="TINYINT" property="receiverType" />
+    <result column="receiver_ids_json" jdbcType="LONGVARCHAR" property="receiverIdsJson" />
+    <result column="msg_type" jdbcType="TINYINT" property="msgType" />
+    <result column="payload_version" jdbcType="VARCHAR" property="payloadVersion" />
+    <result column="payload_json" jdbcType="LONGVARCHAR" property="payloadJson" />
+    <result column="template_id" jdbcType="BIGINT" property="templateId" />
+    <result column="creator" jdbcType="VARCHAR" property="creator" />
+    <result column="remark" jdbcType="LONGVARCHAR" property="remark" />
+    <result column="schedule_type" jdbcType="TINYINT" property="scheduleType" />
+    <result column="schedule_rule_json" jdbcType="LONGVARCHAR" property="scheduleRuleJson" />
+    <result column="effective_start_at" jdbcType="TIMESTAMP" property="effectiveStartAt" />
+    <result column="effective_end_at" jdbcType="TIMESTAMP" property="effectiveEndAt" />
+    <result column="window_start_time" jdbcType="VARCHAR" property="windowStartTime" />
+    <result column="window_end_time" jdbcType="VARCHAR" property="windowEndTime" />
+    <result column="rate_per_minute" jdbcType="INTEGER" property="ratePerMinute" />
+    <result column="timezone" jdbcType="VARCHAR" property="timezone" />
+    <result column="next_trigger_time" jdbcType="TIMESTAMP" property="nextTriggerTime" />
+    <result column="last_trigger_time" jdbcType="TIMESTAMP" property="lastTriggerTime" />
+    <result column="plan_status" jdbcType="TINYINT" property="planStatus" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+  </resultMap>
+
+  <sql id="Base_Column_List">
+    id, plan_name, task_type, receiver_type, receiver_ids_json, msg_type, payload_version, payload_json,
+    template_id, creator, remark, schedule_type, schedule_rule_json, effective_start_at, effective_end_at,
+    window_start_time, window_end_time, rate_per_minute, timezone, next_trigger_time, last_trigger_time,
+    plan_status, create_time, update_time
+  </sql>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from mass_task_plan
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+
+  <insert id="insert" parameterType="com.weichat.common.entity.MassTaskPlan" useGeneratedKeys="true" keyProperty="id">
+    insert into mass_task_plan (
+      plan_name, task_type, receiver_type, receiver_ids_json, msg_type, payload_version, payload_json, template_id,
+      creator, remark, schedule_type, schedule_rule_json, effective_start_at, effective_end_at, window_start_time,
+      window_end_time, rate_per_minute, timezone, next_trigger_time, last_trigger_time, plan_status, create_time, update_time
+    )
+    values (
+      #{planName,jdbcType=VARCHAR}, #{taskType,jdbcType=TINYINT}, #{receiverType,jdbcType=TINYINT},
+      #{receiverIdsJson,jdbcType=LONGVARCHAR}, #{msgType,jdbcType=TINYINT}, #{payloadVersion,jdbcType=VARCHAR},
+      #{payloadJson,jdbcType=LONGVARCHAR}, #{templateId,jdbcType=BIGINT}, #{creator,jdbcType=VARCHAR},
+      #{remark,jdbcType=LONGVARCHAR}, #{scheduleType,jdbcType=TINYINT}, #{scheduleRuleJson,jdbcType=LONGVARCHAR},
+      #{effectiveStartAt,jdbcType=TIMESTAMP}, #{effectiveEndAt,jdbcType=TIMESTAMP}, #{windowStartTime,jdbcType=VARCHAR},
+      #{windowEndTime,jdbcType=VARCHAR}, #{ratePerMinute,jdbcType=INTEGER}, #{timezone,jdbcType=VARCHAR},
+      #{nextTriggerTime,jdbcType=TIMESTAMP}, #{lastTriggerTime,jdbcType=TIMESTAMP}, #{planStatus,jdbcType=TINYINT},
+      #{createTime,jdbcType=TIMESTAMP}, #{updateTime,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <update id="updateByPrimaryKey" parameterType="com.weichat.common.entity.MassTaskPlan">
+    update mass_task_plan
+    <set>
+      <if test="planName != null">plan_name = #{planName,jdbcType=VARCHAR},</if>
+      <if test="taskType != null">task_type = #{taskType,jdbcType=TINYINT},</if>
+      <if test="receiverType != null">receiver_type = #{receiverType,jdbcType=TINYINT},</if>
+      <if test="receiverIdsJson != null">receiver_ids_json = #{receiverIdsJson,jdbcType=LONGVARCHAR},</if>
+      <if test="msgType != null">msg_type = #{msgType,jdbcType=TINYINT},</if>
+      <if test="payloadVersion != null">payload_version = #{payloadVersion,jdbcType=VARCHAR},</if>
+      <if test="payloadJson != null">payload_json = #{payloadJson,jdbcType=LONGVARCHAR},</if>
+      <if test="templateId != null">template_id = #{templateId,jdbcType=BIGINT},</if>
+      <if test="creator != null">creator = #{creator,jdbcType=VARCHAR},</if>
+      <if test="remark != null">remark = #{remark,jdbcType=LONGVARCHAR},</if>
+      <if test="scheduleType != null">schedule_type = #{scheduleType,jdbcType=TINYINT},</if>
+      <if test="scheduleRuleJson != null">schedule_rule_json = #{scheduleRuleJson,jdbcType=LONGVARCHAR},</if>
+      <if test="effectiveStartAt != null">effective_start_at = #{effectiveStartAt,jdbcType=TIMESTAMP},</if>
+      <if test="effectiveEndAt != null">effective_end_at = #{effectiveEndAt,jdbcType=TIMESTAMP},</if>
+      <if test="windowStartTime != null">window_start_time = #{windowStartTime,jdbcType=VARCHAR},</if>
+      <if test="windowEndTime != null">window_end_time = #{windowEndTime,jdbcType=VARCHAR},</if>
+      <if test="ratePerMinute != null">rate_per_minute = #{ratePerMinute,jdbcType=INTEGER},</if>
+      <if test="timezone != null">timezone = #{timezone,jdbcType=VARCHAR},</if>
+      <if test="nextTriggerTime != null">next_trigger_time = #{nextTriggerTime,jdbcType=TIMESTAMP},</if>
+      <if test="lastTriggerTime != null">last_trigger_time = #{lastTriggerTime,jdbcType=TIMESTAMP},</if>
+      <if test="planStatus != null">plan_status = #{planStatus,jdbcType=TINYINT},</if>
+      <if test="updateTime != null">update_time = #{updateTime,jdbcType=TIMESTAMP},</if>
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <select id="selectAllWithPaging" parameterType="map" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from mass_task_plan
+    order by create_time desc
+    limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectDuePlans" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from mass_task_plan
+    where plan_status = 1
+      and next_trigger_time is not null
+      and next_trigger_time &lt;= #{now,jdbcType=TIMESTAMP}
+      and (effective_end_at is null or effective_end_at &gt;= #{now,jdbcType=TIMESTAMP})
+    order by next_trigger_time asc, id asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
+</mapper>

@@ -27,6 +27,13 @@ public class MassTaskDetailService {
     }
 
     /**
+     * 查询当前时间可发送的任务明细。
+     */
+    public List<MassTaskDetail> getSchedulableMassTaskDetails(int limit) {
+        return massTaskDetailMapper.selectSchedulableDetails(limit, LocalDateTime.now());
+    }
+
+    /**
      * 将明细标记为发送成功。
      */
     public void updateSendSuccessStatus(Long detailId) {

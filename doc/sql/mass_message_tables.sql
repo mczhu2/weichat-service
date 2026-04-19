@@ -8,6 +8,8 @@
 CREATE TABLE `mass_task` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'primary key',
   `task_name` varchar(255) NOT NULL COMMENT 'task name',
+  `plan_id` bigint DEFAULT NULL COMMENT 'mass task plan id',
+  `schedule_slot` varchar(32) DEFAULT NULL COMMENT 'plan execution slot key, such as 20260419090000',
   `task_type` tinyint NOT NULL DEFAULT '1' COMMENT '1=user mass send, 2=group mass send',
   `msg_type` tinyint NOT NULL DEFAULT '0' COMMENT '0=text, 1=image, 2=file, 3=voice, 4=video, 5=link, 6=app',
   `content` text COMMENT 'legacy plain text content, mainly used for text message',
@@ -30,6 +32,8 @@ CREATE TABLE `mass_task` (
   `success_count` int DEFAULT '0' COMMENT 'successful receivers',
   `remark` text COMMENT 'remark',
   PRIMARY KEY (`id`),
+  KEY `idx_plan_id` (`plan_id`),
+  KEY `idx_schedule_slot` (`schedule_slot`),
   KEY `idx_creator` (`creator`),
   KEY `idx_task_type` (`task_type`),
   KEY `idx_msg_type` (`msg_type`),
@@ -47,6 +51,7 @@ CREATE TABLE `mass_task_detail` (
   `receiver_name` varchar(255) DEFAULT NULL COMMENT 'receiver name',
   `message_snapshot_json` longtext COMMENT 'rendered payload snapshot for this receiver',
   `is_sent` tinyint NOT NULL DEFAULT '0' COMMENT '0=not sent, 1=sent',
+  `planned_send_time` datetime DEFAULT NULL COMMENT 'planned send time within daily window',
   `send_time` datetime DEFAULT NULL COMMENT 'actual send time',
   `send_status` tinyint DEFAULT '0' COMMENT '0=failed, 1=success',
   `send_result` varchar(500) DEFAULT NULL COMMENT 'send result summary',
@@ -57,10 +62,42 @@ CREATE TABLE `mass_task_detail` (
   KEY `idx_task_id` (`task_id`),
   KEY `idx_receiver_id` (`receiver_id`),
   KEY `idx_is_sent` (`is_sent`),
+  KEY `idx_planned_send_time` (`planned_send_time`),
   KEY `idx_send_status` (`send_status`),
   CONSTRAINT `fk_mass_task_detail_task_id`
     FOREIGN KEY (`task_id`) REFERENCES `mass_task` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='mass task detail';
+
+CREATE TABLE `mass_task_plan` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'primary key',
+  `plan_name` varchar(255) NOT NULL COMMENT 'plan name',
+  `task_type` tinyint NOT NULL DEFAULT '1' COMMENT '1=user mass send, 2=group mass send',
+  `receiver_type` tinyint NOT NULL DEFAULT '1' COMMENT '1=external contact, 2=group',
+  `receiver_ids_json` longtext NOT NULL COMMENT 'receiver ids json array',
+  `msg_type` tinyint NOT NULL DEFAULT '0' COMMENT '0=text, 1=image, 2=file, 3=voice, 4=video, 5=link, 6=app',
+  `payload_version` varchar(32) NOT NULL DEFAULT 'v1' COMMENT 'rich payload schema version',
+  `payload_json` longtext COMMENT 'normalized rich payload json',
+  `template_id` bigint DEFAULT NULL COMMENT 'message template id',
+  `creator` varchar(100) DEFAULT NULL COMMENT 'creator',
+  `remark` text COMMENT 'remark',
+  `schedule_type` tinyint NOT NULL COMMENT '1=once, 2=daily, 3=weekly, 4=monthly',
+  `schedule_rule_json` longtext COMMENT 'weekly/monthly rule json',
+  `effective_start_at` datetime NOT NULL COMMENT 'effective start time',
+  `effective_end_at` datetime DEFAULT NULL COMMENT 'effective end time',
+  `window_start_time` varchar(16) NOT NULL COMMENT 'daily send window start time, HH:mm:ss',
+  `window_end_time` varchar(16) NOT NULL COMMENT 'daily send window end time, HH:mm:ss',
+  `rate_per_minute` int NOT NULL DEFAULT '10' COMMENT 'max receiver count per minute',
+  `timezone` varchar(64) NOT NULL DEFAULT 'Asia/Shanghai' COMMENT 'plan timezone',
+  `next_trigger_time` datetime DEFAULT NULL COMMENT 'next plan trigger time',
+  `last_trigger_time` datetime DEFAULT NULL COMMENT 'last materialized trigger time',
+  `plan_status` tinyint NOT NULL DEFAULT '1' COMMENT '1=enabled, 2=paused, 3=cancelled, 4=finished',
+  `create_time` datetime NOT NULL COMMENT 'create time',
+  `update_time` datetime DEFAULT NULL COMMENT 'update time',
+  PRIMARY KEY (`id`),
+  KEY `idx_plan_status` (`plan_status`),
+  KEY `idx_next_trigger_time` (`next_trigger_time`),
+  KEY `idx_effective_start_at` (`effective_start_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='mass task plan';
 
 CREATE TABLE `message_template` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT 'primary key',

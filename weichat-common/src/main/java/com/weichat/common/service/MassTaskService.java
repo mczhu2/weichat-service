@@ -61,6 +61,10 @@ public class MassTaskService {
         return massTaskMapper.selectAllWithPaging(offset, limit);
     }
 
+    public int countByPlanIdAndScheduleSlot(Long planId, String scheduleSlot) {
+        return massTaskMapper.countByPlanIdAndScheduleSlot(planId, scheduleSlot);
+    }
+
     /**
      * 根据任务 ID 查询任务详情。
      */

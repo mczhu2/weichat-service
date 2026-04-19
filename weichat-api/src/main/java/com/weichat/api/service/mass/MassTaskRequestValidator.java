@@ -33,6 +33,9 @@ public class MassTaskRequestValidator {
 
         MassTaskPayload payload = request.getPayload();
         if (payload == null) {
+            if (request.getTemplateId() != null) {
+                return errors;
+            }
             errors.add("payload is required");
             return errors;
         }

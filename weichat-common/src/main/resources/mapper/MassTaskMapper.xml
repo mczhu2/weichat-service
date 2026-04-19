@@ -23,12 +23,14 @@
     <result column="success_count" jdbcType="INTEGER" property="successCount" />
     <result column="remark" jdbcType="LONGVARCHAR" property="remark" />
     <result column="template_id" jdbcType="BIGINT" property="templateId" />
+    <result column="plan_id" jdbcType="BIGINT" property="planId" />
+    <result column="schedule_slot" jdbcType="VARCHAR" property="scheduleSlot" />
   </resultMap>
 
   <sql id="Base_Column_List">
     id, task_name, task_type, content, image_media_id, file_media_id, audio_media_id,
     video_media_id, payload_version, payload_json, msg_type, create_time, send_time, send_status, creator, total_count,
-    sent_count, success_count, remark, template_id
+    sent_count, success_count, remark, template_id, plan_id, schedule_slot
   </sql>
 
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
@@ -47,7 +49,7 @@
     insert into mass_task (
       task_name, task_type, content, image_media_id, file_media_id, audio_media_id,
       video_media_id, payload_version, payload_json, msg_type, create_time, send_time, send_status, creator, total_count,
-      sent_count, success_count, remark, template_id
+      sent_count, success_count, remark, template_id, plan_id, schedule_slot
     )
     values (
       #{taskName,jdbcType=VARCHAR}, #{taskType,jdbcType=TINYINT}, #{content,jdbcType=LONGVARCHAR},
@@ -56,7 +58,8 @@
       #{msgType,jdbcType=TINYINT}, #{createTime,jdbcType=TIMESTAMP},
       #{sendTime,jdbcType=TIMESTAMP}, #{sendStatus,jdbcType=TINYINT}, #{creator,jdbcType=VARCHAR},
       #{totalCount,jdbcType=INTEGER}, #{sentCount,jdbcType=INTEGER}, #{successCount,jdbcType=INTEGER},
-      #{remark,jdbcType=LONGVARCHAR}, #{templateId,jdbcType=BIGINT}
+      #{remark,jdbcType=LONGVARCHAR}, #{templateId,jdbcType=BIGINT}, #{planId,jdbcType=BIGINT},
+      #{scheduleSlot,jdbcType=VARCHAR}
     )
   </insert>
 
@@ -82,6 +85,8 @@
       <if test="successCount != null">success_count = #{successCount,jdbcType=INTEGER},</if>
       <if test="remark != null">remark = #{remark,jdbcType=LONGVARCHAR},</if>
       <if test="templateId != null">template_id = #{templateId,jdbcType=BIGINT},</if>
+      <if test="planId != null">plan_id = #{planId,jdbcType=BIGINT},</if>
+      <if test="scheduleSlot != null">schedule_slot = #{scheduleSlot,jdbcType=VARCHAR},</if>
     </set>
     where id = #{id,jdbcType=BIGINT}
   </update>
@@ -92,5 +97,12 @@
     from mass_task
     order by create_time DESC
     LIMIT #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
+  </select>
+
+  <select id="countByPlanIdAndScheduleSlot" resultType="int">
+    select count(1)
+    from mass_task
+    where plan_id = #{planId,jdbcType=BIGINT}
+      and schedule_slot = #{scheduleSlot,jdbcType=VARCHAR}
   </select>
 </mapper>

@@ -25,7 +25,7 @@ public class MassMessageJob {
         log.info("开始执行群发消息定时任务");
 
         try {
-            List<MassTaskDetail> unsentDetails = massTaskDetailService.getUnsentMassTaskDetails(10);
+            List<MassTaskDetail> unsentDetails = massTaskDetailService.getSchedulableMassTaskDetails(10);
             if (unsentDetails.isEmpty()) {
                 log.info("当前没有需要发送的群发消息");
                 return;

@@ -20,5 +20,7 @@ public interface MassTaskDetailMapper {
 
     List<MassTaskDetail> selectUnsentDetails(@Param("limit") int limit);
 
+    List<MassTaskDetail> selectSchedulableDetails(@Param("limit") int limit, @Param("now") java.time.LocalDateTime now);
+
     int deleteByTaskId(@Param("taskId") Long taskId);
 }

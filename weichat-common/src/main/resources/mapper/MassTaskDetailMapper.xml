@@ -10,6 +10,7 @@
     <result column="receiver_name" jdbcType="VARCHAR" property="receiverName" />
     <result column="is_sent" jdbcType="TINYINT" property="isSent" />
     <result column="send_time" jdbcType="TIMESTAMP" property="sendTime" />
+    <result column="planned_send_time" jdbcType="TIMESTAMP" property="plannedSendTime" />
     <result column="send_status" jdbcType="TINYINT" property="sendStatus" />
     <result column="send_result" jdbcType="VARCHAR" property="sendResult" />
     <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
@@ -17,8 +18,13 @@
   </resultMap>
 
   <sql id="Base_Column_List">
-    id, task_id, receiver_type, receiver_id, receiver_name, is_sent, send_time, send_status,
+    id, task_id, receiver_type, receiver_id, receiver_name, is_sent, send_time, planned_send_time, send_status,
     send_result, create_time, update_time
+  </sql>
+
+  <sql id="Base_Column_List_With_Alias_D">
+    d.id, d.task_id, d.receiver_type, d.receiver_id, d.receiver_name, d.is_sent, d.send_time, d.planned_send_time,
+    d.send_status, d.send_result, d.create_time, d.update_time
   </sql>
 
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
@@ -44,6 +50,19 @@
     LIMIT #{limit,jdbcType=INTEGER}
   </select>
 
+  <select id="selectSchedulableDetails" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List_With_Alias_D" />
+    from mass_task_detail d
+    inner join mass_task t on t.id = d.task_id
+    where d.is_sent = 0
+      and (d.planned_send_time is null or d.planned_send_time &lt;= #{now,jdbcType=TIMESTAMP})
+      and (t.send_time is null or t.send_time &lt;= #{now,jdbcType=TIMESTAMP})
+      and t.send_status in (0, 1)
+    order by coalesce(d.planned_send_time, d.create_time) asc, d.id asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
+
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from mass_task_detail
     where id = #{id,jdbcType=BIGINT}
@@ -57,12 +76,12 @@
   <insert id="insert" parameterType="com.weichat.common.entity.MassTaskDetail" useGeneratedKeys="true" keyProperty="id">
     insert into mass_task_detail (
       task_id, receiver_type, receiver_id, receiver_name, is_sent,
-      send_time, send_status, send_result, create_time, update_time
+      send_time, planned_send_time, send_status, send_result, create_time, update_time
     )
     values (
       #{taskId,jdbcType=BIGINT}, #{receiverType,jdbcType=TINYINT}, #{receiverId,jdbcType=BIGINT},
       #{receiverName,jdbcType=VARCHAR}, #{isSent,jdbcType=TINYINT}, #{sendTime,jdbcType=TIMESTAMP},
-      #{sendStatus,jdbcType=TINYINT}, #{sendResult,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
+      #{plannedSendTime,jdbcType=TIMESTAMP}, #{sendStatus,jdbcType=TINYINT}, #{sendResult,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP},
       #{updateTime,jdbcType=TIMESTAMP}
     )
   </insert>
@@ -76,6 +95,7 @@
       <if test="receiverName != null">receiver_name = #{receiverName,jdbcType=VARCHAR},</if>
       <if test="isSent != null">is_sent = #{isSent,jdbcType=TINYINT},</if>
       <if test="sendTime != null">send_time = #{sendTime,jdbcType=TIMESTAMP},</if>
+      <if test="plannedSendTime != null">planned_send_time = #{plannedSendTime,jdbcType=TIMESTAMP},</if>
       <if test="sendStatus != null">send_status = #{sendStatus,jdbcType=TINYINT},</if>
       <if test="sendResult != null">send_result = #{sendResult,jdbcType=VARCHAR},</if>
       <if test="createTime != null">create_time = #{createTime,jdbcType=TIMESTAMP},</if>

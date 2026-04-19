@@ -113,4 +113,8 @@ public class MassTask implements Serializable {
      * 模板ID
      */
     private Long templateId;
+
+    private Long planId;
+
+    private String scheduleSlot;
 }
