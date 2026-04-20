@@ -97,7 +97,7 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
                 }
                 cdnKey = messageSupport.resolveCdnKey(uploadResponse);
                 fileSize = uploadResponse.getSize();
-                voiceTime = material.getVoiceTime() != null ? material.getVoiceTime() : 0;
+                voiceTime = resolveVoiceTime(material, fileSize);
                 log.info("voice mass send upload success, taskId={}, receiverName={}, index={}, cdnKey={}, fileSize={}, voiceTime={}",
                         taskId, receiverName, i, cdnKey, fileSize, voiceTime);
                 request = SendVoiceRequest.builder()
@@ -113,9 +113,9 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
             } else {
                 cdnKey = messageSupport.requireText(messageSupport.resolveMaterialCdnKey(material), "voice cdnkey is required");
                 fileSize = messageSupport.requireInteger(material.getFileSize(), "voice fileSize is required");
-                voiceTime = 0;
-                log.info("voice mass send reuse existing material, taskId={}, receiverName={}, index={}, cdnKey={}, fileSize={}",
-                        taskId, receiverName, i, cdnKey, fileSize);
+                voiceTime = resolveVoiceTime(material, fileSize);
+                log.info("voice mass send reuse existing material, taskId={}, receiverName={}, index={}, cdnKey={}, fileSize={}, voiceTime={}",
+                        taskId, receiverName, i, cdnKey, fileSize, voiceTime);
                 request = SendVoiceRequest.builder()
                         .uuid(senderUuid)
                         .send_userid(receiverUserId)
@@ -145,5 +145,17 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
         log.info("voice mass send finished, taskId={}, receiverName={}, materialCount={}",
                 taskId, receiverName, materials.size());
         return messageSupport.successResult();
+    }
+
+    /**
+     * 取素材自带 voice_time；缺失时按文件大小估算，最终兜底为 1。
+     */
+    private Integer resolveVoiceTime(MassTaskMediaMaterial material, Integer fileSize) {
+        Integer voiceTime = material.getVoiceTime();
+        if (voiceTime != null && voiceTime > 0) {
+            return voiceTime;
+        }
+        Integer estimated = messageSupport.estimateVoiceTime(fileSize);
+        return estimated != null ? estimated : 1;
     }
 }

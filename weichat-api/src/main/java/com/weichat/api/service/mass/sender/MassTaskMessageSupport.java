@@ -436,6 +436,24 @@ public class MassTaskMessageSupport {
     }
 
     /**
+     * 基于文件大小估算微信语音时长（SILK 编码）
+     * <p>
+     * 经验速率约 1300 字节/秒（样本：5184B≈4s），ceil 取整，保证不小于 1 秒，
+     * 避免素材未携带 voice_time 时服务端按 0 截断为 1 秒。
+     * </p>
+     *
+     * @param fileSize 已上传语音的文件大小（字节）
+     * @return 估算的语音时长（秒），fileSize 为空或非正时返回 null
+     */
+    public Integer estimateVoiceTime(Integer fileSize) {
+        if (fileSize == null || fileSize <= 0) {
+            return null;
+        }
+        int seconds = (int) Math.ceil(fileSize.doubleValue() / 1300.0);
+        return Math.max(1, seconds);
+    }
+
+    /**
      * 要求字符串值非空
      *
      * @param value   待检查的字符串值
