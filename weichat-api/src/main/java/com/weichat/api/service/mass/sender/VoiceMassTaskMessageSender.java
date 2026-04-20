@@ -88,7 +88,7 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
                 CdnUploadResponse uploadResponse;
                 try {
                     uploadResponse = messageSupport.validateFileUploadResponse(
-                            cdnFileService.uploadVideoFile(senderUuid, material.toReplyMediaItem())
+                            cdnFileService.uploadFile(senderUuid, material.toReplyMediaItem())
                     );
                 } catch (RuntimeException ex) {
                     log.error("voice mass send upload failed, taskId={}, receiverName={}, index={}, reason={}",
@@ -97,7 +97,7 @@ public class VoiceMassTaskMessageSender implements MassTaskMessageSender {
                 }
                 cdnKey = messageSupport.resolveCdnKey(uploadResponse);
                 fileSize = uploadResponse.getSize();
-                voiceTime = messageSupport.resolveVoiceDuration(uploadResponse);
+                voiceTime = material.getVoiceTime() != null ? material.getVoiceTime() : 0;
                 log.info("voice mass send upload success, taskId={}, receiverName={}, index={}, cdnKey={}, fileSize={}, voiceTime={}",
                         taskId, receiverName, i, cdnKey, fileSize, voiceTime);
                 request = SendVoiceRequest.builder()
