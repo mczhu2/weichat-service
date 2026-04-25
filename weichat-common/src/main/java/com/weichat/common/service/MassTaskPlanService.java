@@ -32,6 +32,10 @@ public class MassTaskPlanService {
         return massTaskPlanMapper.selectAllWithPaging(offset, limit);
     }
 
+    public int countPlans() {
+        return massTaskPlanMapper.countAll();
+    }
+
     public List<MassTaskPlan> getDuePlans(int limit) {
         return massTaskPlanMapper.selectDuePlans(LocalDateTime.now(), limit);
     }

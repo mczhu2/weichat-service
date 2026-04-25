@@ -10,16 +10,15 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 统一API响应结果（泛型版）
+ * 统一 API 响应结果。
  *
  * @param <T> 响应数据类型
- * @author weichat
  */
 @Data
-@ApiModel(description = "统一API响应结果")
+@ApiModel(description = "统一 API 响应结果")
 public class ApiResult<T> {
 
-    @ApiModelProperty(value = "响应码，0表示成功，非0表示失败", example = "0")
+    @ApiModelProperty(value = "响应码，0 表示成功，非 0 表示失败", example = "0")
     private int code;
 
     @ApiModelProperty(value = "响应消息", example = "ok")
@@ -28,60 +27,78 @@ public class ApiResult<T> {
     @ApiModelProperty(value = "响应数据")
     private T data;
 
+    @ApiModelProperty(value = "总条数，分页列表场景返回", example = "125")
+    private Integer total;
+
     public static <T> ApiResult<T> success(T data) {
-        ApiResult<T> r = new ApiResult<>();
-        r.code = 0;
-        r.msg = "ok";
-        r.data = data;
-        return r;
+        ApiResult<T> result = new ApiResult<>();
+        result.code = 0;
+        result.msg = "ok";
+        result.data = data;
+        return result;
+    }
+
+    public static <T> ApiResult<T> success(T data, Integer total) {
+        ApiResult<T> result = success(data);
+        result.total = total;
+        return result;
     }
 
     public static <T> ApiResult<T> fail(String msg) {
-        ApiResult<T> r = new ApiResult<>();
-        r.code = -1;
-        r.msg = msg;
-        return r;
+        ApiResult<T> result = new ApiResult<>();
+        result.code = -1;
+        result.msg = msg;
+        return result;
     }
 
     @SuppressWarnings("unchecked")
     public static <T> ApiResult<T> from(JSONObject resp) {
-        if (resp == null) return fail("API调用失败");
-        ApiResult<T> r = new ApiResult<>();
-        r.code = resp.getIntValue("errcode");
-        r.msg = resp.getString("errmsg");
-        r.data = (T) resp.get("data");
-        return r;
+        if (resp == null) {
+            return fail("API 调用失败");
+        }
+        ApiResult<T> result = new ApiResult<>();
+        result.code = resp.getIntValue("errcode");
+        result.msg = resp.getString("errmsg");
+        result.data = (T) resp.get("data");
+        if (resp.containsKey("total")) {
+            result.total = resp.getInteger("total");
+        }
+        return result;
     }
 
-    /**
-     * 从JSON响应转换，并指定data类型（单个对象）
-     */
     public static <T> ApiResult<T> from(JSONObject resp, Class<T> clazz) {
-        if (resp == null) return fail("API调用失败");
-        ApiResult<T> r = new ApiResult<>();
-        r.code = resp.getIntValue("errcode");
-        r.msg = resp.getString("errmsg");
-        Object data = resp.get("data");
-        if (data != null && data instanceof JSONObject) {
-            r.data = ((JSONObject) data).toJavaObject(clazz);
+        if (resp == null) {
+            return fail("API 调用失败");
         }
-        return r;
+        ApiResult<T> result = new ApiResult<>();
+        result.code = resp.getIntValue("errcode");
+        result.msg = resp.getString("errmsg");
+        Object data = resp.get("data");
+        if (data instanceof JSONObject) {
+            result.data = ((JSONObject) data).toJavaObject(clazz);
+        }
+        if (resp.containsKey("total")) {
+            result.total = resp.getInteger("total");
+        }
+        return result;
     }
 
-    /**
-     * 从JSON响应转换，data为列表类型
-     */
     public static <E> ApiResult<List<E>> fromList(JSONObject resp, Class<E> elementClass) {
-        if (resp == null) return fail("API调用失败");
-        ApiResult<List<E>> r = new ApiResult<>();
-        r.code = resp.getIntValue("errcode");
-        r.msg = resp.getString("errmsg");
-        Object data = resp.get("data");
-        if (data != null && data instanceof JSONArray) {
-            r.data = ((JSONArray) data).toJavaList(elementClass);
-        } else {
-            r.data = Collections.emptyList();
+        if (resp == null) {
+            return fail("API 调用失败");
         }
-        return r;
+        ApiResult<List<E>> result = new ApiResult<>();
+        result.code = resp.getIntValue("errcode");
+        result.msg = resp.getString("errmsg");
+        Object data = resp.get("data");
+        if (data instanceof JSONArray) {
+            result.data = ((JSONArray) data).toJavaList(elementClass);
+        } else {
+            result.data = Collections.emptyList();
+        }
+        if (resp.containsKey("total")) {
+            result.total = resp.getInteger("total");
+        }
+        return result;
     }
 }

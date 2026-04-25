@@ -165,6 +165,10 @@ public class MassTaskPlanExecutionService {
         return massTaskPlanService.getPlanList(offset, limit);
     }
 
+    public int getPlanTotal() {
+        return massTaskPlanService.countPlans();
+    }
+
     public MassTaskPlan getPlanById(Long planId) {
         return massTaskPlanService.getPlanById(planId);
     }

@@ -18,5 +18,7 @@ public interface MassTaskPlanMapper {
 
     List<MassTaskPlan> selectAllWithPaging(@Param("offset") int offset, @Param("limit") int limit);
 
+    int countAll();
+
     List<MassTaskPlan> selectDuePlans(@Param("now") LocalDateTime now, @Param("limit") int limit);
 }

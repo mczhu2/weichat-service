@@ -162,7 +162,9 @@ public class MassMessageController {
             @RequestParam(defaultValue = "1") int pageNum,
             @RequestParam(defaultValue = "10") int pageSize) {
         int offset = (pageNum - 1) * pageSize;
-        return ApiResult.success(massTaskPlanExecutionService.getPlanList(offset, pageSize));
+        List<MassTaskPlan> plans = massTaskPlanExecutionService.getPlanList(offset, pageSize);
+        int total = massTaskPlanExecutionService.getPlanTotal();
+        return ApiResult.success(plans, total);
     }
 
     @ApiOperation("获取群发计划详情")
@@ -197,8 +199,9 @@ public class MassMessageController {
 
         int offset = (pageNum - 1) * pageSize;
         List<MassTask> tasks = massTaskService.getMassTaskList(offset, pageSize);
+        int total = massTaskService.countMassTasks();
 
-        return ApiResult.success(tasks);
+        return ApiResult.success(tasks, total);
     }
 
     /**

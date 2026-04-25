@@ -61,6 +61,10 @@ public class MassTaskService {
         return massTaskMapper.selectAllWithPaging(offset, limit);
     }
 
+    public int countMassTasks() {
+        return massTaskMapper.countAll();
+    }
+
     public int countByPlanIdAndScheduleSlot(Long planId, String scheduleSlot) {
         return massTaskMapper.countByPlanIdAndScheduleSlot(planId, scheduleSlot);
     }

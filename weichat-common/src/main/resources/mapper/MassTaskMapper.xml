@@ -99,6 +99,11 @@
     LIMIT #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
   </select>
 
+  <select id="countAll" resultType="int">
+    select count(1)
+    from mass_task
+  </select>
+
   <select id="countByPlanIdAndScheduleSlot" resultType="int">
     select count(1)
     from mass_task

@@ -98,6 +98,11 @@
     limit #{offset,jdbcType=INTEGER}, #{limit,jdbcType=INTEGER}
   </select>
 
+  <select id="countAll" resultType="int">
+    select count(1)
+    from mass_task_plan
+  </select>
+
   <select id="selectDuePlans" resultMap="BaseResultMap">
     select
     <include refid="Base_Column_List" />
