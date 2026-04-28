@@ -8,8 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
-@Component
-@Order(4)
+//@Component
+//@Order(4)
 public class MessageSyncInitHandler extends AbstractInitHandler {
     
     private static final int PAGE_SIZE = 1000;
