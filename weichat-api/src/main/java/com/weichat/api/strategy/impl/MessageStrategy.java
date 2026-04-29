@@ -63,8 +63,10 @@ public class MessageStrategy implements CallbackStrategy {
                 wxMessageInfo.setRoomId(json.getString("room_conversation_id"));
             }
             wxMessageInfoService.insert(wxMessageInfo);
-            triggerWecomMessageCallback(wxMessageInfo);
-
+            // referid 为空非原始消息，不做处理即可
+            if(json.getInteger("referid").equals(0)){
+                triggerWecomMessageCallback(wxMessageInfo);
+            }
             logger.info("Message callback handled successfully");
             return "{\"success\": true, \"message\": \"handled\"}";
         } catch (Exception e) {
