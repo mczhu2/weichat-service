@@ -180,9 +180,9 @@ public class FriendListInitHandler extends AbstractInitHandler {
     }
 
     private WxFriendInfo findExistingFriend(WxFriendInfo friend) {
-        return friendInfoService.selectByOwnerUserIdAndUnionid(
+        return friendInfoService.selectByOwnerUserIdAndUserid(
                 friend.getOwnerUserId(),
-                friend.getUnionid(),
+                friend.getUserId(),
                 friend.getIsExternal()
         );
     }

@@ -28,10 +28,18 @@ public interface WxFriendInfoMapper {
     /**
      * 根据UnionID查询微信好友信息
      * @param ownerUserId
-     * @param unionid 用户唯一标识
+     * @param unionid 好友唯一标识
      * @return 微信好友信息
      */
     WxFriendInfo selectByOwnerUserIdAndUnionid(@Param("ownerUserId") Long ownerUserId, @Param("unionid") String unionid,@Param("isExternal") Integer isExternal);
+
+    /**
+     * 根据UnionID查询微信好友信息
+     * @param ownerUserId
+     * @param userId 好友userId标识
+     * @return 微信好友信息
+     */
+    WxFriendInfo selectByOwnerUserIdAndUserid(@Param("ownerUserId") Long ownerUserId, @Param("userId") Long userId,@Param("isExternal") Integer isExternal);
 
     /**
      * 根据用户ID查询微信好友信息

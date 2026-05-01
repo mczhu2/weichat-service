@@ -88,7 +88,7 @@ public class FriendChangeStrategy implements CallbackStrategy {
         int status = wxFriendInfo.getStatus();
         
         // 先根据unionid查询是否存在
-        WxFriendInfo existingFriend = wxFriendInfoService.selectByOwnerUserIdAndUnionid(wxFriendInfo.getOwnerUserId(), wxFriendInfo.getUnionid(), wxFriendInfo.getIsExternal());
+        WxFriendInfo existingFriend = wxFriendInfoService.selectByOwnerUserIdAndUserid(wxFriendInfo.getOwnerUserId(), wxFriendInfo.getUserId(), wxFriendInfo.getIsExternal());
         
         if (status == 2049 || status == 8) {
             // 2049 或 8 代表被删除
