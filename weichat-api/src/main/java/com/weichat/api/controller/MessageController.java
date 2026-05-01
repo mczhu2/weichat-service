@@ -93,8 +93,8 @@ public class MessageController {
 
     @ApiOperation("Send mini app message")
     @PostMapping("/sendApp")
-    public ApiResult<SendMsgResponse> sendApp(@RequestBody SendAppRequest request) {
-        return ApiResult.from(client.post("/wxwork/SendAppMsg", toJson(request)), SendMsgResponse.class);
+    public ApiResult<SendMsgResponse> sendApp(@RequestBody SendAppMessageRequest request) {
+        return messageSendService.sendApp(request);
     }
 
     @ApiOperation("Send video number message")
