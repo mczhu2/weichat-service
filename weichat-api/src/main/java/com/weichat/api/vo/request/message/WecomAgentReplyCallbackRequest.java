@@ -21,16 +21,25 @@ public class WecomAgentReplyCallbackRequest {
     @ApiModelProperty(value = "Wecom account uuid. Optional when sender-side user id can resolve the account", example = "uuid-xxxx-xxxx")
     private String uuid;
 
-    @ApiModelProperty(value = "Second-round sender user id. Usually the first-round receiver", example = "123456789")
+    @ApiModelProperty(value = "Reply sender user id. Usually the first-round receiver / wecom account user id", example = "123456789")
+    private Long replySender;
+
+    @ApiModelProperty(value = "Reply receiver user id. Usually the first-round sender / customer user id", example = "987654321")
+    private Long replyReceiver;
+
+    @ApiModelProperty(value = "Reply-side account user id used to resolve uuid when uuid is omitted", example = "123456789")
+    private Long replyAccountUserId;
+
+    @ApiModelProperty(value = "Legacy alias of reply sender user id for backward compatibility", example = "123456789")
     private Long sender;
 
-    @ApiModelProperty(value = "Second-round receiver user id. Usually the first-round sender", example = "987654321")
+    @ApiModelProperty(value = "Legacy alias of reply receiver user id for backward compatibility", example = "987654321")
     private Long receiver;
 
-    @ApiModelProperty(value = "Sender-side account user id used to resolve uuid when uuid is omitted", example = "123456789")
+    @ApiModelProperty(value = "Legacy sender-side account user id used to resolve uuid when uuid is omitted", example = "123456789")
     private Long accountUserId;
 
-    @ApiModelProperty(value = "Compatible sender-side user id alias used to resolve uuid", example = "123456789")
+    @ApiModelProperty(value = "Legacy sender-side user id alias used to resolve uuid", example = "123456789")
     private Long receiverUserId;
 
     @ApiModelProperty(value = "Customer service id", example = "456789123")

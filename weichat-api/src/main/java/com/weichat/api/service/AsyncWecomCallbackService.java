@@ -123,8 +123,9 @@ public class AsyncWecomCallbackService {
         payload.put("msgType", wxMessageInfo.getMsgtype() == null ? 0 : wxMessageInfo.getMsgtype());
         payload.put("nickname", wxMessageInfo.getSenderName());
         payload.put("fromName", wxMessageInfo.getSenderName());
-        payload.put("sender", wxMessageInfo.getReceiver());
-        payload.put("receiver", wxMessageInfo.getSender());
+        payload.put("replySender", wxMessageInfo.getReceiver());
+        payload.put("replyReceiver", wxMessageInfo.getSender());
+        payload.put("replyAccountUserId", wxMessageInfo.getReceiver());
         payload.put("kfId", wxMessageInfo.getKfId());
         payload.put("isRoom", StringUtils.hasText(wxMessageInfo.getRoomId()));
         payload.put("roomId", wxMessageInfo.getRoomId());

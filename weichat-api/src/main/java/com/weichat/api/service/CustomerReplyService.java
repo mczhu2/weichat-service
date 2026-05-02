@@ -62,8 +62,8 @@ public class CustomerReplyService {
 
         ReplyLogContext logContext = ReplyLogContext.fromMessage(
                 null,
-                request.getSender(),
-                request.getReceiver()
+                resolveCallbackReplySender(request),
+                resolveCallbackReplyReceiver(request)
         );
         sendTextReply(target, logContext, request.getReply());
         sendImageReplies(target, logContext, request.getImages());
@@ -150,11 +150,7 @@ public class CustomerReplyService {
         if (request == null) {
             return null;
         }
-        Long senderUserId = firstNonNullLong(
-                request.getSender(),
-                request.getAccountUserId(),
-                request.getReceiverUserId()
-        );
+        Long senderUserId = resolveCallbackAccountUserId(request);
         String uuid = request.getUuid();
         if (!StringUtils.hasText(uuid) && senderUserId != null) {
             WxUserInfo userInfo = wxUserInfoService.selectByUserId(senderUserId);
@@ -170,7 +166,7 @@ public class CustomerReplyService {
         boolean isRoomMessage = Boolean.TRUE.equals(request.getIsRoom());
         Long sendUserid = isRoomMessage
                 ? parseLongSafely(request.getRoomId())
-                : request.getReceiver();
+                : resolveCallbackReplyReceiver(request);
         if (sendUserid == null) {
             logger.warn("Reply callback target receiver is invalid. request={}", JSON.toJSONString(request));
             return null;
@@ -181,6 +177,42 @@ public class CustomerReplyService {
                 sendUserid,
                 isRoomMessage,
                 request.getKfId()
+        );
+    }
+
+    private Long resolveCallbackReplySender(WecomAgentReplyCallbackRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return firstNonNullLong(
+                request.getReplySender(),
+                request.getSender(),
+                request.getReplyAccountUserId(),
+                request.getAccountUserId(),
+                request.getReceiverUserId()
+        );
+    }
+
+    private Long resolveCallbackReplyReceiver(WecomAgentReplyCallbackRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return firstNonNullLong(
+                request.getReplyReceiver(),
+                request.getReceiver()
+        );
+    }
+
+    private Long resolveCallbackAccountUserId(WecomAgentReplyCallbackRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return firstNonNullLong(
+                request.getReplyAccountUserId(),
+                request.getReplySender(),
+                request.getSender(),
+                request.getAccountUserId(),
+                request.getReceiverUserId()
         );
     }
 
