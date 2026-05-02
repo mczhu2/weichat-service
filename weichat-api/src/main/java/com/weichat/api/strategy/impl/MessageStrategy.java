@@ -3,31 +3,17 @@ package com.weichat.api.strategy.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.entity.CallbackRequest;
-import com.weichat.api.service.CustomerReplyService;
-import com.weichat.api.service.DownstreamMessageContentService;
+import com.weichat.api.service.AsyncWecomCallbackService;
 import com.weichat.api.strategy.CallbackStrategy;
-import com.weichat.api.vo.callback.DownstreamCallbackPayload;
 import com.weichat.common.entity.WxMessageInfo;
-import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.service.WxMessageInfoService;
-import com.weichat.common.service.WxUserInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 /**
- * 娑堟伅澶勭悊绛栫暐
+ * Message callback strategy.
  */
 @Component("messageStrategy")
 public class MessageStrategy implements CallbackStrategy {
@@ -38,19 +24,7 @@ public class MessageStrategy implements CallbackStrategy {
     private WxMessageInfoService wxMessageInfoService;
 
     @Autowired
-    private WxUserInfoService wxUserInfoService;
-
-    @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private CustomerReplyService customerReplyService;
-
-    @Autowired
-    private DownstreamMessageContentService downstreamMessageContentService;
-
-    @Value("${bizSystem.wecom.callback.url:http://115.190.61.17:8081/api/wecom/callback}")
-    private String wecomCallbackUrl;
+    private AsyncWecomCallbackService asyncWecomCallbackService;
 
     @Override
     public String handle(CallbackRequest callbackRequest) {
@@ -63,10 +37,16 @@ public class MessageStrategy implements CallbackStrategy {
                 wxMessageInfo.setRoomId(json.getString("room_conversation_id"));
             }
             wxMessageInfoService.insert(wxMessageInfo);
-            // referid 为空非原始消息，不做处理即可
-            if(json.getInteger("referid").equals(0)){
-                triggerWecomMessageCallback(wxMessageInfo);
+
+            // Only the original inbound message should trigger the downstream agent callback.
+            if (Long.valueOf(0L).equals(wxMessageInfo.getReferid())) {
+                try {
+                    asyncWecomCallbackService.dispatch(wxMessageInfo);
+                } catch (Exception callbackException) {
+                    logger.error("Failed to enqueue downstream callback. msgId={}", wxMessageInfo.getMsgId(), callbackException);
+                }
             }
+
             logger.info("Message callback handled successfully");
             return "{\"success\": true, \"message\": \"handled\"}";
         } catch (Exception e) {
@@ -78,97 +58,5 @@ public class MessageStrategy implements CallbackStrategy {
             );
             return "{\"success\": false, \"message\": \"failed\"}";
         }
-    }
-
-    private void triggerWecomMessageCallback(WxMessageInfo wxMessageInfo) {
-        if (wxMessageInfo == null || wxMessageInfo.getReceiver() == null) {
-            return;
-        }
-
-        try {
-            WxUserInfo receiverUser = wxUserInfoService.selectByUserId(wxMessageInfo.getReceiver());
-            if (!isValidReceiver(receiverUser, wxMessageInfo)) {
-                return;
-            }
-
-            DownstreamCallbackPayload callbackPayload = downstreamMessageContentService.resolveCallbackPayload(
-                    wxMessageInfo,
-                    receiverUser.getUuid()
-            );
-            if (callbackPayload == null || !callbackPayload.hasPayload()) {
-                logger.warn("Skip downstream callback because payload is empty. msgId={}", wxMessageInfo.getMsgId());
-                return;
-            }
-
-            logger.info("Downstream callback payload resolved. msgId={}, receiver={}, payload={}",
-                    wxMessageInfo.getMsgId(),
-                    wxMessageInfo.getReceiver(),
-                    JSON.toJSONString(callbackPayload));
-
-            ResponseEntity<String> responseEntity = restTemplate.postForEntity(
-                    wecomCallbackUrl,
-                    buildCallbackEntity(wxMessageInfo, receiverUser, callbackPayload),
-                    String.class
-            );
-            customerReplyService.sendReplyToCustomer(wxMessageInfo, receiverUser, responseEntity.getBody());
-
-            logger.info(
-                    "Downstream callback finished. msgId={}, receiver={}, sender={}, status={}, body={}",
-                    wxMessageInfo.getMsgId(),
-                    wxMessageInfo.getReceiver(),
-                    wxMessageInfo.getSender(),
-                    responseEntity.getStatusCodeValue(),
-                    responseEntity.getBody()
-            );
-        } catch (Exception e) {
-            logger.error(
-                    "Downstream callback failed. msgId={}, receiver={}, sender={}",
-                    wxMessageInfo.getMsgId(),
-                    wxMessageInfo.getReceiver(),
-                    wxMessageInfo.getSender(),
-                    e
-            );
-        }
-    }
-
-    private boolean isValidReceiver(WxUserInfo receiverUser, WxMessageInfo wxMessageInfo) {
-        if (receiverUser == null) {
-            logger.warn("Skip downstream callback because receiver user is missing. receiver={}", wxMessageInfo.getReceiver());
-            return false;
-        }
-        if (!StringUtils.hasText(receiverUser.getUuid())) {
-            logger.warn(
-                    "Skip downstream callback because receiver uuid is empty. receiver={}, userId={}",
-                    wxMessageInfo.getReceiver(),
-                    receiverUser.getUserId()
-            );
-            return false;
-        }
-        if (wxMessageInfo.getSender() == null) {
-            logger.warn("Skip downstream callback because sender is empty. msgId={}", wxMessageInfo.getMsgId());
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * 组装发给下游业务系统的回调请求体。
-     * 文本内容和媒体内容分别落到 content / medias，避免把多种语义继续混塞到一个字段里。
-     */
-    private HttpEntity<String> buildCallbackEntity(WxMessageInfo wxMessageInfo,
-                                                   WxUserInfo receiverUser,
-                                                   DownstreamCallbackPayload callbackPayload) {
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("fromVid", String.valueOf(wxMessageInfo.getSender()));
-        payload.put("content", callbackPayload.getContent());
-        payload.put("medias", callbackPayload.getMedias());
-        payload.put("uuid", receiverUser.getUuid());
-        payload.put("msgType", wxMessageInfo.getMsgtype() == null ? 0 : wxMessageInfo.getMsgtype());
-        payload.put("nickname", wxMessageInfo.getSenderName());
-        payload.put("fromName", wxMessageInfo.getSenderName());
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        return new HttpEntity<>(JSON.toJSONString(payload), headers);
     }
 }

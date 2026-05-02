@@ -10,10 +10,12 @@ import com.weichat.api.vo.request.message.SendFriendReplyRequest;
 import com.weichat.api.vo.request.message.SendImageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.api.vo.request.message.SendVoiceRequest;
+import com.weichat.api.vo.request.message.WecomAgentReplyCallbackRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import com.weichat.api.vo.response.message.SendMsgResponse;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.service.WxUserInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,34 @@ public class CustomerReplyService {
 
     @Autowired
     private CdnFileService cdnFileService;
+
+    @Autowired
+    private WxUserInfoService wxUserInfoService;
+
+    public ApiResult<Void> handleWecomAgentReplyCallback(WecomAgentReplyCallbackRequest request) {
+        if (request == null) {
+            return ApiResult.fail("request body is invalid");
+        }
+        if (!Boolean.TRUE.equals(request.getOk())) {
+            logger.warn("Wecom agent reply callback is not ok, skip reply. request={}", JSON.toJSONString(request));
+            return ApiResult.success(null);
+        }
+
+        ReplyTarget target = resolveReplyTargetFromCallback(request);
+        if (target == null) {
+            return ApiResult.fail("reply target is invalid");
+        }
+
+        ReplyLogContext logContext = ReplyLogContext.fromMessage(
+                null,
+                request.getSender(),
+                request.getReceiver()
+        );
+        sendTextReply(target, logContext, request.getReply());
+        sendImageReplies(target, logContext, request.getImages());
+        sendVoiceReplies(target, logContext, request.getVoices());
+        return ApiResult.success(null);
+    }
 
     /**
      * Handle downstream callback replies. Currently supports text, image and voice replies.
@@ -114,6 +144,44 @@ public class CustomerReplyService {
             );
             return ApiResult.fail("send friend reply failed");
         }
+    }
+
+    private ReplyTarget resolveReplyTargetFromCallback(WecomAgentReplyCallbackRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Long senderUserId = firstNonNullLong(
+                request.getSender(),
+                request.getAccountUserId(),
+                request.getReceiverUserId()
+        );
+        String uuid = request.getUuid();
+        if (!StringUtils.hasText(uuid) && senderUserId != null) {
+            WxUserInfo userInfo = wxUserInfoService.selectByUserId(senderUserId);
+            if (userInfo != null) {
+                uuid = userInfo.getUuid();
+            }
+        }
+        if (!StringUtils.hasText(uuid)) {
+            logger.warn("Reply callback target uuid is empty and cannot be resolved. request={}", JSON.toJSONString(request));
+            return null;
+        }
+
+        boolean isRoomMessage = Boolean.TRUE.equals(request.getIsRoom());
+        Long sendUserid = isRoomMessage
+                ? parseLongSafely(request.getRoomId())
+                : request.getReceiver();
+        if (sendUserid == null) {
+            logger.warn("Reply callback target receiver is invalid. request={}", JSON.toJSONString(request));
+            return null;
+        }
+
+        return new ReplyTarget(
+                uuid,
+                sendUserid,
+                isRoomMessage,
+                request.getKfId()
+        );
     }
 
     /**
@@ -918,6 +986,21 @@ public class CustomerReplyService {
             return null;
         }
         for (Integer value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Return the first non-null long from alias candidates.
+     */
+    private Long firstNonNullLong(Long... values) {
+        if (values == null) {
+            return null;
+        }
+        for (Long value : values) {
             if (value != null) {
                 return value;
             }

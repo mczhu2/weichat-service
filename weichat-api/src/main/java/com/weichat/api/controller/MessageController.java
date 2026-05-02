@@ -67,6 +67,12 @@ public class MessageController {
         return customerReplyService.sendFriendReply(request);
     }
 
+    @ApiOperation("Handle wecom agent async reply callback")
+    @PostMapping("/wecomAgentReplyCallback")
+    public ApiResult<Void> wecomAgentReplyCallback(@RequestBody WecomAgentReplyCallbackRequest request) {
+        return customerReplyService.handleWecomAgentReplyCallback(request);
+    }
+
     @ApiOperation("Send video message")
     @PostMapping("/sendVideo")
     public ApiResult<SendMsgResponse> sendVideo(@RequestBody SendVideoRequest request) {
