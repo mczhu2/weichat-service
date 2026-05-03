@@ -1,0 +1,10 @@
+.git
+.idea
+.omx
+.m2
+target
+runlogs
+*.log
+*.tmp
+*.swp
+*.iml
