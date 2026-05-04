@@ -6,6 +6,7 @@ WORKDIR /build
 
 COPY pom.xml /build/pom.xml
 COPY weichat-common /build/weichat-common
+COPY weichat-mangement /build/weichat-mangement
 COPY weichat-api /build/weichat-api
 
 RUN mvn -pl weichat-api -am -DskipTests package
