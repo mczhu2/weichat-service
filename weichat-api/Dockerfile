@@ -1,5 +1,5 @@
-ARG BUILD_IMAGE=docker.1ms.run/library/maven:3.9.9-eclipse-temurin-8
-ARG RUNTIME_IMAGE=docker.1ms.run/library/eclipse-temurin:8-jre
+ARG BUILD_IMAGE=m.daocloud.io/docker.io/library/maven:3.9.9-eclipse-temurin-8
+ARG RUNTIME_IMAGE=m.daocloud.io/docker.io/library/eclipse-temurin:8-jre
 
 FROM ${BUILD_IMAGE} AS build
 WORKDIR /build

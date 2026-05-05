@@ -1,4 +1,4 @@
-ARG RUNTIME_IMAGE=docker.1ms.run/library/eclipse-temurin:8-jre
+ARG RUNTIME_IMAGE=m.daocloud.io/docker.io/library/eclipse-temurin:8-jre
 
 FROM ${RUNTIME_IMAGE}
 WORKDIR /app
