@@ -1,0 +1,11 @@
+ARG RUNTIME_IMAGE=docker.1ms.run/library/eclipse-temurin:8-jre
+
+FROM ${RUNTIME_IMAGE}
+WORKDIR /app
+
+ENV JAVA_ARGS="-Dfile.encoding=UTF-8 -Duser.timezone=Asia/Shanghai"
+
+COPY weichat-api/target/weichat-api-1.0.0-SNAPSHOT.jar /app/app.jar
+
+EXPOSE 8066
+ENTRYPOINT ["sh","-c","java $JAVA_ARGS $JAVA_OPTS $JAVA_ENVS -jar /app/app.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod}"]
