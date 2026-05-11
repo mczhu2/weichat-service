@@ -18,6 +18,15 @@
         LIMIT #{limit}
     </select>
 
+    <select id="selectPendingTasksSharded" resultType="com.weichat.common.entity.WxCallbackTask">
+        SELECT * FROM wx_callback_task
+        WHERE status = 0
+          AND retry_count &lt; max_retry_count
+          AND mod(id, #{shardCount}) = #{shardItem}
+        ORDER BY create_time ASC
+        LIMIT #{limit}
+    </select>
+
     <update id="updateStatus">
         UPDATE wx_callback_task 
         SET status = #{status}, error_message = #{errorMessage}, update_time = NOW(), process_time = NOW()

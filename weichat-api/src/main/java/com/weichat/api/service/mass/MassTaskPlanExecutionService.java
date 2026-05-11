@@ -201,6 +201,24 @@ public class MassTaskPlanExecutionService {
         }
     }
 
+    /**
+     * 按分片处理到期计划。
+     * 计划查询阶段就带上分片条件，避免多实例重复扫描和重复物化。
+     */
+    public void processDuePlans(int limit, int shardItem, int shardTotalCount) {
+        List<MassTaskPlan> duePlans = massTaskPlanService.getDuePlans(limit, shardItem, shardTotalCount);
+        if (CollectionUtils.isEmpty(duePlans)) {
+            return;
+        }
+        for (MassTaskPlan plan : duePlans) {
+            try {
+                materializePlan(plan);
+            } catch (Exception e) {
+                log.error("materialize mass task plan failed, planId={}", plan.getId(), e);
+            }
+        }
+    }
+
     @Transactional
     protected void materializePlan(MassTaskPlan plan) {
         if (plan == null || !MassTaskPlanStatusEnum.ENABLED.getCode().equals(plan.getPlanStatus())) {

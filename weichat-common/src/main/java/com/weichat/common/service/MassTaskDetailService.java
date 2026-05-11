@@ -34,6 +34,19 @@ public class MassTaskDetailService {
     }
 
     /**
+     * 按分片查询当前时间可发送的任务明细。
+     * 使用明细 ID 做模分片，保证同一条明细只会由一个分片读取。
+     */
+    public List<MassTaskDetail> getSchedulableMassTaskDetails(int limit, int shardItem, int shardCount) {
+        return massTaskDetailMapper.selectSchedulableDetailsSharded(
+                limit,
+                LocalDateTime.now(),
+                shardItem,
+                shardCount
+        );
+    }
+
+    /**
      * 将明细标记为发送成功。
      */
     public void updateSendSuccessStatus(Long detailId) {
