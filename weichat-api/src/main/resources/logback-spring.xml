@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- console appender: 所有日志自动携带 [tid:xxx] -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%level] [%logger{36}] [tid:%X{traceId:-}] %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 业务日志 DEBUG -->
+    <logger name="com.weichat" level="DEBUG"/>
+
+    <!-- root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

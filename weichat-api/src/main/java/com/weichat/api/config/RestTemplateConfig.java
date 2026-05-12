@@ -1,5 +1,6 @@
 package com.weichat.api.config;
 
+import com.weichat.api.interceptor.TraceRestTemplateInterceptor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,9 @@ public class RestTemplateConfig {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(connectTimeoutMs);
         factory.setReadTimeout(readTimeoutMs);
-        return new RestTemplate(factory);
+        RestTemplate rt = new RestTemplate(factory);
+        // 添加 traceId 传播拦截器 — 所有出站 HTTP 请求自动携带 X-Trace-Id
+        rt.getInterceptors().add(new TraceRestTemplateInterceptor());
+        return rt;
     }
 }
