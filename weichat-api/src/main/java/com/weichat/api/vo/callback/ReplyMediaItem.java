@@ -1,5 +1,8 @@
 package com.weichat.api.vo.callback;
 
+import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -46,6 +49,9 @@ public class ReplyMediaItem {
      * Voice duration in seconds.
      */
     @ApiModelProperty(value = "Voice duration in seconds", example = "10")
+    @JSONField(name = "voiceTime", alternateNames = {"voice_time"})
+    @JsonProperty("voiceTime")
+    @JsonAlias("voice_time")
     private Integer voiceTime;
 
     /**
