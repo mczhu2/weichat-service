@@ -35,6 +35,9 @@ public class AsyncWecomCallbackService {
     @Autowired
     private DownstreamMessageContentService downstreamMessageContentService;
 
+    @Autowired
+    private CustomerReplyService customerReplyService;
+
     @Value("${bizSystem.wecom.callback.url:http://115.190.61.17:8081/api/wecom/callback}")
     private String wecomCallbackUrl;
 
@@ -72,6 +75,8 @@ public class AsyncWecomCallbackService {
                     buildCallbackEntity(wxMessageInfo, receiverUser, callbackPayload),
                     String.class
             );
+            String responseBody = responseEntity.getBody();
+            customerReplyService.sendReplyToCustomer(wxMessageInfo, receiverUser, responseBody);
 
             logger.info(
                     "Downstream callback accepted. msgId={}, receiver={}, sender={}, status={}, body={}",
@@ -79,7 +84,7 @@ public class AsyncWecomCallbackService {
                     wxMessageInfo.getReceiver(),
                     wxMessageInfo.getSender(),
                     responseEntity.getStatusCodeValue(),
-                    responseEntity.getBody()
+                    responseBody
             );
         } catch (Exception e) {
             logger.error(
