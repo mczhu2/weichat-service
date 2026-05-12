@@ -12,6 +12,8 @@ public interface WxCallbackTaskService {
 
     List<WxCallbackTask> selectPendingTasks(int limit);
 
+    List<WxCallbackTask> selectPendingTasks(int limit, int shardItem, int shardCount);
+
     int updateStatus(Long id, Integer status, String errorMessage);
 
     int incrementRetryCount(Long id);

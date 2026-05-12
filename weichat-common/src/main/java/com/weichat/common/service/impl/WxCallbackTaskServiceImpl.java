@@ -30,6 +30,11 @@ public class WxCallbackTaskServiceImpl implements WxCallbackTaskService {
     }
 
     @Override
+    public List<WxCallbackTask> selectPendingTasks(int limit, int shardItem, int shardCount) {
+        return wxCallbackTaskMapper.selectPendingTasksSharded(limit, shardItem, shardCount);
+    }
+
+    @Override
     public int updateStatus(Long id, Integer status, String errorMessage) {
         return wxCallbackTaskMapper.updateStatus(id, status, errorMessage);
     }

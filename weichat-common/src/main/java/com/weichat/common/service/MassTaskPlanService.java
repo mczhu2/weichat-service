@@ -40,6 +40,19 @@ public class MassTaskPlanService {
         return massTaskPlanMapper.selectDuePlans(LocalDateTime.now(), limit);
     }
 
+    /**
+     * 按分片查询到期计划。
+     * 这里直接把分片条件下推到 SQL，避免多实例都扫到同一批计划。
+     */
+    public List<MassTaskPlan> getDuePlans(int limit, int shardItem, int shardCount) {
+        return massTaskPlanMapper.selectDuePlansSharded(
+                LocalDateTime.now(),
+                limit,
+                shardItem,
+                shardCount
+        );
+    }
+
     public void updateById(MassTaskPlan plan) {
         plan.setUpdateTime(LocalDateTime.now());
         massTaskPlanMapper.updateByPrimaryKey(plan);

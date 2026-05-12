@@ -15,6 +15,11 @@ public interface WxCallbackTaskMapper {
 
     List<WxCallbackTask> selectPendingTasks(@Param("limit") int limit);
 
+    List<WxCallbackTask> selectPendingTasksSharded(
+            @Param("limit") int limit,
+            @Param("shardItem") int shardItem,
+            @Param("shardCount") int shardCount);
+
     int updateStatus(@Param("id") Long id, 
                      @Param("status") Integer status, 
                      @Param("errorMessage") String errorMessage);

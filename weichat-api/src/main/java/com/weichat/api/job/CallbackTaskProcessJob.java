@@ -2,7 +2,9 @@ package com.weichat.api.job;
 
 import com.weichat.api.entity.CallbackRequest;
 import com.weichat.api.strategy.CallbackStrategyFactory;
+import com.weichat.common.dto.JobShardingInfo;
 import com.weichat.common.entity.WxCallbackTask;
+import com.weichat.common.service.JobShardingService;
 import com.weichat.common.service.WxCallbackTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -11,7 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -19,6 +23,7 @@ public class CallbackTaskProcessJob {
 
     private static final Logger logger = LoggerFactory.getLogger(CallbackTaskProcessJob.class);
     private static final int BATCH_SIZE = 100;
+    private static final String JOB_NAME = "callback-task-process-job";
 
     @Autowired
     private WxCallbackTaskService callbackTaskService;
@@ -26,9 +31,31 @@ public class CallbackTaskProcessJob {
     @Autowired
     private CallbackStrategyFactory callbackStrategyFactory;
 
+    @Autowired
+    private JobShardingService jobShardingService;
+
+    /** 当前进程的节点 ID，用于在 Redis 中登记和计算分片。 */
+    private String nodeId;
+
+    @PostConstruct
+    public void init() {
+        nodeId = UUID.randomUUID().toString();
+        jobShardingService.registerNode(JOB_NAME, nodeId);
+    }
+
     @Scheduled(fixedDelay = 5000)
     public void processCallbackTasks() {
-        List<WxCallbackTask> tasks = callbackTaskService.selectPendingTasks(BATCH_SIZE);
+        JobShardingInfo shardingInfo = jobShardingService.getShardingInfo(JOB_NAME, nodeId);
+        if (!shardingInfo.isValid()) {
+            logger.warn("callback task shard invalid node={}", nodeId);
+            return;
+        }
+        // 先按回调任务 ID 做分片读取，再保留原有的逐条 tryLock，兼顾扩容和并发安全。
+        List<WxCallbackTask> tasks = callbackTaskService.selectPendingTasks(
+                BATCH_SIZE,
+                shardingInfo.getShardIndex(),
+                shardingInfo.getShardCount()
+        );
         if (tasks.isEmpty()) {
             return;
         }

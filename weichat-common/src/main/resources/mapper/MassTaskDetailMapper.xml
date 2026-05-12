@@ -63,6 +63,20 @@
     limit #{limit,jdbcType=INTEGER}
   </select>
 
+  <select id="selectSchedulableDetailsSharded" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List_With_Alias_D" />
+    from mass_task_detail d
+    inner join mass_task t on t.id = d.task_id
+    where d.is_sent = 0
+      and (d.planned_send_time is null or d.planned_send_time &lt;= #{now,jdbcType=TIMESTAMP})
+      and (t.send_time is null or t.send_time &lt;= #{now,jdbcType=TIMESTAMP})
+      and t.send_status in (0, 1)
+      and mod(d.id, #{shardCount,jdbcType=INTEGER}) = #{shardItem,jdbcType=INTEGER}
+    order by coalesce(d.planned_send_time, d.create_time) asc, d.id asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
+
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from mass_task_detail
     where id = #{id,jdbcType=BIGINT}

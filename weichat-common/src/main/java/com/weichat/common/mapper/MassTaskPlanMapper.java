@@ -21,4 +21,10 @@ public interface MassTaskPlanMapper {
     int countAll();
 
     List<MassTaskPlan> selectDuePlans(@Param("now") LocalDateTime now, @Param("limit") int limit);
+
+    List<MassTaskPlan> selectDuePlansSharded(
+            @Param("now") LocalDateTime now,
+            @Param("limit") int limit,
+            @Param("shardItem") int shardItem,
+            @Param("shardCount") int shardCount);
 }

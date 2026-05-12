@@ -22,5 +22,11 @@ public interface MassTaskDetailMapper {
 
     List<MassTaskDetail> selectSchedulableDetails(@Param("limit") int limit, @Param("now") java.time.LocalDateTime now);
 
+    List<MassTaskDetail> selectSchedulableDetailsSharded(
+            @Param("limit") int limit,
+            @Param("now") java.time.LocalDateTime now,
+            @Param("shardItem") int shardItem,
+            @Param("shardCount") int shardCount);
+
     int deleteByTaskId(@Param("taskId") Long taskId);
 }

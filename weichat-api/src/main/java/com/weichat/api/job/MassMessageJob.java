@@ -1,14 +1,18 @@
 package com.weichat.api.job;
 
 import com.weichat.api.service.MassMessageService;
+import com.weichat.common.dto.JobShardingInfo;
 import com.weichat.common.entity.MassTaskDetail;
+import com.weichat.common.service.JobShardingService;
 import com.weichat.common.service.MassTaskDetailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -20,12 +24,36 @@ public class MassMessageJob {
     @Autowired
     private MassMessageService massMessageService;
 
+    @Autowired
+    private JobShardingService jobShardingService;
+
+    private static final String JOB_NAME = "mass-message-job";
+
+    /** 当前进程的节点 ID，用于在 Redis 中登记和计算分片。 */
+    private String nodeId;
+
+    @PostConstruct
+    public void init() {
+        nodeId = UUID.randomUUID().toString();
+        jobShardingService.registerNode(JOB_NAME, nodeId);
+    }
+
     @Scheduled(fixedRate = 60000)
     public void processUnsentMassMessages() {
         log.info("开始执行群发消息定时任务");
 
         try {
-            List<MassTaskDetail> unsentDetails = massTaskDetailService.getSchedulableMassTaskDetails(10);
+            JobShardingInfo shardingInfo = jobShardingService.getShardingInfo(JOB_NAME, nodeId);
+            if (!shardingInfo.isValid()) {
+                log.warn("mass message shard invalid node={}", nodeId);
+                return;
+            }
+            // 按明细 ID 分片读取，保证同一条待发消息只会被一个分片扫描到。
+            List<MassTaskDetail> unsentDetails = massTaskDetailService.getSchedulableMassTaskDetails(
+                    10,
+                    shardingInfo.getShardIndex(),
+                    shardingInfo.getShardCount()
+            );
             if (unsentDetails.isEmpty()) {
                 log.info("当前没有需要发送的群发消息");
                 return;

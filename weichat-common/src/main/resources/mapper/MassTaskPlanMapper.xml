@@ -114,4 +114,17 @@
     order by next_trigger_time asc, id asc
     limit #{limit,jdbcType=INTEGER}
   </select>
+
+  <select id="selectDuePlansSharded" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from mass_task_plan
+    where plan_status = 1
+      and next_trigger_time is not null
+      and next_trigger_time &lt;= #{now,jdbcType=TIMESTAMP}
+      and (effective_end_at is null or effective_end_at &gt;= #{now,jdbcType=TIMESTAMP})
+      and mod(id, #{shardCount,jdbcType=INTEGER}) = #{shardItem,jdbcType=INTEGER}
+    order by next_trigger_time asc, id asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
 </mapper>
