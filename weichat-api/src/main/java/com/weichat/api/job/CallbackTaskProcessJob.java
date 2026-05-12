@@ -9,6 +9,7 @@ import com.weichat.common.service.WxCallbackTaskService;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,7 @@ public class CallbackTaskProcessJob {
     private static final Logger logger = LoggerFactory.getLogger(CallbackTaskProcessJob.class);
     private static final int BATCH_SIZE = 100;
     private static final String JOB_NAME = "callback-task-process-job";
+    private static final String MDC_KEY = "traceId";
 
     @Autowired
     private WxCallbackTaskService callbackTaskService;
@@ -45,25 +47,30 @@ public class CallbackTaskProcessJob {
 
     @Scheduled(fixedDelay = 5000)
     public void processCallbackTasks() {
-        JobShardingInfo shardingInfo = jobShardingService.getShardingInfo(JOB_NAME, nodeId);
-        if (!shardingInfo.isValid()) {
-            logger.warn("callback task shard invalid node={}", nodeId);
-            return;
-        }
-        // 先按回调任务 ID 做分片读取，再保留原有的逐条 tryLock，兼顾扩容和并发安全。
-        List<WxCallbackTask> tasks = callbackTaskService.selectPendingTasks(
-                BATCH_SIZE,
-                shardingInfo.getShardIndex(),
-                shardingInfo.getShardCount()
-        );
-        if (tasks.isEmpty()) {
-            return;
-        }
+        String traceId = UUID.randomUUID().toString().replace("-", "");
+        MDC.put(MDC_KEY, traceId);
+        try {
+            JobShardingInfo shardingInfo = jobShardingService.getShardingInfo(JOB_NAME, nodeId);
+            if (!shardingInfo.isValid()) {
+                logger.warn("callback task shard invalid node={}", nodeId);
+                return;
+            }
+            List<WxCallbackTask> tasks = callbackTaskService.selectPendingTasks(
+                    BATCH_SIZE,
+                    shardingInfo.getShardIndex(),
+                    shardingInfo.getShardCount()
+            );
+            if (tasks.isEmpty()) {
+                return;
+            }
 
-        logger.info("开始处理回调任务，数量: {}", tasks.size());
+            logger.info("开始处理回调任务，数量: {}", tasks.size());
 
-        for (WxCallbackTask task : tasks) {
-            processTask(task);
+            for (WxCallbackTask task : tasks) {
+                processTask(task);
+            }
+        } finally {
+            MDC.remove(MDC_KEY);
         }
     }
 
