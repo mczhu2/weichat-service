@@ -30,4 +30,16 @@ public class DownstreamCallbackPayload {
     public boolean hasPayload() {
         return StringUtils.hasText(content) || !CollectionUtils.isEmpty(medias);
     }
+
+    public boolean hasVoiceMedia() {
+        if (CollectionUtils.isEmpty(medias)) {
+            return false;
+        }
+        for (DownstreamMediaVo media : medias) {
+            if (media != null && "voice".equalsIgnoreCase(media.getMediaType())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

@@ -1,6 +1,8 @@
 package com.weichat.api.service;
 
 import com.alibaba.fastjson.JSON;
+import com.weichat.api.enums.CallbackMessageTypeEnum;
+import com.weichat.api.enums.ReplyModalityEnum;
 import com.weichat.api.vo.callback.DownstreamCallbackPayload;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -125,7 +128,8 @@ public class AsyncWecomCallbackService {
         payload.put("content", callbackPayload.getContent());
         payload.put("medias", callbackPayload.getMedias());
         payload.put("uuid", receiverUser.getUuid());
-        payload.put("msgType", wxMessageInfo.getMsgtype() == null ? 0 : wxMessageInfo.getMsgtype());
+        CallbackMessageTypeEnum messageType = CallbackMessageTypeEnum.fromCode(wxMessageInfo.getMsgtype());
+        payload.put("msgType", messageType.getCode());
         payload.put("nickname", wxMessageInfo.getSenderName());
         payload.put("fromName", wxMessageInfo.getSenderName());
         payload.put("replySender", wxMessageInfo.getReceiver());
@@ -134,6 +138,11 @@ public class AsyncWecomCallbackService {
         payload.put("kfId", wxMessageInfo.getKfId());
         payload.put("isRoom", StringUtils.hasText(wxMessageInfo.getRoomId()));
         payload.put("roomId", wxMessageInfo.getRoomId());
+        if (shouldRequestAudioReply(messageType, callbackPayload)) {
+            payload.put("replyModalities", Collections.singletonList(ReplyModalityEnum.AUDIO.getCode()));
+        } else {
+            payload.put("replyModalities", Collections.singletonList(ReplyModalityEnum.TEXT.getCode()));
+        }
         if (StringUtils.hasText(wecomReplyCallbackUrl)) {
             payload.put("replyCallbackUrl", wecomReplyCallbackUrl);
         }
@@ -141,5 +150,11 @@ public class AsyncWecomCallbackService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new HttpEntity<>(JSON.toJSONString(payload), headers);
+    }
+
+    private boolean shouldRequestAudioReply(CallbackMessageTypeEnum messageType,
+                                            DownstreamCallbackPayload callbackPayload) {
+        return messageType == CallbackMessageTypeEnum.VOICE
+                || (callbackPayload != null && callbackPayload.hasVoiceMedia());
     }
 }

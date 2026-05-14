@@ -3,6 +3,7 @@ package com.weichat.api.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
+import com.weichat.api.enums.CallbackMessageTypeEnum;
 import com.weichat.api.vo.callback.DownstreamCallbackPayload;
 import com.weichat.api.vo.callback.DownstreamMediaVo;
 import com.weichat.api.vo.request.cdn.DownloadFileRequest;
@@ -26,9 +27,6 @@ public class DownstreamMessageContentService {
 
     private static final Logger logger = LoggerFactory.getLogger(DownstreamMessageContentService.class);
 
-    private static final int MSGTYPE_IMAGE = 101;
-    private static final int MSGTYPE_VOICE = 16;
-    private static final int MSGTYPE_VIDEO = 103;
     private static final int DOWNLOAD_FILETYPE_VOICE = 5;
 
     @Autowired
@@ -361,21 +359,28 @@ public class DownstreamMessageContentService {
      * 判断是否图片消息。
      */
     private boolean isImageMessage(WxMessageInfo wxMessageInfo) {
-        return wxMessageInfo.getMsgtype() != null && wxMessageInfo.getMsgtype() == MSGTYPE_IMAGE;
+        return resolveMessageType(wxMessageInfo) == CallbackMessageTypeEnum.IMAGE;
     }
 
     /**
      * 判断是否视频消息。
      */
     private boolean isVideoMessage(WxMessageInfo wxMessageInfo) {
-        return wxMessageInfo.getMsgtype() != null && wxMessageInfo.getMsgtype() == MSGTYPE_VIDEO;
+        return resolveMessageType(wxMessageInfo) == CallbackMessageTypeEnum.VIDEO;
     }
 
     /**
      * 判断是否语音消息。
      */
     private boolean isVoiceMessage(WxMessageInfo wxMessageInfo) {
-        return wxMessageInfo.getMsgtype() != null && wxMessageInfo.getMsgtype() == MSGTYPE_VOICE;
+        return resolveMessageType(wxMessageInfo) == CallbackMessageTypeEnum.VOICE;
+    }
+
+    private CallbackMessageTypeEnum resolveMessageType(WxMessageInfo wxMessageInfo) {
+        if (wxMessageInfo == null) {
+            return CallbackMessageTypeEnum.UNKNOWN;
+        }
+        return CallbackMessageTypeEnum.fromCode(wxMessageInfo.getMsgtype());
     }
 
     /**
