@@ -79,7 +79,6 @@ public class AsyncWecomCallbackService {
                     String.class
             );
             String responseBody = responseEntity.getBody();
-            customerReplyService.sendReplyToCustomer(wxMessageInfo, receiverUser, responseBody);
 
             logger.info(
                     "Downstream callback accepted. msgId={}, receiver={}, sender={}, status={}, body={}",

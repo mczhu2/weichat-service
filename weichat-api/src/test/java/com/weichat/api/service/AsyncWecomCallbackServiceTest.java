@@ -21,6 +21,7 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +44,7 @@ class AsyncWecomCallbackServiceTest {
     private AsyncWecomCallbackService asyncWecomCallbackService;
 
     @Test
-    void shouldConsumeDownstreamResponseBodyForReplyDispatch() {
+    void shouldDispatchCallbackWithoutConsumingSyncResponseBody() {
         WxMessageInfo wxMessageInfo = new WxMessageInfo();
         wxMessageInfo.setMsgId(1013547L);
         wxMessageInfo.setReceiver(1688856528881593L);
@@ -61,6 +62,7 @@ class AsyncWecomCallbackServiceTest {
         String responseBody = "{\"ok\":true,\"voices\":[{\"url\":\"https://example.com/reply.silk\",\"voice_time\":19}]}";
 
         ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomCallbackUrl", "http://example.com/callback");
+        ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomReplyCallbackUrl", "http://example.com/reply-callback");
 
         when(wxUserInfoService.selectByUserId(wxMessageInfo.getReceiver())).thenReturn(receiverUser);
         when(downstreamMessageContentService.resolveCallbackPayload(wxMessageInfo, receiverUser.getUuid())).thenReturn(payload);
@@ -72,12 +74,14 @@ class AsyncWecomCallbackServiceTest {
 
         asyncWecomCallbackService.dispatch(wxMessageInfo);
 
-        verify(customerReplyService).sendReplyToCustomer(wxMessageInfo, receiverUser, responseBody);
+        verify(customerReplyService, never()).sendReplyToCustomer(wxMessageInfo, receiverUser, responseBody);
 
         ArgumentCaptor<HttpEntity> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
         verify(restTemplate).postForEntity(eq("http://example.com/callback"), entityCaptor.capture(), eq(String.class));
-        assertTrue(entityCaptor.getValue().getBody().toString().contains("\"replyReceiver\":7881301772935700"));
-        assertTrue(entityCaptor.getValue().getBody().toString().contains("\"replyModalities\":[\"text\"]"));
+        String requestBody = entityCaptor.getValue().getBody().toString();
+        assertTrue(requestBody.contains("\"replyReceiver\":7881301772935700"));
+        assertTrue(requestBody.contains("\"replyModalities\":[\"text\"]"));
+        assertTrue(requestBody.contains("\"replyCallbackUrl\":\"http://example.com/reply-callback\""));
     }
 
     @Test
@@ -111,6 +115,7 @@ class AsyncWecomCallbackServiceTest {
         ).thenReturn(ResponseEntity.ok("{\"ok\":true,\"reply\":\"ignored\"}"));
 
         ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomCallbackUrl", "http://example.com/callback");
+        ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomReplyCallbackUrl", "http://example.com/reply-callback");
 
         asyncWecomCallbackService.dispatch(wxMessageInfo);
 
