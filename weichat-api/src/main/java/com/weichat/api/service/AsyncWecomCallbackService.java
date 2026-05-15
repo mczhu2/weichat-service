@@ -79,6 +79,11 @@ public class AsyncWecomCallbackService {
                     String.class
             );
             String responseBody = responseEntity.getBody();
+            // Intentionally do not consume the synchronous response body for user delivery.
+            // User-facing replies must flow only through replyCallbackUrl so text / image /
+            // voice dispatch stays single-sourced. Reintroducing sendReplyToCustomer(...)
+            // here would send the same reply twice: once from this sync response and once
+            // from /api/v1/message/wecomAgentReplyCallback.
 
             logger.info(
                     "Downstream callback accepted. msgId={}, receiver={}, sender={}, status={}, body={}",
