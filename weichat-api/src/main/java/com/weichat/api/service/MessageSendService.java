@@ -11,12 +11,16 @@ import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.api.vo.request.message.SendVoiceRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import com.weichat.api.vo.response.message.SendMsgResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 @Service
 public class MessageSendService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MessageSendService.class);
 
     @Autowired
     private WxWorkApiClient client;
@@ -50,30 +54,83 @@ public class MessageSendService {
     }
 
     /**
-     * 发送小程序消息。接口层请求使用 coverUrl，实际调用前需要先上传封面得到 CDN 信息。
+     * 发送小程序消息。coverUrl 为空时不上传封面。
      */
     public ApiResult<SendMsgResponse> sendApp(SendAppMessageRequest request) {
-        CdnUploadResponse uploadResponse = validateAppCoverUploadResponse(
-                cdnFileService.uploadImageByUrl(request.getUuid(), request.getCoverUrl(), null, null)
-        );
+        CdnUploadResponse uploadResponse = null;
+        if (StringUtils.hasText(request.getCoverUrl())) {
+            logger.info(
+                    "Mini app cover upload started. uuid={}, sendUserid={}, isRoom={}, coverUrl={}",
+                    request.getUuid(),
+                    request.getSend_userid(),
+                    request.getIsRoom(),
+                    request.getCoverUrl()
+            );
+            uploadResponse = validateAppCoverUploadResponse(
+                    cdnFileService.uploadImageByUrl(request.getUuid(), request.getCoverUrl(), null, null)
+            );
+            logger.info(
+                    "Mini app cover upload finished. uuid={}, sendUserid={}, cdnkeyPresent={}, aeskeyPresent={}, md5Present={}, fileSize={}",
+                    request.getUuid(),
+                    request.getSend_userid(),
+                    StringUtils.hasText(resolveCdnKey(uploadResponse)),
+                    StringUtils.hasText(uploadResponse.getAes_key()),
+                    StringUtils.hasText(uploadResponse.getMd5()),
+                    uploadResponse.getSize()
+            );
+        } else {
+            logger.info(
+                    "Mini app cover upload skipped. uuid={}, sendUserid={}, isRoom={}, title={}, pagepath={}",
+                    request.getUuid(),
+                    request.getSend_userid(),
+                    request.getIsRoom(),
+                    request.getTitle(),
+                    request.getPagepath()
+            );
+        }
+
+        String cdnkey = uploadResponse == null ? null : requireText(resolveCdnKey(uploadResponse), "app cover cdnkey is required");
+        String aeskey = uploadResponse == null ? null : requireText(uploadResponse.getAes_key(), "app cover aeskey is required");
+        String md5 = uploadResponse == null ? null : requireText(uploadResponse.getMd5(), "app cover md5 is required");
+        Integer fileSize = uploadResponse == null ? null : requireInteger(uploadResponse.getSize(), "app cover fileSize is required");
 
         SendAppRequest sendAppRequest = SendAppRequest.builder()
                 .uuid(request.getUuid())
                 .send_userid(request.getSend_userid())
                 .isRoom(request.getIsRoom() != null ? request.getIsRoom() : Boolean.FALSE)
+                .kf_id(request.getKf_id())
                 .title(requireText(request.getTitle(), "app title is required"))
-                .desc(requireText(request.getDesc(), "app desc is required"))
+                .desc(optionalText(request.getDesc()))
                 .appName(requireText(request.getAppName(), "appName is required"))
                 .appid(requireText(request.getAppid(), "appid is required"))
                 .username(requireText(request.getUsername(), "username is required"))
                 .pagepath(requireText(request.getPagepath(), "pagepath is required"))
                 .weappIconUrl(request.getWeappIconUrl())
-                .cdnkey(requireText(resolveCdnKey(uploadResponse), "app cover cdnkey is required"))
-                .aeskey(requireText(uploadResponse.getAes_key(), "app cover aeskey is required"))
-                .md5(requireText(uploadResponse.getMd5(), "app cover md5 is required"))
-                .fileSize(requireInteger(uploadResponse.getSize(), "app cover fileSize is required"))
+                .cdnkey(cdnkey)
+                .aeskey(aeskey)
+                .md5(md5)
+                .fileSize(fileSize)
                 .build();
+        logger.info(
+                "Sending mini app message to wxwork. uuid={}, sendUserid={}, isRoom={}, hasKfId={}, title={}, appid={}, username={}, pagepath={}, hasCoverCdn={}",
+                sendAppRequest.getUuid(),
+                sendAppRequest.getSend_userid(),
+                sendAppRequest.getIsRoom(),
+                sendAppRequest.getKf_id() != null,
+                sendAppRequest.getTitle(),
+                sendAppRequest.getAppid(),
+                sendAppRequest.getUsername(),
+                sendAppRequest.getPagepath(),
+                StringUtils.hasText(sendAppRequest.getCdnkey())
+        );
         JSONObject response = client.post("/wxwork/SendAppMsg", JSON.parseObject(JSON.toJSONString(sendAppRequest)));
+        logger.info(
+                "Wxwork mini app message response. uuid={}, sendUserid={}, isRoom={}, response={}",
+                sendAppRequest.getUuid(),
+                sendAppRequest.getSend_userid(),
+                sendAppRequest.getIsRoom(),
+                response == null ? null : response.toJSONString()
+        );
         return ApiResult.from(response, SendMsgResponse.class);
     }
 
@@ -108,6 +165,10 @@ public class MessageSendService {
             throw new IllegalArgumentException(message);
         }
         return value.trim();
+    }
+
+    private String optionalText(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private Integer requireInteger(Integer value, String message) {

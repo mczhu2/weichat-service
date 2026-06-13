@@ -28,10 +28,13 @@ public class SendAppRequest extends BaseRequest {
     @ApiModelProperty(value = "是否群消息", required = true, example = "false")
     private Boolean isRoom;
 
+    @ApiModelProperty(value = "客服ID，可选", example = "123456789")
+    private Long kf_id;
+
     @ApiModelProperty(value = "小程序标题", required = true, example = "小程序标题")
     private String title;
 
-    @ApiModelProperty(value = "小程序描述", required = true, example = "小程序描述信息")
+    @ApiModelProperty(value = "小程序描述，可为空", example = "小程序描述信息")
     private String desc;
 
     @ApiModelProperty(value = "小程序名称", required = true, example = "我的小程序")
@@ -49,15 +52,15 @@ public class SendAppRequest extends BaseRequest {
     @ApiModelProperty(value = "小程序头像URL", example = "https://example.com/icon.png")
     private String weappIconUrl;
 
-    @ApiModelProperty(value = "Mini program cover cdn key", required = true, example = "cdn_key_xxx")
+    @ApiModelProperty(value = "小程序封面 cdn key，可选", example = "cdn_key_xxx")
     private String cdnkey;
 
-    @ApiModelProperty(value = "Mini program cover aes key", required = true, example = "aes_key_xxx")
+    @ApiModelProperty(value = "小程序封面 aes key，可选", example = "aes_key_xxx")
     private String aeskey;
 
-    @ApiModelProperty(value = "Mini program cover md5", required = true, example = "d41d8cd98f00b204e9800998ecf8427e")
+    @ApiModelProperty(value = "小程序封面 md5，可选", example = "d41d8cd98f00b204e9800998ecf8427e")
     private String md5;
 
-    @ApiModelProperty(value = "Mini program cover file size", required = true, example = "102400")
+    @ApiModelProperty(value = "小程序封面文件大小，可选", example = "102400")
     private Integer fileSize;
 }

@@ -2,8 +2,10 @@ package com.weichat.api.service;
 
 import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.callback.ReplyMediaItem;
+import com.weichat.api.vo.request.message.SendAppMessageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.api.vo.request.message.SendVoiceRequest;
+import com.weichat.api.vo.request.message.WecomMiniAppReplyRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import com.weichat.api.vo.response.message.SendMsgResponse;
 import com.weichat.common.entity.WxMessageInfo;
@@ -126,5 +128,64 @@ class CustomerReplyServiceTest {
 
         verify(messageSendService).sendVoice(any(SendVoiceRequest.class));
         verify(messageSendService, atLeastOnce()).sendText(any(SendTextRequest.class));
+    }
+
+    @Test
+    void shouldSendMiniAppReplyToCustomer() {
+        when(messageSendService.sendApp(any(SendAppMessageRequest.class))).thenReturn(ApiResult.success(new SendMsgResponse()));
+
+        ApiResult<SendMsgResponse> result = customerReplyService.sendMiniAppReply(
+                WecomMiniAppReplyRequest.builder()
+                        .uuid("uuid-mini")
+                        .replySender(7007L)
+                        .replyReceiver(8008L)
+                        .kfId(9009L)
+                        .title("Job detail")
+                        .desc("")
+                        .appName("Recruit mini app")
+                        .appid("wx-mini")
+                        .username("gh_mini@app")
+                        .pagepath("pages/jobs/detail?id=1")
+                        .coverUrl("")
+                        .build()
+        );
+
+        ArgumentCaptor<SendAppMessageRequest> captor = ArgumentCaptor.forClass(SendAppMessageRequest.class);
+        verify(messageSendService).sendApp(captor.capture());
+        assertEquals(0, result.getCode());
+        assertEquals("uuid-mini", captor.getValue().getUuid());
+        assertEquals(8008L, captor.getValue().getSend_userid());
+        assertEquals(Boolean.FALSE, captor.getValue().getIsRoom());
+        assertEquals(9009L, captor.getValue().getKf_id());
+        assertEquals("", captor.getValue().getDesc());
+        assertEquals("", captor.getValue().getCoverUrl());
+        assertEquals("pages/jobs/detail?id=1", captor.getValue().getPagepath());
+    }
+
+    @Test
+    void shouldResolveUuidFromReplyAccountUserIdForMiniAppReply() {
+        WxUserInfo userInfo = new WxUserInfo();
+        userInfo.setUuid("uuid-resolved");
+        when(wxUserInfoService.selectByUserId(7007L)).thenReturn(userInfo);
+        when(messageSendService.sendApp(any(SendAppMessageRequest.class))).thenReturn(ApiResult.success(new SendMsgResponse()));
+
+        customerReplyService.sendMiniAppReply(
+                WecomMiniAppReplyRequest.builder()
+                        .replySender(7007L)
+                        .replyReceiver(8008L)
+                        .replyAccountUserId(7007L)
+                        .title("Job detail")
+                        .desc("View job detail")
+                        .appName("Recruit mini app")
+                        .appid("wx-mini")
+                        .username("gh_mini@app")
+                        .pagepath("pages/jobs/detail?id=1")
+                        .coverUrl("https://example.com/cover.png")
+                        .build()
+        );
+
+        ArgumentCaptor<SendAppMessageRequest> captor = ArgumentCaptor.forClass(SendAppMessageRequest.class);
+        verify(messageSendService).sendApp(captor.capture());
+        assertEquals("uuid-resolved", captor.getValue().getUuid());
     }
 }

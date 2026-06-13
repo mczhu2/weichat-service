@@ -28,10 +28,13 @@ public class SendAppMessageRequest extends BaseRequest {
     @ApiModelProperty(value = "是否群消息，默认false", example = "false")
     private Boolean isRoom;
 
+    @ApiModelProperty(value = "客服ID，可选", example = "123456789")
+    private Long kf_id;
+
     @ApiModelProperty(value = "小程序标题", required = true, example = "小程序标题")
     private String title;
 
-    @ApiModelProperty(value = "小程序描述", required = true, example = "小程序描述信息")
+    @ApiModelProperty(value = "小程序描述，可为空", example = "小程序描述信息")
     private String desc;
 
     @ApiModelProperty(value = "小程序名称", required = true, example = "我的小程序")
@@ -49,6 +52,6 @@ public class SendAppMessageRequest extends BaseRequest {
     @ApiModelProperty(value = "小程序头像URL", example = "https://example.com/icon.png")
     private String weappIconUrl;
 
-    @ApiModelProperty(value = "封面图片URL", required = true, example = "https://example.com/cover.png")
+    @ApiModelProperty(value = "封面图片URL；为空时不上传封面", example = "https://example.com/cover.png")
     private String coverUrl;
 }

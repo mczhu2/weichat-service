@@ -7,10 +7,12 @@ import com.weichat.api.entity.ApiResult;
 import com.weichat.api.vo.callback.CustomerReplyCallbackResult;
 import com.weichat.api.vo.callback.ReplyMediaItem;
 import com.weichat.api.vo.request.message.SendFriendReplyRequest;
+import com.weichat.api.vo.request.message.SendAppMessageRequest;
 import com.weichat.api.vo.request.message.SendImageRequest;
 import com.weichat.api.vo.request.message.SendTextRequest;
 import com.weichat.api.vo.request.message.SendVoiceRequest;
 import com.weichat.api.vo.request.message.WecomAgentReplyCallbackRequest;
+import com.weichat.api.vo.request.message.WecomMiniAppReplyRequest;
 import com.weichat.api.vo.response.cdn.CdnUploadResponse;
 import com.weichat.api.vo.response.message.SendMsgResponse;
 import com.weichat.common.entity.WxMessageInfo;
@@ -144,6 +146,141 @@ public class CustomerReplyService {
             );
             return ApiResult.fail("send friend reply failed");
         }
+    }
+
+    public ApiResult<SendMsgResponse> sendMiniAppReply(WecomMiniAppReplyRequest request) {
+        String validationMessage = validateMiniAppReplyRequest(request);
+        if (validationMessage != null) {
+            logger.warn(
+                    "Mini app reply validation failed. reason={}, uuid={}, replySender={}, replyReceiver={}, replyAccountUserId={}, isRoom={}, roomId={}, title={}, appid={}, username={}, pagepath={}",
+                    validationMessage,
+                    request == null ? null : request.getUuid(),
+                    request == null ? null : request.getReplySender(),
+                    request == null ? null : request.getReplyReceiver(),
+                    request == null ? null : request.getReplyAccountUserId(),
+                    request == null ? null : request.getIsRoom(),
+                    request == null ? null : request.getRoomId(),
+                    request == null ? null : request.getTitle(),
+                    request == null ? null : request.getAppid(),
+                    request == null ? null : request.getUsername(),
+                    request == null ? null : request.getPagepath()
+            );
+            return ApiResult.fail(validationMessage);
+        }
+
+        ReplyTarget target = resolveReplyTargetFromMiniAppRequest(request);
+        if (target == null) {
+            return ApiResult.fail("reply target is invalid");
+        }
+
+        try {
+            logger.info(
+                    "Mini app reply target resolved. uuid={}, sender={}, sendUserid={}, isRoom={}, hasKfId={}, title={}, appid={}, username={}, pagepath={}",
+                    target.getUuid(),
+                    resolveMiniAppReplySender(request),
+                    target.getSendUserid(),
+                    target.getRoomMessage(),
+                    target.getKfId() != null,
+                    request.getTitle(),
+                    request.getAppid(),
+                    request.getUsername(),
+                    request.getPagepath()
+            );
+            SendAppMessageRequest sendRequest = SendAppMessageRequest.builder()
+                    .uuid(target.getUuid())
+                    .send_userid(target.getSendUserid())
+                    .isRoom(target.getRoomMessage())
+                    .kf_id(target.getKfId())
+                    .title(request.getTitle())
+                    .desc(request.getDesc())
+                    .appName(request.getAppName())
+                    .appid(request.getAppid())
+                    .username(request.getUsername())
+                    .pagepath(request.getPagepath())
+                    .weappIconUrl(request.getWeappIconUrl())
+                    .coverUrl(request.getCoverUrl())
+                    .build();
+            ApiResult<SendMsgResponse> result = messageSendService.sendApp(sendRequest);
+            logger.info(
+                    "Mini app reply send finished. sender={}, receiver={}, isRoom={}, code={}, msg={}",
+                    resolveMiniAppReplySender(request),
+                    target.getSendUserid(),
+                    target.getRoomMessage(),
+                    result == null ? null : result.getCode(),
+                    result == null ? null : result.getMsg()
+            );
+            return result;
+        } catch (Exception e) {
+            logger.error(
+                    "Failed to send mini app reply. sender={}, receiver={}, isRoom={}",
+                    resolveMiniAppReplySender(request),
+                    target.getSendUserid(),
+                    target.getRoomMessage(),
+                    e
+            );
+            return ApiResult.fail("failed to send mini app reply: " + e.getMessage());
+        }
+    }
+
+    private ReplyTarget resolveReplyTargetFromMiniAppRequest(WecomMiniAppReplyRequest request) {
+        String uuid = request.getUuid();
+        Long accountUserId = resolveMiniAppAccountUserId(request);
+        if (!StringUtils.hasText(uuid) && accountUserId != null) {
+            WxUserInfo userInfo = wxUserInfoService.selectByUserId(accountUserId);
+            if (userInfo != null) {
+                uuid = userInfo.getUuid();
+            }
+        }
+        if (!StringUtils.hasText(uuid)) {
+            logger.warn("Mini app reply target uuid is empty and cannot be resolved. request={}", JSON.toJSONString(request));
+            return null;
+        }
+
+        boolean isRoomMessage = Boolean.TRUE.equals(request.getIsRoom());
+        Long sendUserid = isRoomMessage
+                ? parseLongSafely(request.getRoomId())
+                : resolveMiniAppReplyReceiver(request);
+        if (sendUserid == null) {
+            logger.warn("Mini app reply receiver is invalid. request={}", JSON.toJSONString(request));
+            return null;
+        }
+        return new ReplyTarget(uuid, sendUserid, isRoomMessage, request.getKfId());
+    }
+
+    private Long resolveMiniAppReplySender(WecomMiniAppReplyRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return firstNonNullLong(
+                request.getReplySender(),
+                request.getSender(),
+                request.getReplyAccountUserId(),
+                request.getAccountUserId(),
+                request.getReceiverUserId()
+        );
+    }
+
+    private Long resolveMiniAppReplyReceiver(WecomMiniAppReplyRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return firstNonNullLong(
+                request.getReplyReceiver(),
+                request.getReceiver()
+        );
+    }
+
+    private Long resolveMiniAppAccountUserId(WecomMiniAppReplyRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return firstNonNullLong(
+                request.getReplyAccountUserId(),
+                request.getReplySender(),
+                request.getSender(),
+                request.getAccountUserId(),
+                request.getReceiverUserId()
+        );
     }
 
     private ReplyTarget resolveReplyTargetFromCallback(WecomAgentReplyCallbackRequest request) {
@@ -1071,6 +1208,38 @@ public class CustomerReplyService {
                 && (request.getImages() == null || request.getImages().isEmpty())
                 && (request.getVoices() == null || request.getVoices().isEmpty())) {
             return "reply or media is required";
+        }
+        return null;
+    }
+
+    private String validateMiniAppReplyRequest(WecomMiniAppReplyRequest request) {
+        if (request == null) {
+            return "request body is required";
+        }
+        if (Boolean.TRUE.equals(request.getIsRoom())) {
+            if (!StringUtils.hasText(request.getRoomId())) {
+                return "roomId is required when isRoom=true";
+            }
+        } else if (resolveMiniAppReplyReceiver(request) == null) {
+            return "replyReceiver is required";
+        }
+        if (!StringUtils.hasText(request.getTitle())) {
+            return "title is required";
+        }
+        if (!StringUtils.hasText(request.getAppName())) {
+            return "appName is required";
+        }
+        if (!StringUtils.hasText(request.getAppid())) {
+            return "appid is required";
+        }
+        if (!StringUtils.hasText(request.getUsername())) {
+            return "username is required";
+        }
+        if (!StringUtils.hasText(request.getPagepath())) {
+            return "pagepath is required";
+        }
+        if (!StringUtils.hasText(request.getUuid()) && resolveMiniAppAccountUserId(request) == null) {
+            return "uuid or replyAccountUserId is required";
         }
         return null;
     }
