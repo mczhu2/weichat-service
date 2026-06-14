@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.multipart.MultipartFile;
 
 @Component
@@ -189,6 +190,15 @@ public class WxWorkApiClient {
             String responseBody = response.getBody();
             logger.info("API call succeeded: {}, response={}", path, responseBody != null && responseBody.length() > 150 ? responseBody.substring(0, 150) : responseBody);
             return JSONObject.parseObject(responseBody);
+        } catch (RestClientResponseException e) {
+            logger.error(
+                    "API call failed with response. path={}, statusCode={}, responseBody={}",
+                    path,
+                    e.getRawStatusCode(),
+                    e.getResponseBodyAsString(),
+                    e
+            );
+            return null;
         } catch (Exception e) {
             logger.error("API call failed: {}", path, e);
             return null;

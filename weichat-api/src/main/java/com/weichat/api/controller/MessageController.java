@@ -11,6 +11,8 @@ import com.weichat.api.vo.response.message.SendMsgResponse;
 import com.weichat.api.vo.response.message.SyncDataResponse;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/message")
 public class MessageController {
+
+    private static final Logger logger = LoggerFactory.getLogger(MessageController.class);
 
     @Autowired
     private WxWorkApiClient client;
@@ -100,6 +104,21 @@ public class MessageController {
     @ApiOperation("Send mini app message")
     @PostMapping("/sendApp")
     public ApiResult<SendMsgResponse> sendApp(@RequestBody SendAppMessageRequest request) {
+        logger.info(
+                "Received sendApp request. uuid={}, sendUserid={}, isRoom={}, hasKfId={}, title={}, appName={}, appid={}, username={}, pagepath={}, descLength={}, coverUrl={}, weappIconUrl={}",
+                request == null ? null : request.getUuid(),
+                request == null ? null : request.getSend_userid(),
+                request == null ? null : request.getIsRoom(),
+                request != null && request.getKf_id() != null,
+                request == null ? null : request.getTitle(),
+                request == null ? null : request.getAppName(),
+                request == null ? null : request.getAppid(),
+                request == null ? null : request.getUsername(),
+                request == null ? null : request.getPagepath(),
+                request == null || request.getDesc() == null ? null : request.getDesc().length(),
+                request == null ? null : request.getCoverUrl(),
+                request == null ? null : request.getWeappIconUrl()
+        );
         return messageSendService.sendApp(request);
     }
 

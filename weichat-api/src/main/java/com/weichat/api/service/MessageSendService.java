@@ -107,6 +107,10 @@ public class MessageSendService {
                 sendAppRequest.getPagepath(),
                 StringUtils.hasText(sendAppRequest.getCdnkey())
         );
+        logger.info(
+                "Mini app downstream payload. path=/wxwork/SendAppMsg, payload={}",
+                JSON.toJSONString(sendAppRequest)
+        );
 
         JSONObject response = client.post("/wxwork/SendAppMsg", JSON.parseObject(JSON.toJSONString(sendAppRequest)));
         logger.info(
