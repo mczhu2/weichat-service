@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.api.entity.ApiResult;
+import com.weichat.api.vo.callback.ReplyMediaItem;
 import com.weichat.api.vo.request.message.SendAppMessageRequest;
 import com.weichat.api.vo.request.message.SendAppRequest;
 import com.weichat.api.vo.request.message.SendImageRequest;
@@ -37,62 +38,44 @@ public class MessageSendService {
         return ApiResult.from(response, SendMsgResponse.class);
     }
 
-    /**
-     * 发送 CDN 图片消息，调用方需提前完成图片上传并填充完整媒体信息。
-     */
     public ApiResult<SendMsgResponse> sendImage(SendImageRequest request) {
         JSONObject response = client.post("/wxwork/SendCDNImgMsg", JSON.parseObject(JSON.toJSONString(request)));
         return ApiResult.from(response, SendMsgResponse.class);
     }
 
-    /**
-     * 发送 CDN 语音消息，调用方需提前完成语音上传并填充完整媒体信息。
-     */
     public ApiResult<SendMsgResponse> sendVoice(SendVoiceRequest request) {
         JSONObject response = client.post("/wxwork/SendCDNVoiceMsg", JSON.parseObject(JSON.toJSONString(request)));
         return ApiResult.from(response, SendMsgResponse.class);
     }
 
     /**
-     * 发送小程序消息。coverUrl 为空时不上传封面。
+     * Keep mini app direct sends aligned with the mass-task sender path.
      */
     public ApiResult<SendMsgResponse> sendApp(SendAppMessageRequest request) {
-        CdnUploadResponse uploadResponse = null;
-        if (StringUtils.hasText(request.getCoverUrl())) {
-            logger.info(
-                    "Mini app cover upload started. uuid={}, sendUserid={}, isRoom={}, coverUrl={}",
-                    request.getUuid(),
-                    request.getSend_userid(),
-                    request.getIsRoom(),
-                    request.getCoverUrl()
-            );
-            uploadResponse = validateAppCoverUploadResponse(
-                    cdnFileService.uploadImageByUrl(request.getUuid(), request.getCoverUrl(), null, null)
-            );
-            logger.info(
-                    "Mini app cover upload finished. uuid={}, sendUserid={}, cdnkeyPresent={}, aeskeyPresent={}, md5Present={}, fileSize={}",
-                    request.getUuid(),
-                    request.getSend_userid(),
-                    StringUtils.hasText(resolveCdnKey(uploadResponse)),
-                    StringUtils.hasText(uploadResponse.getAes_key()),
-                    StringUtils.hasText(uploadResponse.getMd5()),
-                    uploadResponse.getSize()
-            );
-        } else {
-            logger.info(
-                    "Mini app cover upload skipped. uuid={}, sendUserid={}, isRoom={}, title={}, pagepath={}",
-                    request.getUuid(),
-                    request.getSend_userid(),
-                    request.getIsRoom(),
-                    request.getTitle(),
-                    request.getPagepath()
-            );
-        }
+        String coverUrl = requireText(request.getCoverUrl(), "app cover is required");
+        logger.info(
+                "Mini app cover upload started. uuid={}, sendUserid={}, isRoom={}, coverUrl={}",
+                request.getUuid(),
+                request.getSend_userid(),
+                request.getIsRoom(),
+                coverUrl
+        );
 
-        String cdnkey = uploadResponse == null ? null : requireText(resolveCdnKey(uploadResponse), "app cover cdnkey is required");
-        String aeskey = uploadResponse == null ? null : requireText(uploadResponse.getAes_key(), "app cover aeskey is required");
-        String md5 = uploadResponse == null ? null : requireText(uploadResponse.getMd5(), "app cover md5 is required");
-        Integer fileSize = uploadResponse == null ? null : requireInteger(uploadResponse.getSize(), "app cover fileSize is required");
+        ReplyMediaItem coverPayload = new ReplyMediaItem();
+        coverPayload.setUrl(coverUrl);
+        CdnUploadResponse uploadResponse = validateAppCoverUploadResponse(
+                cdnFileService.uploadImageFile(request.getUuid(), coverPayload)
+        );
+
+        logger.info(
+                "Mini app cover upload finished. uuid={}, sendUserid={}, cdnkeyPresent={}, aeskeyPresent={}, md5Present={}, fileSize={}",
+                request.getUuid(),
+                request.getSend_userid(),
+                StringUtils.hasText(resolveCdnKey(uploadResponse)),
+                StringUtils.hasText(uploadResponse.getAes_key()),
+                StringUtils.hasText(uploadResponse.getMd5()),
+                uploadResponse.getSize()
+        );
 
         SendAppRequest sendAppRequest = SendAppRequest.builder()
                 .uuid(request.getUuid())
@@ -100,17 +83,18 @@ public class MessageSendService {
                 .isRoom(request.getIsRoom() != null ? request.getIsRoom() : Boolean.FALSE)
                 .kf_id(request.getKf_id())
                 .title(requireText(request.getTitle(), "app title is required"))
-                .desc(optionalText(request.getDesc()))
+                .desc(requireText(request.getDesc(), "app desc is required"))
                 .appName(requireText(request.getAppName(), "appName is required"))
                 .appid(requireText(request.getAppid(), "appid is required"))
                 .username(requireText(request.getUsername(), "username is required"))
                 .pagepath(requireText(request.getPagepath(), "pagepath is required"))
                 .weappIconUrl(request.getWeappIconUrl())
-                .cdnkey(cdnkey)
-                .aeskey(aeskey)
-                .md5(md5)
-                .fileSize(fileSize)
+                .cdnkey(requireText(resolveCdnKey(uploadResponse), "app cover cdnkey is required"))
+                .aeskey(requireText(uploadResponse.getAes_key(), "app cover aeskey is required"))
+                .md5(requireText(uploadResponse.getMd5(), "app cover md5 is required"))
+                .fileSize(requireInteger(uploadResponse.getSize(), "app cover fileSize is required"))
                 .build();
+
         logger.info(
                 "Sending mini app message to wxwork. uuid={}, sendUserid={}, isRoom={}, hasKfId={}, title={}, appid={}, username={}, pagepath={}, hasCoverCdn={}",
                 sendAppRequest.getUuid(),
@@ -123,6 +107,7 @@ public class MessageSendService {
                 sendAppRequest.getPagepath(),
                 StringUtils.hasText(sendAppRequest.getCdnkey())
         );
+
         JSONObject response = client.post("/wxwork/SendAppMsg", JSON.parseObject(JSON.toJSONString(sendAppRequest)));
         logger.info(
                 "Wxwork mini app message response. uuid={}, sendUserid={}, isRoom={}, response={}",
@@ -165,10 +150,6 @@ public class MessageSendService {
             throw new IllegalArgumentException(message);
         }
         return value.trim();
-    }
-
-    private String optionalText(String value) {
-        return value == null ? "" : value.trim();
     }
 
     private Integer requireInteger(Integer value, String message) {
