@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>企业微信账号登录挂靠</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --brand: #07c160;
+      --brand-dark: #05a852;
+      --danger: #dc2626;
+      --warn: #d97706;
+      --ok: #16a34a;
+      --shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top left, rgba(7, 193, 96, 0.10), transparent 36%), var(--bg);
+    }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 28px 18px 44px; }
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.02em; }
+    .desc { margin: 0; color: var(--muted); line-height: 1.65; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 8px 12px; border-radius: 999px;
+      background: #ecfdf5; color: #047857; font-weight: 700; white-space: nowrap;
+    }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: #9ca3af; display: inline-block; }
+    .dot.ok { background: var(--ok); box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.12); }
+    .dot.warn { background: var(--warn); box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.12); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .card {
+      background: var(--panel); border: 1px solid rgba(229, 231, 235, 0.9);
+      border-radius: 18px; box-shadow: var(--shadow); padding: 18px;
+    }
+    .card.full { grid-column: 1 / -1; }
+    .card h2 { margin: 0 0 14px; font-size: 17px; }
+    .field { margin-bottom: 12px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+    input, select, textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px;
+      font: inherit; outline: none; background: #fff;
+    }
+    textarea { min-height: 78px; resize: vertical; }
+    input:focus, textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(7, 193, 96, 0.10); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    button {
+      border: 0; border-radius: 12px; padding: 10px 14px; font-weight: 800; cursor: pointer;
+      background: #eef2f7; color: #111827;
+    }
+    button.primary { background: var(--brand); color: #fff; }
+    button.primary:hover { background: var(--brand-dark); }
+    button.danger { background: #fee2e2; color: #991b1b; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .kv { display: grid; grid-template-columns: 120px 1fr; gap: 8px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+    .kv:last-child { border-bottom: 0; }
+    .k { color: var(--muted); font-size: 13px; }
+    .v { font-size: 13px; word-break: break-all; }
+    .qrbox {
+      min-height: 260px; display: flex; align-items: center; justify-content: center; text-align: center;
+      background: linear-gradient(135deg, #f8fafc, #eefbf4); border: 1px dashed #bbf7d0; border-radius: 16px; padding: 16px;
+    }
+    .qrbox img { width: min(260px, 100%); max-height: 320px; border-radius: 12px; background: #fff; padding: 10px; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.10); }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .log {
+      height: 280px; overflow: auto; background: #0b1020; color: #d1fae5;
+      border-radius: 14px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px; line-height: 1.6; white-space: pre-wrap;
+    }
+    .raw {
+      height: 280px; overflow: auto; background: #111827; color: #e5e7eb;
+      border-radius: 14px; padding: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px; line-height: 1.6; white-space: pre-wrap;
+    }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #f3f4f6; color: #374151; font-size: 12px; font-weight: 800; }
+    .pill.ok { background: #dcfce7; color: #166534; }
+    .pill.warn { background: #fef3c7; color: #92400e; }
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    @media (max-width: 860px) {
+      .hero, .grid, .split, .row { grid-template-columns: 1fr; display: grid; }
+      .badge { width: max-content; }
+      .card.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <h1>企业微信账号登录挂靠</h1>
+        <p class="desc">纯 H5 页面，无构建依赖。参考 recruit-agent 登录流程，直接调用 weichat-service：初始化、获取二维码、扫码状态轮询、验证码校验、设置回调。</p>
+      </div>
+      <div class="badge"><span id="statusDot" class="dot"></span><span id="statusText">未初始化</span></div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>1. 服务配置</h2>
+        <div class="field">
+          <label>weichat-service Base URL</label>
+          <input id="baseUrl" value="http://ai-agent.okgcc.cn/wx" placeholder="例如：http://ai-agent.okgcc.cn/wx 或 https://agentadmin.tjwangshu.top/wc" />
+          <div class="hint">这里带代理前缀即可；nginx 会剥掉 /wx 或 /wc，服务端实际收到 /api/v1/...</div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>设备类型 deverType</label>
+            <input id="deverType" value="ipad" />
+          </div>
+          <div class="field">
+            <label>代理状态 proxySituation</label>
+            <input id="proxySituation" value="0" inputmode="numeric" />
+          </div>
+        </div>
+        <div class="field">
+          <label>可选：复用 vid</label>
+          <input id="initVid" placeholder="已有企微 vid 时填写；新登录可留空" />
+        </div>
+        <div class="actions">
+          <button class="primary" id="saveConfigBtn">保存配置</button>
+          <button id="resetBtn">清空本地状态</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>当前账号状态</h2>
+        <div class="kv"><div class="k">UUID</div><div class="v" id="uuidText">—</div></div>
+        <div class="kv"><div class="k">VID</div><div class="v" id="vidText">—</div></div>
+        <div class="kv"><div class="k">昵称</div><div class="v" id="nicknameText">—</div></div>
+        <div class="kv"><div class="k">登录状态</div><div class="v" id="loginText">—</div></div>
+        <div class="kv"><div class="k">二维码 Key</div><div class="v" id="qrKeyText">—</div></div>
+        <div class="actions">
+          <button id="copyUuidBtn">复制 UUID</button>
+          <button class="danger" id="logoutBtn">登出</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>2. 初始化与二维码</h2>
+        <div class="actions">
+          <button class="primary" id="initBtn">初始化账号实例</button>
+          <button id="qrBtn">获取二维码</button>
+          <button id="initAndQrBtn">初始化并获取二维码</button>
+        </div>
+        <p class="hint">顺序：先 init 拿 uuid，再 getQrCode。扫码后可以手动检查或开启轮询。</p>
+        <div class="qrbox" id="qrBox">
+          <div>
+            <div class="pill warn">等待二维码</div>
+            <p class="hint">点击“初始化并获取二维码”开始。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>3. 扫码状态与验证码</h2>
+        <div class="actions">
+          <button class="primary" id="pollBtn">开始轮询登录</button>
+          <button id="stopPollBtn">停止轮询</button>
+          <button id="checkBtn">检查一次</button>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <div class="field">
+            <label>验证码 / 设备码 code</label>
+            <input id="verifyCode" placeholder="需要二次验证时填写" />
+          </div>
+          <div class="field">
+            <label>二维码 Key / qrcodeKey</label>
+            <input id="qrcodeKey" placeholder="自动填充；必要时手动改" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="checkCodeBtn">提交验证码</button>
+          <button id="secondaryBtn">二次验证</button>
+        </div>
+      </div>
+
+      <div class="card full">
+        <h2>4. 设置消息回调</h2>
+        <div class="field">
+          <label>callbackUrl</label>
+          <input id="callbackUrl" placeholder="例如：http://ai-agent.okgcc.cn/api/wecom/callback 或你的新 agent 回调地址" />
+          <div class="hint">要接收企微消息，登录成功后必须把 callbackUrl 设置到 weichat-service。</div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>callbackType</label>
+            <input id="callbackType" placeholder="可选" />
+          </div>
+          <div class="field">
+            <label>extraContent</label>
+            <input id="extraContent" placeholder="可选" />
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" id="setCallbackBtn">设置回调 URL</button>
+        </div>
+      </div>
+
+      <div class="card full">
+        <h2>调用日志与原始响应</h2>
+        <div class="split">
+          <div>
+            <label>事件日志</label>
+            <div class="log" id="logBox"></div>
+          </div>
+          <div>
+            <label>最近一次响应</label>
+            <div class="raw" id="rawBox">{}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var state = loadState();
+      var pollTimer = null;
+
+      var els = {
+        baseUrl: byId('baseUrl'),
+        deverType: byId('deverType'),
+        proxySituation: byId('proxySituation'),
+        initVid: byId('initVid'),
+        uuidText: byId('uuidText'),
+        vidText: byId('vidText'),
+        nicknameText: byId('nicknameText'),
+        loginText: byId('loginText'),
+        qrKeyText: byId('qrKeyText'),
+        qrcodeKey: byId('qrcodeKey'),
+        verifyCode: byId('verifyCode'),
+        callbackUrl: byId('callbackUrl'),
+        callbackType: byId('callbackType'),
+        extraContent: byId('extraContent'),
+        qrBox: byId('qrBox'),
+        logBox: byId('logBox'),
+        rawBox: byId('rawBox'),
+        statusDot: byId('statusDot'),
+        statusText: byId('statusText')
+      };
+
+      hydrateForm();
+      renderState();
+      bindEvents();
+      log('页面已加载。默认 Base URL: ' + els.baseUrl.value);
+
+      function bindEvents() {
+        byId('saveConfigBtn').onclick = saveConfig;
+        byId('resetBtn').onclick = resetState;
+        byId('initBtn').onclick = initAccount;
+        byId('qrBtn').onclick = getQrCode;
+        byId('initAndQrBtn').onclick = initAndQr;
+        byId('pollBtn').onclick = startPoll;
+        byId('stopPollBtn').onclick = stopPoll;
+        byId('checkBtn').onclick = checkLoginOnce;
+        byId('checkCodeBtn').onclick = checkCode;
+        byId('secondaryBtn').onclick = secondaryValidation;
+        byId('setCallbackBtn').onclick = setCallbackUrl;
+        byId('copyUuidBtn').onclick = copyUuid;
+        byId('logoutBtn').onclick = logout;
+      }
+
+      function byId(id) { return document.getElementById(id); }
+
+      function baseUrl() {
+        return els.baseUrl.value.trim().replace(/\/+$/, '');
+      }
+
+      function apiPath(path) {
+        return baseUrl() + path;
+      }
+
+      async function post(path, body) {
+        var url = apiPath(path);
+        log('POST ' + url + '\n' + JSON.stringify(body || {}, null, 2));
+        var res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body || {})
+        });
+        var text = await res.text();
+        var data;
+        try { data = text ? JSON.parse(text) : {}; }
+        catch (e) { data = { code: -1, msg: text || String(e) }; }
+        raw(data);
+        if (!res.ok) {
+          throw new Error('HTTP ' + res.status + ': ' + (data.msg || text));
+        }
+        return data;
+      }
+
+      async function initAccount() {
+        try {
+          saveConfig(false);
+          var body = {
+            proxySituation: Number(els.proxySituation.value || 0),
+            deverType: els.deverType.value.trim() || 'ipad'
+          };
+          var vid = els.initVid.value.trim();
+          if (vid) body.vid = Number(vid);
+          var r = await post('/api/v1/init/init', body);
+          var data = r.data || {};
+          state.uuid = data.uuid || state.uuid || '';
+          state.vid = data.vid || state.vid || '';
+          state.loginState = data.loginState == null ? state.loginState : data.loginState;
+          saveState();
+          renderState();
+          log('初始化完成，uuid=' + (state.uuid || '未返回'));
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      async function getQrCode() {
+        if (!needUuid()) return;
+        try {
+          var r = await post('/api/v1/init/getQrCode', { uuid: state.uuid });
+          var data = r.data || {};
+          state.qrcodeKey = data.Key || data.key || data.qrcodeKey || data.qrCodeKey || state.qrcodeKey || '';
+          var qr = data.qrCode || data.qrcode || data.QrCodeUrl || data.qrCodeUrl || data.qrcodeUrl || '';
+          if (state.qrcodeKey) els.qrcodeKey.value = state.qrcodeKey;
+          saveState();
+          renderState();
+          renderQr(qr, data);
+          log('二维码已获取。扫码后点击“检查一次”或“开始轮询登录”。');
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      async function initAndQr() {
+        var r = await initAccount();
+        if (r && state.uuid) await getQrCode();
+      }
+
+      async function checkLoginOnce() {
+        if (!needUuid()) return;
+        try {
+          var r = await post('/api/v1/init/getRunClientByUuid', { uuid: state.uuid });
+          var data = r.data || {};
+          absorbLoginData(data);
+          saveState();
+          renderState();
+          if (isOnline(data)) {
+            log('登录成功：' + (state.nickname || '') + ' vid=' + (state.vid || ''));
+            stopPoll();
+          } else {
+            log('尚未确认登录。loginState=' + String(data.loginState == null ? '' : data.loginState));
+          }
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      async function checkCode() {
+        if (!needUuid()) return;
+        try {
+          var code = els.verifyCode.value.trim();
+          var qrcodeKey = els.qrcodeKey.value.trim() || state.qrcodeKey || '';
+          if (!code) return alert('请先填写验证码/设备码 code');
+          var r = await post('/api/v1/init/checkCode', { uuid: state.uuid, qrcodeKey: qrcodeKey, code: code });
+          log('验证码已提交。建议继续检查登录状态。');
+          await checkLoginOnce();
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      async function secondaryValidation() {
+        if (!needUuid()) return;
+        try {
+          var qrcodeKey = els.qrcodeKey.value.trim() || state.qrcodeKey || '';
+          var r = await post('/api/v1/init/secondaryValidation', { uuid: state.uuid, qrcodeKey: qrcodeKey });
+          log('二次验证接口已调用。');
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      async function setCallbackUrl() {
+        if (!needUuid()) return;
+        try {
+          var url = els.callbackUrl.value.trim();
+          if (!url) return alert('请填写 callbackUrl');
+          var body = { uuid: state.uuid, url: url };
+          var callbackType = els.callbackType.value.trim();
+          var extraContent = els.extraContent.value.trim();
+          if (callbackType) body.callbackType = callbackType;
+          if (extraContent) body.extraContent = extraContent;
+          var r = await post('/api/v1/init/setCallbackUrl', body);
+          state.callbackUrl = url;
+          saveState();
+          renderState();
+          log('回调 URL 已设置：' + url);
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      async function logout() {
+        if (!state.uuid) return alert('当前没有 uuid');
+        if (!confirm('确定登出当前企微账号？')) return;
+        try {
+          var r = await post('/api/v1/init/loginOut', { uuid: state.uuid });
+          state.loginState = 'logged_out';
+          saveState();
+          renderState();
+          stopPoll();
+          log('已调用登出。');
+          return r;
+        } catch (e) {
+          fail(e);
+        }
+      }
+
+      function startPoll() {
+        if (!needUuid()) return;
+        if (pollTimer) return log('轮询已在运行。');
+        pollTimer = setInterval(checkLoginOnce, 3000);
+        log('开始每 3 秒轮询登录状态。');
+        checkLoginOnce();
+      }
+
+      function stopPoll() {
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = null;
+        log('轮询已停止。');
+      }
+
+      function absorbLoginData(data) {
+        var object = data.object || (data.user_info && data.user_info.object) || {};
+        state.uuid = data.uuid || state.uuid;
+        state.vid = data.vid || data.userid || data.user_id || object.user_id || object.userid || state.vid;
+        state.nickname = data.nickname || data.realname || object.nickname || object.realname || state.nickname;
+        state.loginState = data.loginState == null ? (data.isLogin === true ? 'online' : state.loginState) : data.loginState;
+        state.isLogin = data.isLogin == null ? state.isLogin : data.isLogin;
+      }
+
+      function isOnline(data) {
+        var value = data && (data.isLogin === true || data.loginState === true || data.loginState === 1 || data.loginState === '1' || data.loginState === 'online');
+        return Boolean(value);
+      }
+
+      function renderQr(qr, rawData) {
+        if (!qr) {
+          els.qrBox.innerHTML = '<div><div class="pill warn">未返回二维码图片</div><p class="hint">原始响应已展示在右下角；请检查 qrCode / QrCodeUrl 字段。</p></div>';
+          return;
+        }
+        var src = normalizeQrSrc(qr);
+        els.qrBox.innerHTML = '<div><img alt="企微登录二维码" src="' + escapeAttr(src) + '" /><p class="hint">用企业微信扫码登录。Key: ' + escapeHtml(state.qrcodeKey || '-') + '</p></div>';
+      }
+
+      function normalizeQrSrc(value) {
+        if (/^https?:\/\//i.test(value) || /^data:image\//i.test(value)) return value;
+        if (/^\/\//.test(value)) return location.protocol + value;
+        if (/^[A-Za-z0-9+/=\r\n]+$/.test(value) && value.length > 200) return 'data:image/png;base64,' + value.replace(/\s+/g, '');
+        return value;
+      }
+
+      function needUuid() {
+        if (state.uuid) return true;
+        alert('请先初始化账号实例获取 uuid');
+        return false;
+      }
+
+      function saveConfig(showTip) {
+        state.baseUrl = els.baseUrl.value.trim();
+        state.deverType = els.deverType.value.trim();
+        state.proxySituation = els.proxySituation.value.trim();
+        state.initVid = els.initVid.value.trim();
+        state.callbackUrl = els.callbackUrl.value.trim();
+        saveState();
+        if (showTip !== false) log('配置已保存。');
+      }
+
+      function hydrateForm() {
+        var query = new URLSearchParams(location.search);
+        els.baseUrl.value = query.get('base') || state.baseUrl || els.baseUrl.value;
+        els.deverType.value = state.deverType || els.deverType.value;
+        els.proxySituation.value = state.proxySituation || els.proxySituation.value;
+        els.initVid.value = state.initVid || '';
+        els.callbackUrl.value = state.callbackUrl || '';
+        els.qrcodeKey.value = state.qrcodeKey || '';
+      }
+
+      function renderState() {
+        els.uuidText.textContent = state.uuid || '—';
+        els.vidText.textContent = state.vid || '—';
+        els.nicknameText.textContent = state.nickname || '—';
+        els.loginText.textContent = state.isLogin ? 'online' : (state.loginState == null ? '—' : String(state.loginState));
+        els.qrKeyText.textContent = state.qrcodeKey || '—';
+        var online = state.isLogin === true || state.loginState === 1 || state.loginState === '1' || state.loginState === 'online';
+        els.statusDot.className = 'dot ' + (online ? 'ok' : (state.uuid ? 'warn' : ''));
+        els.statusText.textContent = online ? '已登录' : (state.uuid ? '已初始化，待登录' : '未初始化');
+      }
+
+      function loadState() {
+        try { return JSON.parse(localStorage.getItem('wecomLoginH5State') || '{}') || {}; }
+        catch (e) { return {}; }
+      }
+
+      function saveState() {
+        localStorage.setItem('wecomLoginH5State', JSON.stringify(state));
+      }
+
+      function resetState() {
+        if (!confirm('清空本地 uuid、二维码 key、配置？不会调用服务端删除。')) return;
+        stopPoll();
+        localStorage.removeItem('wecomLoginH5State');
+        state = {};
+        hydrateForm();
+        renderState();
+        els.qrBox.innerHTML = '<div><div class="pill warn">等待二维码</div><p class="hint">点击“初始化并获取二维码”开始。</p></div>';
+        raw({});
+        log('本地状态已清空。');
+      }
+
+      function copyUuid() {
+        if (!state.uuid) return alert('当前没有 uuid');
+        navigator.clipboard && navigator.clipboard.writeText(state.uuid).then(function () {
+          log('UUID 已复制。');
+        }, function () {
+          prompt('复制 UUID', state.uuid);
+        });
+      }
+
+      function log(message) {
+        var time = new Date().toLocaleTimeString();
+        els.logBox.textContent += '[' + time + '] ' + message + '\n';
+        els.logBox.scrollTop = els.logBox.scrollHeight;
+      }
+
+      function raw(obj) {
+        els.rawBox.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      function fail(error) {
+        var msg = error && error.message ? error.message : String(error);
+        log('ERROR: ' + msg);
+        raw({ code: -1, msg: msg });
+        alert(msg);
+      }
+
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"]/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c];
+        });
+      }
+
+      function escapeAttr(str) { return escapeHtml(str).replace(/'/g, '&#39;'); }
+    })();
+  </script>
+</body>
+</html>
