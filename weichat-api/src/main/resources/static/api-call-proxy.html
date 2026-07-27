@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>接口调用页面 - Java代理版</title>
+    <title>接口调用页面</title>
     <style>
         * {
             margin: 0;
@@ -295,7 +295,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>接口调用页面 - Java代理版</h1>
+        <h1>接口调用页面</h1>
         
         <!-- 全局UUID显示 -->
         <div class="global-uuid">
@@ -306,7 +306,7 @@
             </div>
         </div>
         <div class="result" style="margin-bottom: 20px; white-space: normal; background: #eefaf0; border-color: #5cb85c; color: #2d6a2d;">
-            当前页面是 Java 代理版：所有接口调用统一走 <strong>http://ai-agent.okgcc.cn/wx/api/v1/init/...</strong>，由 weichat-service 再转发到底层 <strong>/wxwork/...</strong> 服务。
+            当前页面所有接口统一走 <strong>http://ai-agent.okgcc.cn/wx/api/v1/init/...</strong>。
         </div>
         <div class="page-layout">
             <div class="api-content">
@@ -500,7 +500,7 @@
         <div class="api-row">
             <!-- 第一列：接口名称、请求参数、请求按钮 -->
             <div class="api-column">
-                <h2>6. 检查用户是否登录成功（Java代理）</h2>
+                <h2>6. 检查用户是否登录成功</h2>
                 <form id="getrunclientinfo-form">
                     <div class="form-group">
                         <label for="getrunclientinfo-uuid">UUID：</label>
@@ -557,10 +557,8 @@
             <div class="api-column">
                 <h2>接口路径</h2>
                 <div class="result" style="white-space: normal;">
-                    Java代理版：<br>
-                    POST /wx/api/v1/init/automaticLogin<br><br>
-                    底层对应：<br>
-                    POST /wxwork/automaticLogin
+                    请求路径：<br>
+                    POST /wx/api/v1/init/automaticLogin
                 </div>
             </div>
         </div>
@@ -594,17 +592,15 @@
             <div class="api-column">
                 <h2>接口路径</h2>
                 <div class="result" style="white-space: normal;">
-                    Java代理版：<br>
-                    POST /wx/api/v1/init/loginOut<br><br>
-                    底层对应：<br>
-                    POST /wxwork/LoginOut
+                    请求路径：<br>
+                    POST /wx/api/v1/init/loginOut
                 </div>
             </div>
         </div>
             </div>
             <aside class="flow-sidebar">
                 <div class="flowchart">
-                    <div class="flowchart-title">二次扫码授权调用流程图</div>
+                    <div class="flowchart-title">接口调用流程图</div>
                     <div class="flow-step">1. 初始化接口<br>获取 uuid</div>
                     <div class="flow-arrow">↓</div>
                     <div class="flow-step">3. 获取登录二维码<br>用户扫码</div>
@@ -624,6 +620,10 @@
                     </div>
                     <div class="flow-arrow">↓</div>
                     <div class="flow-step success">6. 检查登录成功<br>loginType=2 且 longLinkState=CONNECTED</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step optional">7. 自动登录（可选）<br>有历史 vid 时使用</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step optional">8. 退出登录（可选）<br>需要释放当前登录态时使用</div>
                     <div class="flow-note">第5步不是固定必调；只在第一次登录且第4步成功后返回二次扫码授权要求时调用。</div>
                 </div>
             </aside>
