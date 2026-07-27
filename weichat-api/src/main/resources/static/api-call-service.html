@@ -291,6 +291,49 @@
             color: #666;
             line-height: 1.5;
         }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #d9e2ec;
+        }
+        
+        .tab-btn {
+            flex: 0 0 auto;
+            padding: 12px 18px;
+            border: 1px solid #d9e2ec;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            background: #eef2f7;
+            color: #2c3e50;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        
+        .tab-btn.active {
+            background: #3498db;
+            color: #fff;
+            border-color: #3498db;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        .module-hint {
+            background: #eefaf0;
+            border: 1px solid #5cb85c;
+            color: #2d6a2d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            white-space: normal;
+        }
     </style>
 </head>
 <body>
@@ -308,6 +351,12 @@
         <div class="result" style="margin-bottom: 20px; white-space: normal; background: #eefaf0; border-color: #5cb85c; color: #2d6a2d;">
             当前页面所有接口统一走 <strong>http://ai-agent.okgcc.cn/wx/api/v1/init/...</strong>。
         </div>
+        <div class="tabs">
+            <button type="button" class="tab-btn active" data-tab="tab-login">登录绑定</button>
+            <button type="button" class="tab-btn" data-tab="tab-friends">好友列表-消息发送</button>
+        </div>
+        
+        <div class="tab-pane active" id="tab-login">
         <div class="page-layout">
             <div class="api-content">
         
@@ -628,6 +677,107 @@
                 </div>
             </aside>
         </div>
+        
+        <div class="tab-pane" id="tab-friends">
+            <div class="module-hint">
+                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 拉取好友/会话数据，复制目标用户 ID 到发送消息表单后发送文本消息。
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>1. 获取外部联系人列表</h2>
+                    <form id="externalcontacts-form">
+                        <div class="form-group">
+                            <label for="externalcontacts-uuid">UUID：</label>
+                            <input type="text" id="externalcontacts-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="externalcontacts-limit">limit：</label>
+                            <input type="number" id="externalcontacts-limit" value="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="externalcontacts-seq">seq：</label>
+                            <input type="number" id="externalcontacts-seq" value="0" min="0">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>调用接口</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('externalcontacts-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="externalcontacts-result">登录成功后，使用 uuid 获取外部联系人列表</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/contact/getExternalContacts</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>2. 获取会话列表</h2>
+                    <form id="sessionlist-form">
+                        <div class="form-group">
+                            <label for="sessionlist-uuid">UUID：</label>
+                            <input type="text" id="sessionlist-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>调用接口</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sessionlist-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sessionlist-result">可用会话里的用户 ID 作为发送目标</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/contact/getSessionList</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>3. 发送文本消息</h2>
+                    <form id="sendtext-form">
+                        <div class="form-group">
+                            <label for="sendtext-uuid">UUID：</label>
+                            <input type="text" id="sendtext-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtext-userid">send_userid：</label>
+                            <input type="number" id="sendtext-userid" placeholder="请输入联系人/会话用户 ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtext-isroom">是否群消息 isRoom：</label>
+                            <select id="sendtext-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 单聊</option>
+                                <option value="true">true - 群聊</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtext-content">消息内容 content：</label>
+                            <textarea id="sendtext-content" placeholder="请输入要发送的文本" style="width: 100%; min-height: 90px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"></textarea>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>调用接口</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendtext-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendtext-result">填写目标用户 ID 和消息内容后发送</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendText</div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -635,6 +785,13 @@
         let globalUUID = '';
         let globalQrCodeKey = '';
         let globalSecondaryKey = '';
+        
+        // Tab 切换事件
+        document.querySelectorAll('.tab-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                switchTab(button.getAttribute('data-tab'));
+            });
+        });
         
         // 初始化接口表单提交事件
         document.getElementById('init-form').addEventListener('submit', function(e) {
@@ -684,6 +841,110 @@
             e.preventDefault();
             callLoginOutApi();
         });
+
+        
+        // 获取外部联系人列表表单提交事件
+        document.getElementById('externalcontacts-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callExternalContactsApi();
+        });
+        
+        // 获取会话列表表单提交事件
+        document.getElementById('sessionlist-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSessionListApi();
+        });
+        
+        // 发送文本消息表单提交事件
+        document.getElementById('sendtext-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendTextApi();
+        });
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(function(button) {
+                button.classList.toggle('active', button.getAttribute('data-tab') === tabId);
+            });
+            document.querySelectorAll('.tab-pane').forEach(function(pane) {
+                pane.classList.toggle('active', pane.id === tabId);
+            });
+        }
+        
+        async function callExternalContactsApi() {
+            const payload = {
+                uuid: document.getElementById('externalcontacts-uuid').value.trim(),
+                limit: Number(document.getElementById('externalcontacts-limit').value || 100),
+                seq: Number(document.getElementById('externalcontacts-seq').value || 0)
+            };
+            await callJsonApi('externalcontacts-form', 'externalcontacts-result', 'http://ai-agent.okgcc.cn/wx/api/v1/contact/getExternalContacts', payload, '获取外部联系人列表');
+        }
+        
+        async function callSessionListApi() {
+            const payload = {
+                uuid: document.getElementById('sessionlist-uuid').value.trim()
+            };
+            await callJsonApi('sessionlist-form', 'sessionlist-result', 'http://ai-agent.okgcc.cn/wx/api/v1/contact/getSessionList', payload, '获取会话列表');
+        }
+        
+        async function callSendTextApi() {
+            const uuid = document.getElementById('sendtext-uuid').value.trim();
+            const sendUserid = document.getElementById('sendtext-userid').value.trim();
+            const content = document.getElementById('sendtext-content').value.trim();
+            if (!sendUserid) {
+                showLocalError('sendtext-result', '错误：请填写 send_userid');
+                return;
+            }
+            if (!content) {
+                showLocalError('sendtext-result', '错误：请填写消息内容 content');
+                return;
+            }
+            const payload = {
+                uuid: uuid,
+                send_userid: Number(sendUserid),
+                isRoom: document.getElementById('sendtext-isroom').value === 'true',
+                content: content
+            };
+            await callJsonApi('sendtext-form', 'sendtext-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', payload, '发送文本消息');
+        }
+        
+        async function callJsonApi(formId, resultId, url, payload, actionName) {
+            const form = document.getElementById(formId);
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById(resultId);
+            if (!payload.uuid) {
+                showLocalError(resultId, '错误：请先在登录绑定页初始化并获取 UUID');
+                return;
+            }
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在调用接口...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = (result.errcode === 0 || result.code === 0) ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = actionName + '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function showLocalError(resultId, message) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.textContent = message;
+            resultDiv.className = 'result error';
+        }
         
         // 调用初始化接口
         async function callInitApi() {
@@ -745,6 +1006,9 @@
                     document.getElementById('getrunclientinfo-uuid').value = globalUUID;
                     document.getElementById('automaticlogin-uuid').value = globalUUID;
                     document.getElementById('loginout-uuid').value = globalUUID;
+                    document.getElementById('externalcontacts-uuid').value = globalUUID;
+                    document.getElementById('sessionlist-uuid').value = globalUUID;
+                    document.getElementById('sendtext-uuid').value = globalUUID;
                     // 更新第二个接口的结果提示
                     const callbackResult = document.getElementById('callback-result');
                     callbackResult.textContent = 'UUID已获取，可以调用接口';
@@ -1331,6 +1595,9 @@
                 document.getElementById('getrunclientinfo-uuid').value = newUUID;
                 document.getElementById('automaticlogin-uuid').value = newUUID;
                 document.getElementById('loginout-uuid').value = newUUID;
+                document.getElementById('externalcontacts-uuid').value = newUUID;
+                document.getElementById('sessionlist-uuid').value = newUUID;
+                document.getElementById('sendtext-uuid').value = newUUID;
                 
                 // 显示更新成功提示
                 alert('UUID已更新并同步到所有接口');
