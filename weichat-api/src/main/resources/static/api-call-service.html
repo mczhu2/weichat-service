@@ -334,6 +334,53 @@
             margin-bottom: 20px;
             white-space: normal;
         }
+
+        .contact-tools {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .contact-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+            background: #fff;
+        }
+        
+        .contact-table th,
+        .contact-table td {
+            border: 1px solid #d9e2ec;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .contact-table th {
+            background: #eef2f7;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+        
+        .contact-table button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            background: #27ae60;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .contact-summary {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            line-height: 1.6;
+            white-space: normal;
+        }
     </style>
 </head>
 <body>
@@ -692,22 +739,24 @@
                             <input type="text" id="externalcontacts-uuid" placeholder="自动填充" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="externalcontacts-limit">limit：</label>
+                            <label for="externalcontacts-limit">每页数量 limit：</label>
                             <input type="number" id="externalcontacts-limit" value="100" min="1">
                         </div>
                         <div class="form-group">
-                            <label for="externalcontacts-seq">seq：</label>
-                            <input type="number" id="externalcontacts-seq" value="0" min="0">
+                            <label for="externalcontacts-cursor">分页游标 seq：</label>
+                            <select id="externalcontacts-cursor" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="0">首页（seq=0）</option>
+                            </select>
                         </div>
                         <div class="button-group">
-                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>调用接口</button>
-                            <button type="button" class="clear-btn" onclick="clearResult('externalcontacts-result')">清空结果</button>
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>加载好友列表</button>
+                            <button type="button" class="clear-btn" onclick="resetExternalContactsState()">重置游标</button>
                         </div>
                     </form>
                 </div>
                 <div class="api-column">
                     <h2>响应结果</h2>
-                    <div class="result" id="externalcontacts-result">登录成功后，使用 uuid 获取外部联系人列表</div>
+                    <div class="result" id="externalcontacts-result">登录成功后，选择游标加载外部联系人；接口返回 seq 后会自动加入下拉分页选项</div>
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
@@ -725,7 +774,7 @@
                         </div>
                         <div class="form-group">
                             <label for="sendtext-userid">send_userid：</label>
-                            <input type="number" id="sendtext-userid" placeholder="请输入联系人/会话用户 ID">
+                            <input type="text" id="sendtext-userid" placeholder="可从好友列表点击“选择发送”自动填入">
                         </div>
                         <div class="form-group">
                             <label>消息类型：</label>
@@ -743,7 +792,7 @@
                 </div>
                 <div class="api-column">
                     <h2>响应结果</h2>
-                    <div class="result" id="sendtext-result">填写目标用户 ID 和消息内容后发送</div>
+                    <div class="result" id="sendtext-result">从好友列表选择目标好友，填写消息内容后发送</div>
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
@@ -758,6 +807,7 @@
         let globalUUID = '';
         let globalQrCodeKey = '';
         let globalSecondaryKey = '';
+        let externalContactCursorOptions = [{ seq: '0', label: '首页（seq=0）' }];
         
         // Tab 切换事件
         document.querySelectorAll('.tab-btn').forEach(function(button) {
@@ -838,12 +888,142 @@
         }
         
         async function callExternalContactsApi() {
+            const form = document.getElementById('externalcontacts-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('externalcontacts-result');
             const payload = {
                 uuid: document.getElementById('externalcontacts-uuid').value.trim(),
                 limit: Number(document.getElementById('externalcontacts-limit').value || 100),
-                seq: Number(document.getElementById('externalcontacts-seq').value || 0)
+                seq: Number(document.getElementById('externalcontacts-cursor').value || 0)
             };
-            await callJsonApi('externalcontacts-form', 'externalcontacts-result', 'http://ai-agent.okgcc.cn/wx/api/v1/contact/getExternalContacts', payload, '获取外部联系人列表');
+            if (!payload.uuid) {
+                showLocalError('externalcontacts-result', '错误：请先在登录绑定页初始化并获取 UUID');
+                return;
+            }
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在加载好友列表...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/contact/getExternalContacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const contactData = extractExternalContactData(result);
+                if ((result.errcode === 0 || result.code === 0) && contactData.nextSeq !== null && contactData.nextSeq !== undefined) {
+                    addExternalContactCursor(contactData.nextSeq);
+                }
+                renderExternalContactList(resultDiv, result, contactData, payload.seq);
+            } catch (error) {
+                resultDiv.textContent = '加载好友列表失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function extractExternalContactData(result) {
+            const data = result && result.data ? result.data : {};
+            const list = Array.isArray(data.list) ? data.list : (Array.isArray(data) ? data : []);
+            return {
+                list: list,
+                total: data.total !== undefined ? data.total : (result.total !== undefined ? result.total : list.length),
+                nextSeq: data.seq !== undefined ? data.seq : result.seq
+            };
+        }
+        
+        function addExternalContactCursor(seq) {
+            const normalizedSeq = String(seq);
+            if (!normalizedSeq || normalizedSeq === '0') {
+                return;
+            }
+            if (externalContactCursorOptions.some(function(option) { return option.seq === normalizedSeq; })) {
+                return;
+            }
+            externalContactCursorOptions.push({
+                seq: normalizedSeq,
+                label: '第 ' + (externalContactCursorOptions.length + 1) + ' 页（seq=' + normalizedSeq + '）'
+            });
+            renderExternalContactCursorOptions(normalizedSeq);
+        }
+        
+        function renderExternalContactCursorOptions(selectedSeq) {
+            const select = document.getElementById('externalcontacts-cursor');
+            select.innerHTML = externalContactCursorOptions.map(function(option) {
+                const selected = option.seq === String(selectedSeq) ? ' selected' : '';
+                return '<option value="' + escapeHtml(option.seq) + '"' + selected + '>' + escapeHtml(option.label) + '</option>';
+            }).join('');
+        }
+        
+        function resetExternalContactsState() {
+            externalContactCursorOptions = [{ seq: '0', label: '首页（seq=0）' }];
+            renderExternalContactCursorOptions('0');
+            document.getElementById('externalcontacts-result').textContent = '已重置分页游标，请点击“加载好友列表”从首页开始加载';
+            document.getElementById('externalcontacts-result').className = 'result';
+        }
+        
+        function renderExternalContactList(resultDiv, result, contactData, currentSeq) {
+            const ok = result && (result.errcode === 0 || result.code === 0);
+            resultDiv.className = ok ? 'result success' : 'result error';
+            const rawJson = escapeHtml(JSON.stringify(result, null, 2));
+            if (!ok) {
+                resultDiv.innerHTML = '<div class="contact-summary">接口返回异常：</div><pre>' + rawJson + '</pre>';
+                return;
+            }
+            const rows = contactData.list.map(function(contact, index) {
+                const userId = contact.userId || contact.user_id || contact.vid || '';
+                const nickname = contact.nickname || contact.name || contact.realName || contact.realname || '';
+                const remarks = contact.remarks || contact.remark || contact.realRemarks || contact.real_remarks || '';
+                const corpName = contact.corpName || contact.corp_name || '';
+                const mobile = contact.mobile || '';
+                return '<tr>'
+                    + '<td>' + (index + 1) + '</td>'
+                    + '<td>' + escapeHtml(String(userId)) + '</td>'
+                    + '<td>' + escapeHtml(String(nickname || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(remarks || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(corpName || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(mobile || '-')) + '</td>'
+                    + '<td><button type="button" data-userid="' + escapeHtml(String(userId)) + '" onclick="selectExternalContactForSend(this.dataset.userid)">选择发送</button></td>'
+                    + '</tr>';
+            }).join('');
+            const nextSeqText = contactData.nextSeq !== null && contactData.nextSeq !== undefined ? contactData.nextSeq : '无';
+            resultDiv.innerHTML = '<div class="contact-summary">当前游标 seq=' + escapeHtml(String(currentSeq))
+                + '；本页 ' + contactData.list.length + ' 条；total=' + escapeHtml(String(contactData.total))
+                + '；下一页游标 seq=' + escapeHtml(String(nextSeqText))
+                + '。如需翻页，从“分页游标 seq”下拉框选择新游标后再次加载。</div>'
+                + '<table class="contact-table"><thead><tr><th>#</th><th>userId/vid</th><th>昵称</th><th>备注</th><th>企业</th><th>手机号</th><th>操作</th></tr></thead><tbody>'
+                + (rows || '<tr><td colspan="7">当前页没有好友数据</td></tr>')
+                + '</tbody></table><details style="margin-top: 12px;"><summary>查看原始响应 JSON</summary><pre>' + rawJson + '</pre></details>';
+        }
+        
+        function selectExternalContactForSend(userId) {
+            if (!userId) {
+                showLocalError('sendtext-result', '当前好友缺少 userId/vid，不能发送');
+                return;
+            }
+            document.getElementById('sendtext-userid').value = userId;
+            document.getElementById('sendtext-result').textContent = '已选择好友 userId/vid：' + userId + '，请填写消息内容后发送';
+            document.getElementById('sendtext-result').className = 'result success';
+            document.getElementById('sendtext-content').focus();
+        }
+        
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+        
+        function escapeAttribute(value) {
+            return escapeHtml(value).replace(/`/g, '&#96;');
         }
         
         async function callSendTextApi() {
@@ -860,7 +1040,7 @@
             }
             const payload = {
                 uuid: uuid,
-                send_userid: Number(sendUserid),
+                send_userid: sendUserid,
                 isRoom: false,
                 content: content
             };
