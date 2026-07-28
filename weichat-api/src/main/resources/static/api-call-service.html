@@ -839,7 +839,7 @@
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
-                    <div class="result" style="white-space: normal;">POST http://47.94.7.218:8083/wxwork/oksendgroup</div>
+                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/mass/okSendGroup</div>
                 </div>
             </div>
         </div>
@@ -1126,7 +1126,7 @@
             resultDiv.textContent = '正在确认群发...';
             resultDiv.className = 'result';
             try {
-                const response = await fetch('http://47.94.7.218:8083/wxwork/oksendgroup', {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/mass/okSendGroup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
