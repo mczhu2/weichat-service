@@ -1,0 +1,1707 @@
+openapi: 3.0.3
+info:
+  title: weichat-service APIs currently used by recruit-agent
+  version: 1.0.0
+  description: |
+    仅包含 /Users/mczhu/Documents/trae_projects/recruit-agent 当前代码中调用到的 weichat-service 接口。
+    调用来源：
+    - src/packages/channel-core/src/wecom-client.ts
+    - wecom-bridge.js
+    - server.js 回调/发送链路
+
+    未纳入 47.94.7.218:9952 控制面 /wxwork/* 直连接口；这里只描述 weichat-service 的 8066 数据面与回调入口。
+servers:
+  - url: http://localhost:8066
+    description: local weichat-api
+  - url: http://ai-agent.okgcc.cn/wx
+    description: service demo page base path; nginx strips /wx before forwarding to weichat-api
+  - url: http://47.115.229.106:8066
+    description: recruit-agent legacy configured data plane
+
+tags:
+  - name: LoginAttach
+    description: 登录挂靠与客户端状态
+  - name: Contact
+    description: 联系人/会话/群查询
+  - name: Message
+    description: agent 当前发送/语音转文字相关接口
+  - name: Tag
+    description: 标签接口，legacy wecom-bridge 当前调用
+  - name: CallbackIngress
+    description: 企微回调接收入口
+  - name: LocalData
+    description: legacy wecom-bridge 当前写入本地消息数据接口
+
+paths:
+  /api/v1/init/init:
+    post:
+      tags: [LoginAttach]
+      summary: 初始化企微客户端
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#init
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitRequest'
+            examples:
+              ipadDefault:
+                value:
+                  proxySituation: 0
+                  deverType: ipad
+      responses:
+        '200':
+          description: 初始化结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitApiResult'
+
+  /api/v1/init/setCallbackUrl:
+    post:
+      tags: [LoginAttach]
+      summary: 设置企微消息回调 URL
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#setCallbackUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCallbackUrlRequest'
+            examples:
+              basic:
+                value:
+                  uuid: 0190-example-uuid
+                  url: https://agent.example.com/api/wecom/callback
+      responses:
+        '200':
+          description: 设置结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/init/getRunClientByUuid:
+    post:
+      tags: [LoginAttach]
+      summary: 根据 uuid 查询客户端状态
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getRunClientByUuid
+        - recruit-agent/wecom-bridge.js#getRunClientByUuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+            examples:
+              byUuid:
+                value:
+                  uuid: 0190-example-uuid
+      responses:
+        '200':
+          description: 客户端状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunClientApiResult'
+
+  /api/v1/init/getRunClient:
+    post:
+      tags: [LoginAttach]
+      summary: 查询运行客户端
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getRunClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+            examples:
+              optionalUuidFilter:
+                value:
+                  uuid: 0190-example-uuid
+      responses:
+        '200':
+          description: 客户端状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunClientApiResult'
+
+  /api/v1/init/getQrCode:
+    post:
+      tags: [LoginAttach]
+      summary: 获取登录二维码
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getQrCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+            examples:
+              byUuid:
+                value:
+                  uuid: 0190-example-uuid
+      responses:
+        '200':
+          description: 二维码
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QrCodeApiResult'
+
+  /api/v1/init/checkCode:
+    post:
+      tags: [LoginAttach]
+      summary: 校验二维码/设备验证码
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#checkCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckCodeRequest'
+            examples:
+              loginAuthCode:
+                value:
+                  uuid: 0190-example-uuid
+                  qrcodeKey: 114A2A26E50DE4BC
+                  code: '123456'
+      responses:
+        '200':
+          description: 校验结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/init/secondaryValidation:
+    post:
+      tags: [LoginAttach]
+      summary: 二次验证
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#secondaryValidation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecondaryValidationRequest'
+            examples:
+              whenRequired:
+                value:
+                  uuid: 0190-example-uuid
+                  qrcodeKey: 114A2A26E50DE4BC
+      responses:
+        '200':
+          description: 验证结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/init/loginOut:
+    post:
+      tags: [LoginAttach]
+      summary: 登出企微客户端
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#loginOut
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+            examples:
+              byUuid:
+                value:
+                  uuid: 0190-example-uuid
+      responses:
+        '200':
+          description: 登出结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/init/closeConnect:
+    post:
+      tags: [LoginAttach]
+      summary: 关闭连接
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#closeConnect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+            examples:
+              byUuid:
+                value:
+                  uuid: 0190-example-uuid
+      responses:
+        '200':
+          description: 关闭结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/message/sendText:
+    post:
+      tags: [Message]
+      summary: 发送文本消息
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendText
+        - recruit-agent/wecom-bridge.js#sendText
+        - recruit-agent/server.js#processWecomAgentTurn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendTextRequest'
+            examples:
+              singleFriendText:
+                summary: api-call-service.html 单好友文本发送
+                value:
+                  uuid: 0190-example-uuid
+                  send_userid: '7881301772935700'
+                  isRoom: false
+                  content: 你好，这是一条测试消息
+              groupText:
+                summary: 群文本发送；当前 H5 demo 不开放该入口
+                value:
+                  uuid: 0190-example-uuid
+                  send_userid: '189000000001'
+                  isRoom: true
+                  content: 群消息测试
+      responses:
+        '200':
+          description: 发送结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMsgApiResult'
+
+  /api/v1/message/sendLink:
+    post:
+      tags: [Message]
+      summary: 发送链接消息
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendLink
+        - recruit-agent/wecom-bridge.js#sendLink
+        - recruit-agent/server.js#executeWecomSideEffect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendLinkRequest'
+      responses:
+        '200':
+          description: 发送结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMsgApiResult'
+
+  /api/v1/message/sendApp:
+    post:
+      tags: [Message]
+      summary: 发送小程序消息
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendApp
+        - recruit-agent/wecom-bridge.js#sendApp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendAppMessageRequest'
+      responses:
+        '200':
+          description: 发送结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMsgApiResult'
+
+  /api/v1/message/speechToText:
+    post:
+      tags: [Message]
+      summary: 语音转文字
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#speechToText
+        - recruit-agent/wecom-bridge.js#speechToText
+        - recruit-agent/server.js#handleWecomCallback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeechToTextRequest'
+      responses:
+        '200':
+          description: 识别结果；下游返回 data.text 时 recruit-agent 会读取 text
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeechToTextApiResult'
+
+  /api/v1/contact/getExternalContacts:
+    post:
+      tags: [Contact]
+      summary: 获取外部联系人列表
+      description: recruit-agent 用该接口同步企微联系人，并自行维护 vid 与业务 worker/manager 绑定关系。
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getExternalContacts
+        - recruit-agent/wecom-bridge.js#getExternalContacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetExternalContactsRequest'
+            examples:
+              firstPage:
+                summary: 首次加载外部好友列表
+                value:
+                  uuid: 0190-example-uuid
+                  limit: 100
+                  seq: 0
+              nextPage:
+                summary: 使用上次响应 data.seq 继续下拉分页
+                value:
+                  uuid: 0190-example-uuid
+                  limit: 100
+                  seq: 8052931
+      responses:
+        '200':
+          description: 外部联系人列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactListApiResult'
+
+  /api/v1/contact/getInnerContacts:
+    post:
+      tags: [Contact]
+      summary: 获取内部联系人列表
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getInnerContacts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetInnerContactsRequest'
+      responses:
+        '200':
+          description: 内部联系人列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InnerContactListApiResult'
+
+  /api/v1/contact/getUserInfoByVids:
+    post:
+      tags: [Contact]
+      summary: 根据 vids 查询联系人详情
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getUserInfoByVids
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VidsRequest'
+      responses:
+        '200':
+          description: 联系人详情数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactArrayApiResult'
+
+  /api/v1/contact/getSessionList:
+    post:
+      tags: [Contact]
+      summary: 获取会话列表
+      x-called-by:
+        - recruit-agent/wecom-bridge.js#getSessionList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+      responses:
+        '200':
+          description: 会话列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListApiResult'
+
+  /api/v1/contact/searchContact:
+    post:
+      tags: [Contact]
+      summary: 搜索联系人
+      x-called-by:
+        - recruit-agent/wecom-bridge.js#searchContact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchContactRequest'
+      responses:
+        '200':
+          description: 联系人数组
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactArrayApiResult'
+
+  /api/v1/group/getSessionRoomList:
+    post:
+      tags: [Contact]
+      summary: 获取会话群列表
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getSessionRoomList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+      responses:
+        '200':
+          description: 群列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomListApiResult'
+
+  /api/v1/group/getRoomUserList:
+    post:
+      tags: [Contact]
+      summary: 获取群成员列表
+      x-called-by:
+        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getRoomUserList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoomIdRequest'
+      responses:
+        '200':
+          description: 群成员列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoomMemberArrayApiResult'
+
+  /api/v1/tag/addLabel:
+    post:
+      tags: [Tag]
+      summary: 添加标签
+      x-called-by:
+        - recruit-agent/wecom-bridge.js#addLabel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddLabelRequest'
+      responses:
+        '200':
+          description: 添加结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/tag/getLabelList:
+    post:
+      tags: [Tag]
+      summary: 获取标签列表
+      x-called-by:
+        - recruit-agent/wecom-bridge.js#getLabelList
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+      responses:
+        '200':
+          description: 标签列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelListApiResult'
+
+  /api/v1/tag/labelAddUser:
+    post:
+      tags: [Tag]
+      summary: 标签添加用户
+      x-called-by:
+        - recruit-agent/wecom-bridge.js#labelAddUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LabelAddUserRequest'
+      responses:
+        '200':
+          description: 添加结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoidResult'
+
+  /api/v1/wx/message:
+    post:
+      tags: [LocalData]
+      summary: 新增微信消息信息
+      description: legacy wecom-bridge 当前调用 addWxMessage，用于写入 WxMessageInfo。该接口返回 text/plain 字符串，不是 ApiResult。
+      x-called-by:
+        - recruit-agent/wecom-bridge.js#addWxMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: 写入成功
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 微信消息信息新增成功
+        '400':
+          description: 写入失败
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /wxwork/SetCallbackUrl:
+    post:
+      tags: [CallbackIngress]
+      summary: 企微底层回调入口
+      description: 设置回调后，企微底层组件向该入口推送 callback；服务端落库为 WxCallbackTask。
+      x-called-by:
+        - configured by /api/v1/init/setCallbackUrl or legacy control-plane callback URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackIngressRequest'
+      responses:
+        '200':
+          description: 接收成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: 请求已接收，正在处理
+
+components:
+  schemas:
+    ApiResult:
+      type: object
+      description: weichat-service 统一响应包装。code=0 表示成功，非 0 表示失败；业务数据放在 data。
+      properties:
+        code:
+          type: integer
+          description: 响应码；0 表示成功，非 0 表示失败。
+          example: 0
+        msg:
+          type: string
+          description: 响应消息；成功通常为 ok，失败返回错误说明。
+          example: ok
+        data:
+          description: 业务响应数据；不同接口结构不同，空结果可为 null。
+          nullable: true
+        total:
+          type: integer
+          nullable: true
+          description: 列表类接口的总条数；非分页接口通常不返回。
+          example: 100
+
+    ApiVoidResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              nullable: true
+
+    BaseRequest:
+      type: object
+      required: [uuid]
+      description: 需要绑定到某个企微运行客户端的通用请求体。
+      properties:
+        uuid:
+          type: string
+          description: 账号初始化接口返回的客户端唯一标识。api-call-service.html 中初始化成功后需要保存到页面顶部“全局UUID”，后续接口复用该值。
+          example: 0190-example-uuid
+
+    InitRequest:
+      type: object
+      description: 初始化企微客户端。api-call-service.html 默认只传 proxySituation=0、deverType=ipad；vid 可选。
+      properties:
+        vid:
+          type: integer
+          format: int64
+          nullable: true
+          description: 可选的企微用户 vid；为空时由服务侧创建/分配客户端。
+          example: 7881301772935700
+        ip:
+          type: string
+          nullable: true
+          description: 代理服务器 IP；proxySituation=0 时通常不传。
+          example: 127.0.0.1
+        port:
+          type: string
+          nullable: true
+          description: 代理端口；proxySituation=0 时通常不传。
+          example: '8080'
+        proxyType:
+          type: string
+          nullable: true
+          description: 代理类型；按下游协议服务约定填写。
+          example: HTTP
+        userName:
+          type: string
+          nullable: true
+          description: 代理用户名；无认证代理不传。
+          example: proxy-user
+        passward:
+          type: string
+          nullable: true
+          description: 代理密码。源码字段名为 passward，不是 password。
+          example: proxy-pass
+        proxySituation:
+          type: integer
+          description: 代理使用状态；api-call-service.html 默认 0，表示不使用代理。
+          example: 0
+        deverType:
+          type: string
+          description: 登录设备类型；api-call-service.html 默认 ipad。
+          example: ipad
+      example:
+        proxySituation: 0
+        deverType: ipad
+
+    InitResponse:
+      type: object
+      description: 初始化结果。uuid 是后续登录绑定、联系人、消息发送接口的核心入参。
+      properties:
+        uuid:
+          type: string
+          description: 客户端唯一标识；初始化成功后保存到页面顶部“全局UUID”。
+          example: 0190-example-uuid
+        vid:
+          type: integer
+          format: int64
+          nullable: true
+          description: 已绑定企微用户 vid；未登录前可能为空。
+          example: 7881301772935700
+        loginState:
+          type: integer
+          nullable: true
+          description: 登录状态枚举值；以实际下游返回为准。
+          example: 0
+        qrCode:
+          type: string
+          nullable: true
+          description: 初始化阶段如直接返回二维码，则为二维码内容或图片数据。
+          example: data:image/png;base64,iVBORw0KGgo...
+
+    InitApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InitResponse'
+
+    SetCallbackUrlRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [url]
+          description: 设置当前 uuid 对应客户端的消息回调地址。
+          properties:
+            url:
+              type: string
+              format: uri
+              description: 下游消息回调接收地址。service demo 使用 http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl。
+              example: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
+            callbackType:
+              type: string
+              description: 回调类型；H5 demo 按下游要求固定 HTTP。
+              example: HTTP
+            mqExchange:
+              type: string
+              nullable: true
+              description: MQ 回调模式下的 exchange；HTTP 回调通常不传。
+              example: weichat.callback.exchange
+            mqRoutingKey:
+              type: string
+              nullable: true
+              description: MQ 回调模式下的 routing key；HTTP 回调通常不传。
+              example: weichat.callback.routing
+            extraContent:
+              type: string
+              nullable: true
+              description: 附加透传内容；无附加信息时不传。
+              example: recruit-agent
+      example:
+        uuid: 0190-example-uuid
+        url: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
+        callbackType: HTTP
+
+    CheckCodeRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          description: 录入登录授权码。先 getQrCode 并扫码，再把授权码提交到该接口。
+          properties:
+            qrcodeKey:
+              type: string
+              description: getQrCode 返回的二维码 key；部分下游流程可能要求带回。
+              example: 114A2A26E50DE4BC
+            code:
+              type: string
+              description: 用户扫码后页面/设备上展示的登录授权码。
+              example: '123456'
+      example:
+        uuid: 0190-example-uuid
+        qrcodeKey: 114A2A26E50DE4BC
+        code: '123456'
+
+    SecondaryValidationRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          description: 二次扫码授权。不是每次登录都需要；仅在 checkCode 返回需要二次验证时调用。
+          properties:
+            qrcodeKey:
+              type: string
+              description: 二次验证二维码 key；来自前置登录/授权响应。
+              example: 114A2A26E50DE4BC
+      example:
+        uuid: 0190-example-uuid
+        qrcodeKey: 114A2A26E50DE4BC
+
+    QrCodeResponse:
+      type: object
+      description: 登录二维码响应。
+      properties:
+        qrCode:
+          type: string
+          description: 二维码图片内容、URL 或 base64 字符串，按下游实际返回展示。
+          example: data:image/png;base64,iVBORw0KGgo...
+        Key:
+          type: string
+          description: weichat-service 源码字段名为 Key；后续 checkCode/secondaryValidation 可能需要。
+          example: 114A2A26E50DE4BC
+        status:
+          type: integer
+          description: 二维码状态码；以协议服务返回为准。
+          example: 0
+        expireTime:
+          type: integer
+          description: 二维码过期时间或剩余秒数；以协议服务返回为准。
+          example: 300
+
+    QrCodeApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/QrCodeResponse'
+
+    RunClientResponse:
+      type: object
+      additionalProperties: true
+      description: 当前 uuid 对应企微客户端运行状态。api-call-service.html 以 loginType=2 且 longLinkState=CONNECTED 判断登录和长连接正常。
+      properties:
+        uuid:
+          type: string
+          description: 客户端唯一标识。
+          example: 0190-example-uuid
+        vid:
+          type: integer
+          format: int64
+          description: 登录账号 vid。
+          example: 7881301772935700
+        nickname:
+          type: string
+          description: 登录账号昵称。
+          example: 张三
+        headImg:
+          type: string
+          description: 头像 URL。
+          example: https://example.com/avatar.jpg
+        corpId:
+          type: string
+          description: 企业 ID。
+          example: '1970324998039140'
+        corpName:
+          type: string
+          description: 企业名称。
+          example: 测试企业
+        loginState:
+          type: integer
+          description: 登录状态码；旧字段，按下游实际返回解释。
+          example: 1
+        onlineState:
+          type: integer
+          description: 在线状态码；旧字段，按下游实际返回解释。
+          example: 1
+        loginType:
+          type: integer
+          description: 登录类型/状态；api-call-service.html 将 2 视为登录成功。
+          example: 2
+        longLinkState:
+          type: string
+          description: 长连接状态；CONNECTED 表示连接正常。
+          example: CONNECTED
+        isLogin:
+          type: boolean
+          description: 是否已登录；部分响应可能返回该兼容字段。
+          example: true
+        callbackType:
+          type: string
+          description: 当前客户端回调类型。
+          example: HTTP
+        callbackUrl:
+          type: string
+          description: 当前客户端回调 URL。
+          example: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
+
+    RunClientApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/RunClientResponse'
+
+    SendTextRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [send_userid, content]
+          description: 发送文本消息。api-call-service.html 的好友发送模块固定 isRoom=false，用外部联系人 userId/vid 填充 send_userid。
+          properties:
+            send_userid:
+              oneOf:
+                - type: string
+                - type: integer
+                  format: int64
+              description: 接收人 ID。单好友消息填外部联系人列表返回的 userId/vid；recruit-agent 当前以字符串发送，weichat-service VO 为 Long。
+              example: '7881301772935700'
+            isRoom:
+              type: boolean
+              description: 是否群消息；单好友发送固定 false。
+              default: false
+              example: false
+            content:
+              type: string
+              description: 要发送的文本内容。
+              example: 你好，这是一条测试消息
+            kf_id:
+              oneOf:
+                - type: string
+                - type: integer
+                  format: int64
+              nullable: true
+              description: 客服消息回复时使用的客服 ID；普通单聊文本可不传或为空。
+              example: ''
+      example:
+        uuid: 0190-example-uuid
+        send_userid: '7881301772935700'
+        isRoom: false
+        content: 你好，这是一条测试消息
+
+    SendLinkRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [send_userid, title, content, url]
+          description: 发送链接卡片消息。
+          properties:
+            send_userid:
+              oneOf:
+                - type: string
+                - type: integer
+                  format: int64
+              description: 接收人 ID；单聊填好友 userId/vid，群聊填群 ID。
+              example: '7881301772935700'
+            isRoom:
+              type: boolean
+              description: 是否群消息。
+              default: false
+              example: false
+            title:
+              type: string
+              description: 链接卡片标题。
+              example: 面试安排确认
+            content:
+              type: string
+              description: 链接卡片摘要。
+              example: 请点击查看本次面试安排
+            url:
+              type: string
+              format: uri
+              description: 点击卡片打开的链接。
+              example: https://agent.example.com/interview/123
+            imgurl:
+              type: string
+              format: uri
+              nullable: true
+              description: 卡片封面图 URL。
+              example: https://agent.example.com/static/card.png
+      example:
+        uuid: 0190-example-uuid
+        send_userid: '7881301772935700'
+        isRoom: false
+        title: 面试安排确认
+        content: 请点击查看本次面试安排
+        url: https://agent.example.com/interview/123
+        imgurl: https://agent.example.com/static/card.png
+
+    SendAppMessageRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [send_userid]
+          description: 发送企业微信小程序卡片消息。
+          properties:
+            send_userid:
+              oneOf:
+                - type: string
+                - type: integer
+                  format: int64
+              description: 接收人 ID；单聊填好友 userId/vid，群聊填群 ID。
+              example: '7881301772935700'
+            isRoom:
+              type: boolean
+              description: 是否群消息。
+              default: false
+              example: false
+            appName:
+              type: string
+              description: 小程序展示名称。
+              example: 招聘助手
+            appid:
+              type: string
+              description: 小程序 appid。
+              example: wx1234567890abcdef
+            title:
+              type: string
+              description: 小程序卡片标题。
+              example: 候选人详情
+            desc:
+              type: string
+              description: 小程序卡片描述。
+              example: 点击查看候选人简历与沟通记录
+            pagepath:
+              type: string
+              description: 小程序页面路径。
+              example: pages/candidate/detail?id=123
+            username:
+              type: string
+              description: 小程序原始 ID 或 username。
+              example: gh_abcdef123456
+            weappIconUrl:
+              type: string
+              format: uri
+              description: 小程序图标 URL。
+              example: https://agent.example.com/weapp-icon.png
+            coverUrl:
+              type: string
+              format: uri
+              description: 小程序卡片封面图 URL。
+              example: https://agent.example.com/weapp-cover.png
+      example:
+        uuid: 0190-example-uuid
+        send_userid: '7881301772935700'
+        isRoom: false
+        appName: 招聘助手
+        appid: wx1234567890abcdef
+        title: 候选人详情
+        desc: 点击查看候选人简历与沟通记录
+        pagepath: pages/candidate/detail?id=123
+        username: gh_abcdef123456
+        weappIconUrl: https://agent.example.com/weapp-icon.png
+        coverUrl: https://agent.example.com/weapp-cover.png
+
+    SendMsgResponse:
+      type: object
+      description: 消息发送结果。
+      properties:
+        msgId:
+          type: integer
+          format: int64
+          description: 本地或协议侧消息 ID。
+          example: 189000000001
+        serverMsgId:
+          type: string
+          description: 服务端消息 ID；用于后续追踪消息状态。
+          example: msg-server-123
+        createTime:
+          type: integer
+          format: int64
+          description: 消息创建时间，通常为 Unix 时间戳。
+          example: 1768975066
+        status:
+          type: integer
+          description: 发送状态码；0/成功或具体含义以协议服务返回为准。
+          example: 0
+
+    SendMsgApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/SendMsgResponse'
+
+    SpeechToTextRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [msgId]
+          description: 将语音消息转换为文本。recruit-agent 在处理语音回调时使用。
+          properties:
+            msgId:
+              type: string
+              description: 语音消息 ID。
+              example: '189000000001'
+            voicePath:
+              type: string
+              nullable: true
+              description: 语音文件本地路径；与 voiceUrl 至少按服务端要求提供一种。
+              example: /data/wecom/voice/189000000001.amr
+            voiceUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: 语音文件 URL；与 voicePath 至少按服务端要求提供一种。
+              example: https://agent.example.com/voice/189000000001.amr
+      example:
+        uuid: 0190-example-uuid
+        msgId: '189000000001'
+        voiceUrl: https://agent.example.com/voice/189000000001.amr
+
+    SpeechToTextApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              type: object
+              additionalProperties: true
+              properties:
+                text:
+                  type: string
+
+    GetExternalContactsRequest:
+      type: object
+      required: [uuid]
+      description: 获取外部联系人列表。该接口使用游标分页：首次 seq=0；响应 data.seq 是下一页游标，前端应放入下拉框供用户继续加载。
+      properties:
+        uuid:
+          type: string
+          description: 账号初始化得到并保存的全局 UUID。
+          example: 0190-example-uuid
+        limit:
+          type: integer
+          description: 每页数量；api-call-service.html 默认 100，旧 recruit-agent 默认可能为 200。
+          default: 100
+          example: 100
+        seq:
+          type: integer
+          format: int64
+          description: 分页游标。首次传 0；后续传上一次响应 data.seq。
+          default: 0
+          example: 0
+      example:
+        uuid: 0190-example-uuid
+        limit: 100
+        seq: 0
+
+    GetInnerContactsRequest:
+      type: object
+      required: [uuid]
+      description: 获取内部联系人列表。内部通讯录使用字符串游标 strSeq。
+      properties:
+        uuid:
+          type: string
+          description: 账号初始化得到并保存的全局 UUID。
+          example: 0190-example-uuid
+        limit:
+          type: integer
+          description: 每页数量。
+          default: 200
+          example: 200
+        strSeq:
+          type: string
+          description: 字符串分页游标；首次传空字符串，后续传响应中的下一页游标。
+          default: ''
+          example: ''
+      example:
+        uuid: 0190-example-uuid
+        limit: 200
+        strSeq: ''
+
+    VidsRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [vids]
+          description: 根据一组 vid/userId 批量查询联系人详情。
+          properties:
+            vids:
+              type: array
+              description: 需要查询的联系人 ID 列表。
+              items:
+                type: integer
+                format: int64
+              example: [7881301772935700]
+      example:
+        uuid: 0190-example-uuid
+        vids: [7881301772935700]
+
+    SearchContactRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [keyword]
+          description: 按关键字搜索联系人。
+          properties:
+            keyword:
+              type: string
+              description: 搜索关键字，可为昵称、备注、手机号等下游支持字段。
+              example: 张三
+      example:
+        uuid: 0190-example-uuid
+        keyword: 张三
+
+    ContactInfo:
+      type: object
+      additionalProperties: true
+      description: 联系人信息。外部联系人列表中用于发送单好友文本消息的关键字段是 userId/vid。
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: 用户 ID；发送单好友消息时可填入 SendTextRequest.send_userid。
+          example: 7881301772935700
+        vid:
+          type: integer
+          format: int64
+          description: recruit-agent 兼容字段；weichat-service ContactInfo 主要返回 userId，部分下游数据可能返回 vid。
+          example: 7881301772935700
+        acctId:
+          type: string
+          description: 账号 ID；下游字段 acctid。
+          example: wxid_xxx
+        unionId:
+          type: string
+          description: 微信开放平台 unionId。
+          example: ozynqsqC7yU4vcGRIYbl8cryOypE
+        nickname:
+          type: string
+          description: 昵称；下游字段 nickname/name。
+          example: 张三
+        realName:
+          type: string
+          description: 真实姓名；下游字段 realname。
+          example: 张三
+        avatar:
+          type: string
+          format: uri
+          description: 头像 URL。
+          example: https://example.com/avatar.jpg
+        mobile:
+          type: string
+          description: 手机号。
+          example: '13800138000'
+        email:
+          type: string
+          description: 邮箱。
+          example: test@example.com
+        sex:
+          type: integer
+          description: 性别；0 未知，1 男，2 女。
+          example: 1
+        position:
+          type: string
+          description: 职位。
+          example: 工程师
+        corpName:
+          type: string
+          description: 企业名称；下游字段 corp_name/corpName。
+          example: 测试企业
+        corpId:
+          type: integer
+          format: int64
+          description: 企业 ID；下游字段 corpid/corp_id/corpId。
+          example: 1970324998039140
+        remarks:
+          type: string
+          description: 备注名；下游字段 remarks/remark。
+          example: 张三-客户
+        realRemarks:
+          type: string
+          description: 真实备注；下游字段 real_remarks/realRemarks。
+          example: 重要客户
+        status:
+          type: integer
+          description: 联系人状态码；以协议服务返回为准。
+          example: 9
+        source:
+          type: integer
+          description: 客户来源类型；以企微协议返回为准。
+          example: 51
+        createTime:
+          type: integer
+          format: int64
+          description: 创建时间 Unix 时间戳。
+          example: 1768975066
+        addCustomerTime:
+          type: integer
+          format: int64
+          description: 添加客户时间 Unix 时间戳。
+          example: 1768975066
+        seq:
+          type: integer
+          format: int64
+          description: 条目级分页游标；列表响应 data.seq 才是下一页游标。
+          example: 8596253
+
+    ContactListResponse:
+      type: object
+      description: 外部联系人列表响应。分页方式为游标下拉分页：把 seq 加入下拉框，下一次请求传该 seq。
+      properties:
+        total:
+          type: integer
+          description: 联系人总数。
+          example: 100
+        seq:
+          type: integer
+          format: int64
+          description: 下一次查询游标；首次请求传 0，后续请求传上次响应的该值。
+          example: 8052931
+        list:
+          type: array
+          description: 当前页联系人列表。
+          items:
+            $ref: '#/components/schemas/ContactInfo'
+      example:
+        total: 100
+        seq: 8052931
+        list:
+          - userId: 7881301772935700
+            nickname: 张三
+            remarks: 张三-客户
+            corpName: 测试企业
+            mobile: '13800138000'
+
+    InnerContactListResponse:
+      type: object
+      description: 内部联系人列表响应。
+      properties:
+        total:
+          type: integer
+          description: 联系人总数。
+          example: 80
+        seq:
+          type: string
+          description: 下一次查询字符串游标。
+          example: next-page-token
+        list:
+          type: array
+          description: 当前页内部联系人列表。
+          items:
+            $ref: '#/components/schemas/ContactInfo'
+
+    ContactListApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ContactListResponse'
+
+    InnerContactListApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/InnerContactListResponse'
+
+    ContactArrayApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ContactInfo'
+
+    SessionInfo:
+      type: object
+      description: 会话信息。
+      properties:
+        vid:
+          type: integer
+          format: int64
+          description: 会话目标 ID；单聊为联系人 vid，群聊为群 ID。
+          example: 7881301772935700
+        name:
+          type: string
+          description: 会话名称。
+          example: 张三
+        headImg:
+          type: string
+          format: uri
+          description: 会话头像 URL。
+          example: https://example.com/avatar.jpg
+        isRoom:
+          type: boolean
+          description: 是否群会话。
+          example: false
+        lastMsg:
+          type: string
+          description: 最近一条消息摘要。
+          example: 你好
+        lastMsgTime:
+          type: integer
+          format: int64
+          description: 最近消息时间 Unix 时间戳。
+          example: 1768975066
+        unreadCount:
+          type: integer
+          description: 未读数。
+          example: 0
+        isTop:
+          type: boolean
+          description: 是否置顶。
+          example: false
+        isShield:
+          type: boolean
+          description: 是否免打扰。
+          example: false
+        isFold:
+          type: boolean
+          description: 是否折叠。
+          example: false
+
+    SessionListApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/SessionInfo'
+
+    RoomIdRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [roomid]
+          description: 查询群成员列表的请求。
+          properties:
+            roomid:
+              type: integer
+              format: int64
+              description: weichat-service VO 字段名为 roomid；查询群成员时必须使用该字段。
+              example: 189000000001
+            roomId:
+              type: integer
+              format: int64
+              deprecated: true
+              description: recruit-agent 当前字段名；若服务端未做别名兼容，会无法绑定到 RoomIdRequest.roomid。
+              example: 189000000001
+      example:
+        uuid: 0190-example-uuid
+        roomid: 189000000001
+
+    RoomInfo:
+      type: object
+      description: 群会话信息。
+      properties:
+        roomId:
+          type: integer
+          format: int64
+          description: 群 ID。
+          example: 189000000001
+        name:
+          type: string
+          description: 群名称。
+          example: 招聘沟通群
+        headImg:
+          type: string
+          format: uri
+          description: 群头像 URL。
+          example: https://example.com/room.png
+        notice:
+          type: string
+          description: 群公告。
+          example: 请及时同步面试进展
+        ownerVid:
+          type: integer
+          format: int64
+          description: 群主 vid。
+          example: 7881301772935700
+        ownerNickname:
+          type: string
+          description: 群主昵称。
+          example: 张三
+        memberCount:
+          type: integer
+          description: 群成员数量。
+          example: 12
+        adminVids:
+          type: array
+          description: 管理员 vid 列表。
+          items:
+            type: integer
+            format: int64
+          example: [7881301772935700]
+        createTime:
+          type: integer
+          format: int64
+          description: 建群时间 Unix 时间戳。
+          example: 1768975066
+        isMute:
+          type: boolean
+          description: 是否全员禁言。
+          example: false
+        disableRename:
+          type: boolean
+          description: 是否禁止改群名。
+          example: false
+        inviteConfirm:
+          type: boolean
+          description: 邀请入群是否需要确认。
+          example: false
+
+    RoomMemberInfo:
+      type: object
+      description: 群成员信息。
+      properties:
+        vid:
+          type: integer
+          format: int64
+          description: 成员 vid。
+          example: 7881301772935700
+        nickname:
+          type: string
+          description: 成员昵称。
+          example: 张三
+        roomNickname:
+          type: string
+          description: 群内昵称。
+          example: 张三-招聘
+        headImg:
+          type: string
+          format: uri
+          description: 头像 URL。
+          example: https://example.com/avatar.jpg
+        role:
+          type: integer
+          description: 群角色；具体枚举以协议服务返回为准。
+          example: 1
+        joinTime:
+          type: integer
+          format: int64
+          description: 入群时间 Unix 时间戳。
+          example: 1768975066
+        inviterVid:
+          type: integer
+          format: int64
+          description: 邀请人 vid。
+          example: 7881301772935701
+
+    RoomListApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RoomInfo'
+
+    RoomMemberArrayApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/RoomMemberInfo'
+
+    AddLabelRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [labelName]
+          description: 新增联系人标签。
+          properties:
+            labelName:
+              type: string
+              description: 标签名称。
+              example: 高意向候选人
+      example:
+        uuid: 0190-example-uuid
+        labelName: 高意向候选人
+
+    LabelAddUserRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [labelId, vids]
+          description: 给联系人批量添加标签。
+          properties:
+            labelId:
+              type: string
+              description: 标签 ID。
+              example: label-123
+            vids:
+              type: array
+              description: 需要打标签的联系人 vid/userId 列表。
+              items:
+                oneOf:
+                  - type: string
+                  - type: integer
+                    format: int64
+              example: ['7881301772935700']
+      example:
+        uuid: 0190-example-uuid
+        labelId: label-123
+        vids: ['7881301772935700']
+
+    LabelInfo:
+      type: object
+      description: 标签信息。
+      properties:
+        labelId:
+          type: string
+          description: 标签 ID。
+          example: label-123
+        labelName:
+          type: string
+          description: 标签名称。
+          example: 高意向候选人
+        color:
+          type: string
+          description: 标签颜色。
+          example: '#2f80ed'
+        userCount:
+          type: integer
+          description: 标签下用户数量。
+          example: 10
+        createTime:
+          type: integer
+          format: int64
+          description: 标签创建时间 Unix 时间戳。
+          example: 1768975066
+
+    LabelListResponse:
+      type: object
+      description: 标签列表响应。
+      properties:
+        total:
+          type: integer
+          description: 标签总数。
+          example: 3
+        list:
+          type: array
+          description: 标签列表。
+          items:
+            $ref: '#/components/schemas/LabelInfo'
+      example:
+        total: 1
+        list:
+          - labelId: label-123
+            labelName: 高意向候选人
+            color: '#2f80ed'
+            userCount: 10
+            createTime: 1768975066
+
+    LabelListApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LabelListResponse'
+
+    CallbackIngressRequest:
+      type: object
+      required: [uuid]
+      description: 下游企微组件推送到 weichat-service 的回调入口请求体。CallbackRequest.json 已兼容字符串和对象两种形态。
+      properties:
+        uuid:
+          type: string
+          description: 回调归属客户端 UUID。
+          example: 0190-example-uuid
+        type:
+          type: string
+          description: 回调类型；如消息、好友变更、群事件等，具体值以协议服务推送为准。
+          example: Message
+        json:
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties: true
+          description: 原始回调 JSON；可为 JSON 字符串，也可为对象。
+          example:
+            msgId: '189000000001'
+            fromUserId: 7881301772935700
+            content: 你好
+      example:
+        uuid: 0190-example-uuid
+        type: Message
+        json:
+          msgId: '189000000001'
+          fromUserId: 7881301772935700
+          content: 你好
