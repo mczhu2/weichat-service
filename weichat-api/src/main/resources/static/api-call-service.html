@@ -731,7 +731,7 @@
         
         <div class="tab-pane" id="tab-friends">
             <div class="module-hint">
-                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表，复制好友 userId/vid 到发送消息表单后发送单好友文本消息。
+                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表，可单好友发送文本消息，也可根据 msgid 确认联系人群发或客户群群发。
             </div>
             
             <div class="api-row">
@@ -801,6 +801,45 @@
                 <div class="api-column">
                     <h2>接口路径</h2>
                     <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendText</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>3. 确认群发消息</h2>
+                    <form id="oksendgroup-form">
+                        <div class="form-group">
+                            <label for="oksendgroup-uuid">UUID：</label>
+                            <input type="text" id="oksendgroup-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="oksendgroup-msgid">msgid：</label>
+                            <input type="text" id="oksendgroup-msgid" placeholder="请输入待确认群发消息 msgid，例如 109778712984080799">
+                        </div>
+                        <div class="form-group">
+                            <label for="oksendgroup-isroom">群发类型 isroom：</label>
+                            <select id="oksendgroup-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="0">0 - 联系人群发</option>
+                                <option value="1">1 - 客户群群发</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="oksendgroup-vids">vids：</label>
+                            <textarea id="oksendgroup-vids" placeholder="联系人群发填 []；客户群群发填写群ID数组，例如 [189000000001]" style="width: 100%; min-height: 90px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">[]</textarea>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>确认群发</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('oksendgroup-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="oksendgroup-result">填写 msgid，选择群发类型后确认群发。客户群群发时 vids 填群ID数组。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST http://47.94.7.218:8083/wxwork/oksendgroup</div>
                 </div>
             </div>
         </div>
@@ -880,6 +919,12 @@
         document.getElementById('sendtext-form').addEventListener('submit', function(e) {
             e.preventDefault();
             callSendTextApi();
+        });
+        
+        // 确认群发表单提交事件
+        document.getElementById('oksendgroup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callOkSendGroupApi();
         });
         
         function switchTab(tabId) {
@@ -1051,6 +1096,84 @@
             await callJsonApi('sendtext-form', 'sendtext-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', payload, '发送文本消息');
         }
         
+        async function callOkSendGroupApi() {
+            const uuid = document.getElementById('oksendgroup-uuid').value.trim();
+            const msgId = document.getElementById('oksendgroup-msgid').value.trim();
+            const isRoom = document.getElementById('oksendgroup-isroom').value;
+            const vidsRaw = document.getElementById('oksendgroup-vids').value.trim() || '[]';
+            if (!uuid) {
+                showLocalError('oksendgroup-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return;
+            }
+            if (!/^\d+$/.test(msgId)) {
+                showLocalError('oksendgroup-result', '错误：msgid 必须是数字，例如 109778712984080799');
+                return;
+            }
+            let vidsJson;
+            try {
+                vidsJson = normalizeVidsJson(vidsRaw);
+            } catch (error) {
+                showLocalError('oksendgroup-result', '错误：vids 格式不正确，联系人群发填 []，客户群群发填群ID数组，例如 [189000000001]');
+                return;
+            }
+            const requestBody = '{"uuid":' + JSON.stringify(uuid) + ',"vids":' + vidsJson + ',"msgid":' + msgId + ',"isroom":' + Number(isRoom) + '}';
+            const form = document.getElementById('oksendgroup-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('oksendgroup-result');
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在确认群发...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch('http://47.94.7.218:8083/wxwork/oksendgroup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: requestBody
+                });
+                const responseText = await response.text();
+                let responsePayload;
+                try {
+                    responsePayload = JSON.parse(responseText);
+                } catch (ignore) {
+                    responsePayload = responseText;
+                }
+                const ok = response.ok && responsePayload && (responsePayload.errcode === 0 || responsePayload.code === 0);
+                resultDiv.textContent = '请求体：\n' + JSON.stringify(JSON.parse(requestBody), null, 2) + '\n\n响应：\n' + (typeof responsePayload === 'string' ? responsePayload : JSON.stringify(responsePayload, null, 2));
+                resultDiv.className = ok ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = '确认群发调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function normalizeVidsJson(raw) {
+            if (!raw || raw === '[]') {
+                return '[]';
+            }
+            if (raw.startsWith('[')) {
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) {
+                    throw new Error('vids must be array');
+                }
+                return '[' + parsed.map(function(item) { return normalizeRawIdForJson(item); }).join(',') + ']';
+            }
+            return '[' + raw.split(',').map(function(item) { return normalizeRawIdForJson(item.trim()); }).join(',') + ']';
+        }
+        
+        function normalizeRawIdForJson(value) {
+            if (value === null || value === undefined || value === '') {
+                throw new Error('empty id');
+            }
+            const text = String(value).trim();
+            return /^\d+$/.test(text) ? text : JSON.stringify(text);
+        }
+        
         async function callJsonApi(formId, resultId, url, payload, actionName) {
             const form = document.getElementById(formId);
             const loading = form.querySelector('.loading');
@@ -1152,6 +1275,7 @@
                     document.getElementById('loginout-uuid').value = globalUUID;
                     document.getElementById('externalcontacts-uuid').value = globalUUID;
                     document.getElementById('sendtext-uuid').value = globalUUID;
+                    document.getElementById('oksendgroup-uuid').value = globalUUID;
                     // 更新第二个接口的结果提示
                     const callbackResult = document.getElementById('callback-result');
                     callbackResult.textContent = 'UUID已获取，可以调用接口';
@@ -1740,6 +1864,7 @@
                 document.getElementById('loginout-uuid').value = newUUID;
                 document.getElementById('externalcontacts-uuid').value = newUUID;
                 document.getElementById('sendtext-uuid').value = newUUID;
+                document.getElementById('oksendgroup-uuid').value = newUUID;
                 
                 // 显示更新成功提示
                 alert('UUID已更新并同步到所有接口');
