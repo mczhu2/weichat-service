@@ -27,10 +27,10 @@ public class GroupController {
     @Autowired
     private WxWorkApiClient client;
 
-    @ApiOperation("获取聊天室成员")
+    @ApiOperation("获取客户群列表")
     @PostMapping("/getChatroomMembers")
-    public ApiResult<RoomMemberListResponse> getChatroomMembers(@RequestBody RoomIdRequest request) {
-        return ApiResult.from(client.post("/wxwork/GetChatroomMembers", toJson(request)), RoomMemberListResponse.class);
+    public ApiResult<ChatroomListResponse> getChatroomMembers(@RequestBody GetChatroomMembersRequest request) {
+        return ApiResult.from(client.post("/wxwork/GetChatroomMembers", toJson(request)), ChatroomListResponse.class);
     }
 
     @ApiOperation("获取群用户列表")

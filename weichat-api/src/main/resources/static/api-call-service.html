@@ -1174,7 +1174,7 @@
                 });
                 const result = await response.json();
                 const roomData = extractChatroomMembersData(result);
-                if ((result.errcode === 0 || result.code === 0) && roomData.nextStart !== null && roomData.nextStart !== undefined) {
+                if ((result.errcode === 0 || result.code === 0) && roomData.nextStart !== null && roomData.nextStart !== undefined && Number(roomData.nextStart) >= 0) {
                     addChatroomMembersCursor(roomData.nextStart);
                 }
                 renderChatroomMembersList(resultDiv, result, roomData, payload.star_index);
@@ -1198,7 +1198,7 @@
         
         function addChatroomMembersCursor(nextStart) {
             const normalizedStart = String(nextStart);
-            if (!normalizedStart || normalizedStart === '0') {
+            if (!normalizedStart || normalizedStart === '0' || Number(normalizedStart) < 0) {
                 return;
             }
             if (chatroomMembersCursorOptions.some(function(option) { return option.start === normalizedStart; })) {
