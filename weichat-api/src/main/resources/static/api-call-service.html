@@ -731,7 +731,7 @@
         
         <div class="tab-pane" id="tab-friends">
             <div class="module-hint">
-                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表，可单好友发送文本消息，也可根据 msgid 确认联系人群发或客户群群发。
+                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表或外部群列表；选择好友可单发文本，选择群可发送文本/表情消息。
             </div>
             
             <div class="api-row">
@@ -806,40 +806,83 @@
             
             <div class="api-row">
                 <div class="api-column">
-                    <h2>3. 确认群发消息</h2>
-                    <form id="oksendgroup-form">
+                    <h2>3. 获取外部群列表</h2>
+                    <form id="chatroommembers-form">
                         <div class="form-group">
-                            <label for="oksendgroup-uuid">UUID：</label>
-                            <input type="text" id="oksendgroup-uuid" placeholder="自动填充" readonly>
+                            <label for="chatroommembers-uuid">UUID：</label>
+                            <input type="text" id="chatroommembers-uuid" placeholder="自动填充" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="oksendgroup-msgid">msgid：</label>
-                            <input type="text" id="oksendgroup-msgid" placeholder="请输入待确认群发消息 msgid，例如 109778712984080799">
+                            <label for="chatroommembers-limit">每页数量 limit：</label>
+                            <input type="number" id="chatroommembers-limit" value="5" min="1">
                         </div>
                         <div class="form-group">
-                            <label for="oksendgroup-isroom">群发类型 isroom：</label>
-                            <select id="oksendgroup-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                                <option value="0">0 - 联系人群发</option>
-                                <option value="1">1 - 客户群群发</option>
+                            <label for="chatroommembers-cursor">分页游标 star_index：</label>
+                            <select id="chatroommembers-cursor" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="0">首页（star_index=0）</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="oksendgroup-vids">vids：</label>
-                            <textarea id="oksendgroup-vids" placeholder="联系人群发填 []；客户群群发填写群ID数组，例如 [189000000001]" style="width: 100%; min-height: 90px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">[]</textarea>
-                        </div>
                         <div class="button-group">
-                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>确认群发</button>
-                            <button type="button" class="clear-btn" onclick="clearResult('oksendgroup-result')">清空结果</button>
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>加载外部群列表</button>
+                            <button type="button" class="clear-btn" onclick="resetChatroomMembersState()">重置游标</button>
                         </div>
                     </form>
                 </div>
                 <div class="api-column">
                     <h2>响应结果</h2>
-                    <div class="result" id="oksendgroup-result">填写 msgid，选择群发类型后确认群发。客户群群发时 vids 填群ID数组。</div>
+                    <div class="result" id="chatroommembers-result">登录成功后，选择 star_index 加载外部群列表；接口返回 next_start 后会自动加入下拉分页选项。</div>
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
-                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/mass/okSendGroup</div>
+                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/group/getChatroomMembers</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>4. 发送文本/表情消息</h2>
+                    <form id="sendtextandexp-form">
+                        <div class="form-group">
+                            <label for="sendtextandexp-uuid">UUID：</label>
+                            <input type="text" id="sendtextandexp-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtextandexp-userid">send_userid：</label>
+                            <input type="text" id="sendtextandexp-userid" placeholder="可从外部群列表点击“选择群发送”自动填入">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtextandexp-isroom">是否群消息 isRoom：</label>
+                            <select id="sendtextandexp-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="true">true - 群消息</option>
+                                <option value="false">false - 个人消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtextandexp-content">content：</label>
+                            <textarea id="sendtextandexp-content" placeholder="请输入文本/表情消息数组" style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">[
+  {
+    "msgtype": 0,
+    "msg": "你好"
+  },
+  {
+    "msgtype": 3,
+    "msg": "[微笑]"
+  }
+]</textarea>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>发送消息</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendtextandexp-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendtextandexp-result">从外部群列表选择群 ID，确认 isRoom=true 后发送文本/表情消息。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/message/sendTextAndExp</div>
                 </div>
             </div>
         </div>
@@ -851,6 +894,7 @@
         let globalQrCodeKey = '';
         let globalSecondaryKey = '';
         let externalContactCursorOptions = [{ seq: '0', label: '首页（seq=0）' }];
+        let chatroomMembersCursorOptions = [{ start: '0', label: '首页（star_index=0）' }];
         
         // Tab 切换事件
         document.querySelectorAll('.tab-btn').forEach(function(button) {
@@ -921,10 +965,16 @@
             callSendTextApi();
         });
         
-        // 确认群发表单提交事件
-        document.getElementById('oksendgroup-form').addEventListener('submit', function(e) {
+        // 获取外部群列表表单提交事件
+        document.getElementById('chatroommembers-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            callOkSendGroupApi();
+            callChatroomMembersApi();
+        });
+        
+        // 发送文本/表情消息表单提交事件
+        document.getElementById('sendtextandexp-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendTextAndExpApi();
         });
         
         function switchTab(tabId) {
@@ -1096,37 +1146,167 @@
             await callJsonApi('sendtext-form', 'sendtext-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', payload, '发送文本消息');
         }
         
-        async function callOkSendGroupApi() {
-            const uuid = document.getElementById('oksendgroup-uuid').value.trim();
-            const msgId = document.getElementById('oksendgroup-msgid').value.trim();
-            const isRoom = document.getElementById('oksendgroup-isroom').value;
-            const vidsRaw = document.getElementById('oksendgroup-vids').value.trim() || '[]';
-            if (!uuid) {
-                showLocalError('oksendgroup-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
-                return;
-            }
-            if (!/^\d+$/.test(msgId)) {
-                showLocalError('oksendgroup-result', '错误：msgid 必须是数字，例如 109778712984080799');
-                return;
-            }
-            let vidsJson;
-            try {
-                vidsJson = normalizeVidsJson(vidsRaw);
-            } catch (error) {
-                showLocalError('oksendgroup-result', '错误：vids 格式不正确，联系人群发填 []，客户群群发填群ID数组，例如 [189000000001]');
-                return;
-            }
-            const requestBody = '{"uuid":' + JSON.stringify(uuid) + ',"vids":' + vidsJson + ',"msgid":' + msgId + ',"isroom":' + Number(isRoom) + '}';
-            const form = document.getElementById('oksendgroup-form');
+        async function callChatroomMembersApi() {
+            const form = document.getElementById('chatroommembers-form');
             const loading = form.querySelector('.loading');
             const button = form.querySelector('button[type="submit"]');
-            const resultDiv = document.getElementById('oksendgroup-result');
+            const resultDiv = document.getElementById('chatroommembers-result');
+            const payload = {
+                uuid: document.getElementById('chatroommembers-uuid').value.trim(),
+                limit: Number(document.getElementById('chatroommembers-limit').value || 5),
+                star_index: Number(document.getElementById('chatroommembers-cursor').value || 0)
+            };
+            if (!payload.uuid) {
+                showLocalError('chatroommembers-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return;
+            }
             loading.style.display = 'inline-block';
             button.disabled = true;
-            resultDiv.textContent = '正在确认群发...';
+            resultDiv.textContent = '正在加载外部群列表...';
             resultDiv.className = 'result';
             try {
-                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/mass/okSendGroup', {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/group/getChatroomMembers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const roomData = extractChatroomMembersData(result);
+                if ((result.errcode === 0 || result.code === 0) && roomData.nextStart !== null && roomData.nextStart !== undefined) {
+                    addChatroomMembersCursor(roomData.nextStart);
+                }
+                renderChatroomMembersList(resultDiv, result, roomData, payload.star_index);
+            } catch (error) {
+                resultDiv.textContent = '加载外部群列表失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function extractChatroomMembersData(result) {
+            const data = result && result.data ? result.data : {};
+            return {
+                total: data.total !== undefined ? data.total : 0,
+                nextStart: data.next_start !== undefined ? data.next_start : data.nextStart,
+                roomList: Array.isArray(data.roomList) ? data.roomList : []
+            };
+        }
+        
+        function addChatroomMembersCursor(nextStart) {
+            const normalizedStart = String(nextStart);
+            if (!normalizedStart || normalizedStart === '0') {
+                return;
+            }
+            if (chatroomMembersCursorOptions.some(function(option) { return option.start === normalizedStart; })) {
+                return;
+            }
+            chatroomMembersCursorOptions.push({
+                start: normalizedStart,
+                label: '第 ' + (chatroomMembersCursorOptions.length + 1) + ' 页（star_index=' + normalizedStart + '）'
+            });
+            renderChatroomMembersCursorOptions(normalizedStart);
+        }
+        
+        function renderChatroomMembersCursorOptions(selectedStart) {
+            const select = document.getElementById('chatroommembers-cursor');
+            select.innerHTML = chatroomMembersCursorOptions.map(function(option) {
+                const selected = option.start === String(selectedStart) ? ' selected' : '';
+                return '<option value="' + escapeHtml(option.start) + '"' + selected + '>' + escapeHtml(option.label) + '</option>';
+            }).join('');
+        }
+        
+        function resetChatroomMembersState() {
+            chatroomMembersCursorOptions = [{ start: '0', label: '首页（star_index=0）' }];
+            renderChatroomMembersCursorOptions('0');
+            document.getElementById('chatroommembers-result').textContent = '已重置分页游标，请点击“加载外部群列表”从首页开始加载';
+            document.getElementById('chatroommembers-result').className = 'result';
+        }
+        
+        function renderChatroomMembersList(resultDiv, result, roomData, currentStart) {
+            const ok = result && (result.errcode === 0 || result.code === 0);
+            resultDiv.className = ok ? 'result success' : 'result error';
+            const rawJson = escapeHtml(JSON.stringify(result, null, 2));
+            if (!ok) {
+                resultDiv.innerHTML = '<div class="contact-summary">接口返回异常：</div><pre>' + rawJson + '</pre>';
+                return;
+            }
+            const rows = roomData.roomList.map(function(room, index) {
+                const roomId = room.room_id || room.roomId || '';
+                const nickname = room.nickname || '';
+                const memberTotal = room.total !== undefined ? room.total : '';
+                const updateTime = room.update_time || room.updateTime || '';
+                const createTime = room.create_time || room.createTime || '';
+                return '<tr>'
+                    + '<td>' + (index + 1) + '</td>'
+                    + '<td>' + escapeHtml(String(roomId)) + '</td>'
+                    + '<td>' + escapeHtml(String(nickname || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(memberTotal || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(createTime || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(updateTime || '-')) + '</td>'
+                    + '<td><button type="button" data-roomid="' + escapeHtml(String(roomId)) + '" onclick="selectChatroomForSend(this.dataset.roomid)">选择群发送</button></td>'
+                    + '</tr>';
+            }).join('');
+            const nextStartText = roomData.nextStart !== null && roomData.nextStart !== undefined ? roomData.nextStart : '无';
+            resultDiv.innerHTML = '<div class="contact-summary">当前游标 star_index=' + escapeHtml(String(currentStart))
+                + '；本页 ' + roomData.roomList.length + ' 个群；total=' + escapeHtml(String(roomData.total))
+                + '；下一页游标 next_start=' + escapeHtml(String(nextStartText))
+                + '。如需翻页，从“分页游标 star_index”下拉框选择新游标后再次加载。</div>'
+                + '<table class="contact-table"><thead><tr><th>#</th><th>room_id</th><th>群名称</th><th>人数</th><th>创建时间</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'
+                + (rows || '<tr><td colspan="7">当前页没有外部群数据</td></tr>')
+                + '</tbody></table><details style="margin-top: 12px;"><summary>查看原始响应 JSON</summary><pre>' + rawJson + '</pre></details>';
+        }
+        
+        function selectChatroomForSend(roomId) {
+            if (!roomId) {
+                showLocalError('sendtextandexp-result', '当前群缺少 room_id，不能发送');
+                return;
+            }
+            document.getElementById('sendtextandexp-userid').value = roomId;
+            document.getElementById('sendtextandexp-isroom').value = 'true';
+            document.getElementById('sendtextandexp-result').textContent = '已选择群 room_id：' + roomId + '，请确认 content 后发送';
+            document.getElementById('sendtextandexp-result').className = 'result success';
+            document.getElementById('sendtextandexp-content').focus();
+        }
+        
+        async function callSendTextAndExpApi() {
+            const uuid = document.getElementById('sendtextandexp-uuid').value.trim();
+            const sendUserid = document.getElementById('sendtextandexp-userid').value.trim();
+            const isRoom = document.getElementById('sendtextandexp-isroom').value === 'true';
+            const contentRaw = document.getElementById('sendtextandexp-content').value.trim();
+            if (!uuid) {
+                showLocalError('sendtextandexp-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return;
+            }
+            if (!/^\d+$/.test(sendUserid)) {
+                showLocalError('sendtextandexp-result', '错误：send_userid 必须是数字，可从外部群列表选择 room_id');
+                return;
+            }
+            let contentJson;
+            try {
+                const parsed = JSON.parse(contentRaw);
+                if (!Array.isArray(parsed)) {
+                    throw new Error('content must be array');
+                }
+                contentJson = JSON.stringify(parsed);
+            } catch (error) {
+                showLocalError('sendtextandexp-result', '错误：content 必须是 JSON 数组，例如 [{"msgtype":0,"msg":"你好"}]');
+                return;
+            }
+            const requestBody = '{"uuid":' + JSON.stringify(uuid) + ',"send_userid":' + sendUserid + ',"isRoom":' + isRoom + ',"content":' + contentJson + '}';
+            const form = document.getElementById('sendtextandexp-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('sendtextandexp-result');
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在发送文本/表情消息...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/message/sendTextAndExp', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1141,37 +1321,15 @@
                     responsePayload = responseText;
                 }
                 const ok = response.ok && responsePayload && (responsePayload.errcode === 0 || responsePayload.code === 0);
-                resultDiv.textContent = '请求体：\n' + JSON.stringify(JSON.parse(requestBody), null, 2) + '\n\n响应：\n' + (typeof responsePayload === 'string' ? responsePayload : JSON.stringify(responsePayload, null, 2));
+                resultDiv.textContent = '请求体：\n' + requestBody + '\n\n响应：\n' + (typeof responsePayload === 'string' ? responsePayload : JSON.stringify(responsePayload, null, 2));
                 resultDiv.className = ok ? 'result success' : 'result error';
             } catch (error) {
-                resultDiv.textContent = '确认群发调用失败：' + error.message;
+                resultDiv.textContent = '发送文本/表情消息失败：' + error.message;
                 resultDiv.className = 'result error';
             } finally {
                 loading.style.display = 'none';
                 button.disabled = false;
             }
-        }
-        
-        function normalizeVidsJson(raw) {
-            if (!raw || raw === '[]') {
-                return '[]';
-            }
-            if (raw.startsWith('[')) {
-                const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) {
-                    throw new Error('vids must be array');
-                }
-                return '[' + parsed.map(function(item) { return normalizeRawIdForJson(item); }).join(',') + ']';
-            }
-            return '[' + raw.split(',').map(function(item) { return normalizeRawIdForJson(item.trim()); }).join(',') + ']';
-        }
-        
-        function normalizeRawIdForJson(value) {
-            if (value === null || value === undefined || value === '') {
-                throw new Error('empty id');
-            }
-            const text = String(value).trim();
-            return /^\d+$/.test(text) ? text : JSON.stringify(text);
         }
         
         async function callJsonApi(formId, resultId, url, payload, actionName) {
@@ -1275,7 +1433,8 @@
                     document.getElementById('loginout-uuid').value = globalUUID;
                     document.getElementById('externalcontacts-uuid').value = globalUUID;
                     document.getElementById('sendtext-uuid').value = globalUUID;
-                    document.getElementById('oksendgroup-uuid').value = globalUUID;
+                    document.getElementById('chatroommembers-uuid').value = globalUUID;
+                    document.getElementById('sendtextandexp-uuid').value = globalUUID;
                     // 更新第二个接口的结果提示
                     const callbackResult = document.getElementById('callback-result');
                     callbackResult.textContent = 'UUID已获取，可以调用接口';
@@ -1864,7 +2023,8 @@
                 document.getElementById('loginout-uuid').value = newUUID;
                 document.getElementById('externalcontacts-uuid').value = newUUID;
                 document.getElementById('sendtext-uuid').value = newUUID;
-                document.getElementById('oksendgroup-uuid').value = newUUID;
+                document.getElementById('chatroommembers-uuid').value = newUUID;
+                document.getElementById('sendtextandexp-uuid').value = newUUID;
                 
                 // 显示更新成功提示
                 alert('UUID已更新并同步到所有接口');
