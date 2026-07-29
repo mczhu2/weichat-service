@@ -1,5 +1,6 @@
 package com.weichat.common.service.impl;
 
+import com.weichat.common.dto.WxCallbackRouteMonitorTarget;
 import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.mapper.WxUserInfoMapper;
 import com.weichat.common.service.WxUserInfoService;
@@ -85,5 +86,10 @@ public class WxUserInfoServiceImpl implements WxUserInfoService {
     @Override
     public List<WxUserInfo> selectByFiltersWithPaging(String uuid, List<Long> corpIds, int offset, int limit) {
         return wxUserInfoMapper.selectByFiltersWithPaging(uuid, corpIds, offset, limit);
+    }
+
+    @Override
+    public List<WxCallbackRouteMonitorTarget> selectCallbackRouteMonitorTargets() {
+        return wxUserInfoMapper.selectCallbackRouteMonitorTargets();
     }
 }

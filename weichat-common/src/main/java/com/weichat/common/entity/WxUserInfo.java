@@ -131,4 +131,9 @@ public class WxUserInfo implements Serializable {
      * 上次拉取的最大消息ID
      */
     private Long lastPulledMessageId;
+
+    /**
+     * 在线状态检查禁用标记：0-启用检查，1-停用检查。
+     */
+    private Integer onlineCheckDisabled;
 }

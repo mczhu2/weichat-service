@@ -209,4 +209,25 @@
         SET last_pulled_message_id = #{lastPulledMessageId}
         WHERE uuid = #{uuid} AND is_del = 0
     </update>
+
+    <select id="selectCallbackRouteMonitorTargets" resultType="com.weichat.common.dto.WxCallbackRouteMonitorTarget">
+        SELECT latest.uuid,
+               latest.user_id AS userId,
+               latest.nickname,
+               latest.realname,
+               latest.acctid
+        FROM wx_user_info latest
+        INNER JOIN (
+            SELECT user_id, MAX(id) AS latest_id
+            FROM wx_user_info
+            WHERE is_del = 0
+              AND user_id IS NOT NULL
+              AND uuid IS NOT NULL
+              AND uuid != ''
+            GROUP BY user_id
+        ) latest_binding ON latest.id = latest_binding.latest_id
+        INNER JOIN wx_callback_route route ON route.uuid = latest.uuid
+        WHERE latest.online_check_disabled = 0
+        ORDER BY latest.id DESC
+    </select>
 </mapper>

@@ -1,5 +1,6 @@
 package com.weichat.common.mapper;
 
+import com.weichat.common.dto.WxCallbackRouteMonitorTarget;
 import com.weichat.common.entity.WxUserInfo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -127,4 +128,11 @@ public interface WxUserInfoMapper {
      */
     int updateLastPulledMessageId(@Param("uuid") String uuid,
                                   @Param("lastPulledMessageId") Long lastPulledMessageId);
+
+    /**
+     * 查询已配置回调路由且按 userId 最新绑定设备去重后的全部巡检目标。
+     *
+     * @return 巡检目标列表
+     */
+    List<WxCallbackRouteMonitorTarget> selectCallbackRouteMonitorTargets();
 }

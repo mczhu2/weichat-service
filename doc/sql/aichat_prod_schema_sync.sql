@@ -237,9 +237,11 @@ CALL `ensure_column`('mass_task_detail', 'planned_send_time', '`planned_send_tim
 CALL `ensure_column`('mass_task_detail', 'downstream_response', '`downstream_response` longtext COLLATE utf8mb4_unicode_ci COMMENT ''raw downstream response body if needed for troubleshooting'' AFTER `send_result`');
 
 CALL `ensure_column`('wx_user_info', 'last_pulled_message_id', '`last_pulled_message_id` bigint DEFAULT NULL COMMENT ''上次拉取的最大消息ID'' AFTER `is_del`');
+CALL `ensure_column`('wx_user_info', 'online_check_disabled', '`online_check_disabled` tinyint NOT NULL DEFAULT ''0'' COMMENT ''在线状态检查禁用标记：0-启用，1-停用'' AFTER `last_pulled_message_id`');
 
 ALTER TABLE `wx_user_info`
-  MODIFY COLUMN `last_pulled_message_id` bigint DEFAULT NULL COMMENT '上次拉取的最大消息ID';
+  MODIFY COLUMN `last_pulled_message_id` bigint DEFAULT NULL COMMENT '上次拉取的最大消息ID',
+  MODIFY COLUMN `online_check_disabled` tinyint NOT NULL DEFAULT '0' COMMENT '在线状态检查禁用标记：0-启用，1-停用';
 
 DELIMITER $$
 CREATE PROCEDURE `ensure_idx`(

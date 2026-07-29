@@ -1,5 +1,6 @@
 package com.weichat.common.service;
 
+import com.weichat.common.dto.WxCallbackRouteMonitorTarget;
 import com.weichat.common.entity.WxUserInfo;
 
 import java.util.List;
@@ -111,4 +112,11 @@ public interface WxUserInfoService {
      * @return 微信用户信息列表
      */
     List<WxUserInfo> selectByFiltersWithPaging(String uuid, List<Long> corpIds, int offset, int limit);
+
+    /**
+     * 查询已配置回调路由且按 userId 最新绑定设备去重后的全部巡检目标。
+     *
+     * @return 巡检目标列表
+     */
+    List<WxCallbackRouteMonitorTarget> selectCallbackRouteMonitorTargets();
 }
