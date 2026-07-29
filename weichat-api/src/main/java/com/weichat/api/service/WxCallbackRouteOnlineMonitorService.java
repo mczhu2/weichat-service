@@ -1,6 +1,7 @@
 package com.weichat.api.service;
 
 import com.alibaba.fastjson.JSONObject;
+import com.weichat.api.client.WxWorkApiClient;
 import com.weichat.common.dto.WxCallbackRouteMonitorTarget;
 import com.weichat.common.service.WxUserInfoService;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,6 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -27,16 +27,16 @@ import java.util.List;
 @Service
 public class WxCallbackRouteOnlineMonitorService {
 
-    private static final String RUN_CLIENT_URL = "http://ai-agent.okgcc.cn/wx/api/v1/init/getRunClientByUuid";
+    private static final String RUN_CLIENT_PATH = "/wxwork/GetRunClientByUuid";
     private static final String FEISHU_WEBHOOK_URL = "https://open.feishu.cn/open-apis/bot/v2/hook/a1693cda-b8a2-49d3-b2fc-028019d16fad";
-    private static final String USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:152.0) Gecko/20100101 Firefox/152.0";
-    private static final String REFERER = "http://ai-agent.okgcc.cn/wx/wecom-api-call-service.html";
-    private static final String ORIGIN = "http://ai-agent.okgcc.cn";
     private static final int SUCCESS_CODE = 0;
     private static final int LOGIN_TYPE_ONLINE = 2;
 
     @Autowired
     private WxUserInfoService wxUserInfoService;
+
+    @Autowired
+    private WxWorkApiClient wxWorkApiClient;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -80,28 +80,15 @@ public class WxCallbackRouteOnlineMonitorService {
         JSONObject body = new JSONObject();
         body.put("uuid", uuid);
         try {
-            ResponseEntity<String> response = restTemplate.exchange(
-                    RUN_CLIENT_URL,
-                    HttpMethod.POST,
-                    new HttpEntity<>(body.toJSONString(), buildRunClientHeaders()),
-                    String.class
-            );
-            return parseOnlineState(response.getBody());
-        } catch (RestClientResponseException e) {
-            log.warn("check run client failed with response, uuid={}, statusCode={}, responseBody={}",
-                    uuid, e.getRawStatusCode(), e.getResponseBodyAsString(), e);
-            return false;
+            JSONObject response = wxWorkApiClient.post(RUN_CLIENT_PATH, body);
+            return parseOnlineState(response);
         } catch (Exception e) {
             log.warn("check run client failed, uuid={}", uuid, e);
             return false;
         }
     }
 
-    private boolean parseOnlineState(String responseBody) {
-        if (!StringUtils.hasText(responseBody)) {
-            return false;
-        }
-        JSONObject response = JSONObject.parseObject(responseBody);
+    private boolean parseOnlineState(JSONObject response) {
         if (response == null || response.getIntValue("code") != SUCCESS_CODE) {
             return false;
         }
@@ -111,18 +98,6 @@ public class WxCallbackRouteOnlineMonitorService {
         }
         JSONObject userInfo = data.getJSONObject("user_info");
         return userInfo != null && Boolean.TRUE.equals(userInfo.getBoolean("isLogin"));
-    }
-
-    private HttpHeaders buildRunClientHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(Collections.singletonList(MediaType.ALL));
-        headers.set(HttpHeaders.USER_AGENT, USER_AGENT);
-        headers.set(HttpHeaders.ACCEPT_LANGUAGE, "zh-CN,zh;q=0.9,zh-TW;q=0.8,zh-HK;q=0.7,en-US;q=0.6,en;q=0.5");
-        headers.set(HttpHeaders.REFERER, REFERER);
-        headers.set(HttpHeaders.ORIGIN, ORIGIN);
-        headers.set("Priority", "u=0");
-        return headers;
     }
 
     private void sendFeishuNotification(List<WxCallbackRouteMonitorTarget> offlineTargets) {
