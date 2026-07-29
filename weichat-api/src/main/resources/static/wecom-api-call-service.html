@@ -509,16 +509,16 @@
                         <input type="text" id="callback-uuid" placeholder="自动填充" readonly>
                     </div>
                     <div class="module-hint" style="margin-bottom: 12px;">
-                        <strong>说明：</strong>系统会自动把企微平台回调入口注册为 http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl。这里只需要填写当前 UUID 对应企微员工收到客户消息后，要转发到的业务系统回调地址。
+                        <strong>说明：</strong>填写当前 UUID 对应企微员工收到客户消息后，要通知的消息回调接收地址。
                     </div>
                     <div class="form-group">
-                        <label for="callback-url">业务系统回调 URL：</label>
+                        <label for="callback-url">消息回调接收 URL：</label>
                         <input type="text" id="callback-url" placeholder="https://customer.example.com/wecom/callback">
                     </div>
                     <div class="button-group">
                         <button type="submit" class="submit-btn">
                             <span class="loading" style="display: none;"></span>
-                            保存业务回调配置并注册企微回调
+                            订阅好友消息回调
                         </button>
                         <button type="button" class="clear-btn" onclick="clearResult('callback-result')">清空结果</button>
                     </div>
@@ -527,7 +527,7 @@
             <!-- 第二列：响应结果 -->
             <div class="api-column">
                 <h2>响应结果</h2>
-                <div class="result" id="callback-result">请先调用初始化接口获取 UUID，然后填写业务系统回调 URL。</div>
+                <div class="result" id="callback-result">请先调用初始化接口获取 UUID，然后填写消息回调接收 URL。</div>
             </div>
             <!-- 第三列：业务回调请求说明 -->
             <div class="api-column">
@@ -1823,7 +1823,7 @@
             }
         }
         
-        // 保存业务系统回调配置，并静默注册企微平台回调入口
+        // 订阅当前 UUID 对应企微员工的好友消息回调
         async function callCallbackApi() {
             const form = document.getElementById('callback-form');
             const loading = form.querySelector('.loading');
@@ -1837,7 +1837,7 @@
                 return;
             }
             if (!/^https?:\/\/.+/.test(callbackUrl)) {
-                showLocalError('callback-result', '业务系统回调 URL 必须以 http:// 或 https:// 开头');
+                showLocalError('callback-result', '消息回调接收 URL 必须以 http:// 或 https:// 开头');
                 return;
             }
 
@@ -1848,7 +1848,7 @@
 
             loading.style.display = 'inline-block';
             button.disabled = true;
-            resultDiv.textContent = '正在保存业务回调配置并注册企微回调入口...';
+            resultDiv.textContent = '正在订阅好友消息回调...';
             resultDiv.className = 'result';
 
             try {
