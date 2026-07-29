@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接口调用页面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .api-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .flow-sidebar {
+            flex: 0 0 330px;
+            position: sticky;
+            top: 20px;
+        }
+        
+        @media (max-width: 1280px) {
+            .container {
+                max-width: 1200px;
+            }
+            
+            .page-layout {
+                flex-direction: column;
+            }
+            
+            .flow-sidebar {
+                width: 100%;
+                position: static;
+                flex: none;
+            }
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        .global-uuid {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .global-uuid h3 {
+            margin: 0 0 10px 0;
+            color: #856404;
+            font-size: 16px;
+        }
+        
+        .global-uuid-value {
+            font-weight: 600;
+            font-family: 'Courier New', Courier, monospace;
+            color: #856404;
+        }
+        
+        /* 三列布局样式 */
+        .api-row {
+            display: flex;
+            margin-bottom: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .api-column {
+            padding: 20px;
+        }
+        
+        .api-column:nth-child(1) {
+            flex: 1;
+            background-color: #f8f9fa;
+        }
+        
+        .api-column:nth-child(2) {
+            flex: 1;
+        }
+        
+        .api-column:nth-child(3) {
+            flex: 1;
+            background-color: #f8f9fa;
+            text-align: center;
+        }
+        
+        h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.1);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .submit-btn {
+            background-color: #3498db;
+            color: #fff;
+        }
+        
+        .submit-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .clear-btn {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+        
+        .clear-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        .result {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(52, 152, 219, 0.3);
+            border-radius: 50%;
+            border-top-color: #3498db;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 5px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error {
+            color: #e74c3c;
+            border-left-color: #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            border-left-color: #27ae60;
+        }
+        
+        .qrcode-image {
+            max-width: 100%;
+            max-height: 250px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .qrcode-title {
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .flowchart {
+            text-align: left;
+            margin-bottom: 15px;
+            padding: 14px;
+            border: 1px solid #d6e9ff;
+            border-radius: 8px;
+            background: #f4f9ff;
+        }
+        
+        .flowchart-title {
+            font-weight: 700;
+            color: #1f4e79;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .flow-step {
+            border: 1px solid #b7d7f4;
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin: 0 auto;
+            font-size: 13px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .flow-step.optional {
+            border-color: #f0ad4e;
+            background: #fff8e8;
+            color: #8a5a00;
+        }
+        
+        .flow-step.success {
+            border-color: #5cb85c;
+            background: #eefaf0;
+            color: #2d6a2d;
+        }
+        
+        .flow-arrow {
+            text-align: center;
+            color: #3498db;
+            font-weight: 700;
+            line-height: 22px;
+        }
+        
+        .flow-branch {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .flow-note {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #d9e2ec;
+        }
+        
+        .tab-btn {
+            flex: 0 0 auto;
+            padding: 12px 18px;
+            border: 1px solid #d9e2ec;
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            background: #eef2f7;
+            color: #2c3e50;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        
+        .tab-btn.active {
+            background: #3498db;
+            color: #fff;
+            border-color: #3498db;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        .module-hint {
+            background: #eefaf0;
+            border: 1px solid #5cb85c;
+            color: #2d6a2d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            white-space: normal;
+        }
+
+        .contact-tools {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-top: 8px;
+        }
+        
+        .contact-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+            background: #fff;
+        }
+        
+        .contact-table th,
+        .contact-table td {
+            border: 1px solid #d9e2ec;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .contact-table th {
+            background: #eef2f7;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+        
+        .contact-table button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            background: #27ae60;
+            color: #fff;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .contact-summary {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            line-height: 1.6;
+            white-space: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>接口调用页面</h1>
+        
+        <!-- 全局UUID显示 -->
+        <div class="global-uuid">
+            <h3>全局UUID：</h3>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <input type="text" id="global-uuid" class="global-uuid-value" placeholder="请输入或自动获取UUID" style="flex: 1; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                <button type="button" class="submit-btn" onclick="updateGlobalUUID()" style="flex: 0 0 auto; padding: 5px 15px; font-size: 14px;">保存</button>
+            </div>
+        </div>
+        <div class="result" style="margin-bottom: 20px; white-space: normal; background: #eefaf0; border-color: #5cb85c; color: #2d6a2d;">
+            当前页面所有接口统一走 <strong>http://ai-agent.okgcc.cn/wx/api/v1/init/...</strong>。
+        </div>
+        <div class="tabs">
+            <button type="button" class="tab-btn active" data-tab="tab-login">登录绑定</button>
+            <button type="button" class="tab-btn" data-tab="tab-friends">好友列表-消息发送</button>
+        </div>
+        
+        <div class="tab-pane active" id="tab-login">
+        <div class="page-layout">
+            <div class="api-content">
+        
+        <!-- 第一个接口：账号初始化 -->
+        <div class="api-row">
+            <!-- 第一列：接口名称、请求参数、请求按钮 -->
+            <div class="api-column">
+                <h2>1. 账号初始化</h2>
+                <form id="init-form">
+                    <div class="form-group">
+                        <label for="init-vid">VID（可选）：</label>
+                        <input type="text" id="init-vid" placeholder="输入VID，留空则不传递">
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearResult('init-result')">清空结果</button>
+                    </div>
+                </form>
+                <div class="module-hint" style="margin-top: 12px;">
+                    <strong>操作提示：</strong>点击“1. 账号初始化”并拿到 uuid 后，一定要点击页面顶部“全局UUID”的“保存”按钮。后续接口会复用保存后的 uuid，可减少重复复制输入。
+                </div>
+            </div>
+            <!-- 第二列：响应结果 -->
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="init-result">请点击"调用接口"按钮开始调用</div>
+            </div>
+            <!-- 第三列：图片展示 -->
+            <div class="api-column">
+                <!-- 无图片 -->
+            </div>
+        </div>
+        
+        <!-- 第二个接口：数据回调配置 -->
+        <div class="api-row">
+            <!-- 第一列：接口名称、请求参数、请求按钮 -->
+            <div class="api-column">
+                <h2>2. 数据回调配置</h2>
+                <form id="callback-form">
+                    <div class="form-group">
+                        <label for="callback-uuid">UUID：</label>
+                        <input type="text" id="callback-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="callback-url">回调URL：</label>
+                        <input type="text" id="callback-url" value="http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl">
+                    </div>
+                    <div class="form-group">
+                        <label for="callback-callbackType">回调类型（callbackType）：</label>
+                        <input type="text" id="callback-callbackType" value="HTTP">
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearResult('callback-result')">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <!-- 第二列：响应结果 -->
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="callback-result">请先调用初始化接口获取UUID，然后点击"调用接口"按钮</div>
+            </div>
+            <!-- 第三列：图片展示 -->
+            <div class="api-column">
+                <!-- 无图片 -->
+            </div>
+        </div>
+        
+        <!-- 第三个接口：获取登陆二维码 -->
+        <div class="api-row">
+            <!-- 第一列：接口名称、请求参数、请求按钮 -->
+            <div class="api-column">
+                <h2>3. 获取登陆二维码</h2>
+                <form id="qrcode-form">
+                    <div class="form-group">
+                        <label for="qrcode-uuid">UUID：</label>
+                        <input type="text" id="qrcode-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearQrCodeResult()">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <!-- 第二列：响应结果 -->
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="qrcode-result">请先调用初始化接口获取UUID，然后点击"调用接口"按钮</div>
+            </div>
+            <!-- 第三列：图片展示 -->
+            <div class="api-column">
+                <div class="qrcode-title">登录二维码：</div>
+                <img id="qrcode-image" class="qrcode-image" alt="登录二维码" style="display: none;">
+                <button type="button" class="submit-btn" onclick="renderQrCodeFromResult()" style="margin-top: 10px;">展示图片</button>
+            </div>
+        </div>
+        
+        <!-- 第四个接口：录入登陆授权码 -->
+        <div class="api-row">
+            <!-- 第一列：接口名称、请求参数、请求按钮 -->
+            <div class="api-column">
+                <h2>4. 录入登陆授权码</h2>
+                <form id="checkcode-form">
+                    <div class="form-group">
+                        <label for="checkcode-uuid">UUID：</label>
+                        <input type="text" id="checkcode-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="checkcode-key">qrcodeKey：</label>
+                        <input type="text" id="checkcode-key" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="checkcode-code">验证码（code）：</label>
+                        <input type="text" id="checkcode-code" placeholder="请输入验证码">
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearResult('checkcode-result')">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <!-- 第二列：响应结果 -->
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="checkcode-result">请先调用获取登录二维码接口获取qrcodeKey，然后点击"调用接口"按钮</div>
+            </div>
+            <!-- 第三列：图片展示 -->
+            <div class="api-column">
+                <!-- 无图片 -->
+            </div>
+        </div>
+        
+        <!-- 第五个接口：二次扫码授权登陆接口 -->
+        <div class="api-row">
+            <!-- 第一列：接口名称、请求参数、请求按钮 -->
+            <div class="api-column">
+                <h2>5. 二次扫码授权登陆接口</h2>
+                <div class="result" style="margin-bottom: 15px; white-space: normal;">
+                    <strong>接口调用流程说明：</strong><br>
+                    1. 先调用 1. 初始化接口获取 uuid。<br>
+                    2. 再调用 3. 获取登录二维码接口，展示二维码让用户扫码。<br>
+                    3. 用户扫码后，调用 4. 录入登陆授权码接口提交授权码。<br>
+                    4. 只有第一次登录时，4. 录入登陆授权码成功后，才有可能要求二次扫码授权。<br>
+                    5. 如果返回结果提示需要二次授权，再调用本接口生成/获取二次验证二维码。<br>
+                    6. 用户完成二次扫码授权后，再调用 6. 检查用户是否登录成功接口确认 loginType 和 longLinkState。<br>
+                    <strong>注意：</strong>不是每次登录都需要调用本接口；老账号或已授权账号通常可跳过。
+                </div>
+                <form id="secondary-form">
+                    <div class="form-group">
+                        <label for="secondary-uuid">UUID：</label>
+                        <input type="text" id="secondary-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearSecondaryResult()">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <!-- 第二列：响应结果 -->
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="secondary-result">仅第一次登录且第4步录入授权码成功后提示需要二次授权时，再调用本接口</div>
+            </div>
+            <!-- 第三列：图片展示 -->
+            <div class="api-column">
+                <div class="result" style="margin-bottom: 15px; white-space: normal;">
+                    <strong>判断是否需要调用：</strong><br>
+                    - 第4步成功且返回二次验证/二次授权提示：调用本接口。<br>
+                    - 第4步成功后账号已登录：跳过本接口，直接检查登录状态。<br>
+                    - 第4步失败：先处理授权码错误，不调用本接口。
+                </div>
+                <div class="qrcode-title">二次验证二维码：</div>
+                <img id="secondary-image" class="qrcode-image" alt="二次验证二维码" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- 第六个接口：检查用户是否登录成功 -->
+        <div class="api-row">
+            <!-- 第一列：接口名称、请求参数、请求按钮 -->
+            <div class="api-column">
+                <h2>6. 检查用户是否登录成功</h2>
+                <form id="getrunclientinfo-form">
+                    <div class="form-group">
+                        <label for="getrunclientinfo-uuid">UUID：</label>
+                        <input type="text" id="getrunclientinfo-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearResult('getrunclientinfo-result')">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <!-- 第二列：响应结果 -->
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="getrunclientinfo-result">请先调用初始化接口获取UUID，然后点击"调用接口"按钮</div>
+            </div>
+            <!-- 第三列：状态摘要 -->
+            <div class="api-column">
+                <h2>登录状态摘要</h2>
+                <div class="result" id="login-summary">loginType：未查询\nlongLinkState：未查询</div>
+            </div>
+        </div>
+
+        <!-- 可选接口：自动登录 -->
+        <div class="api-row">
+            <div class="api-column">
+                <h2>7. 自动登录（可选）</h2>
+                <div class="result" style="margin-bottom: 15px; white-space: normal;">
+                    <strong>调用说明：</strong><br>
+                    初始化接口传递过 vid 时，可用本接口根据 uuid 自动登录。<br>
+                    如果初始化时没有传 vid，自动登录通常失败。账号首次扫码登录成功后，后续可复用 vid + uuid 做自动登录。
+                </div>
+                <form id="automaticlogin-form">
+                    <div class="form-group">
+                        <label for="automaticlogin-uuid">UUID：</label>
+                        <input type="text" id="automaticlogin-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearResult('automaticlogin-result')">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="automaticlogin-result">可选接口：有历史 vid 并已初始化拿到 uuid 后调用</div>
+            </div>
+            <div class="api-column">
+                <h2>接口路径</h2>
+                <div class="result" style="white-space: normal;">
+                    请求路径：<br>
+                    POST /wx/api/v1/init/automaticLogin
+                </div>
+            </div>
+        </div>
+        
+        <!-- 可选接口：退出登录 -->
+        <div class="api-row">
+            <div class="api-column">
+                <h2>8. 退出登录（可选）</h2>
+                <div class="result" style="margin-bottom: 15px; white-space: normal;">
+                    <strong>调用说明：</strong><br>
+                    按 uuid 退出当前企业微信实例。退出后该 uuid 对应实例不再保持登录态；如需继续使用，需要重新登录或重新初始化。
+                </div>
+                <form id="loginout-form">
+                    <div class="form-group">
+                        <label for="loginout-uuid">UUID：</label>
+                        <input type="text" id="loginout-uuid" placeholder="自动填充" readonly>
+                    </div>
+                    <div class="button-group">
+                        <button type="submit" class="submit-btn">
+                            <span class="loading" style="display: none;"></span>
+                            调用接口
+                        </button>
+                        <button type="button" class="clear-btn" onclick="clearResult('loginout-result')">清空结果</button>
+                    </div>
+                </form>
+            </div>
+            <div class="api-column">
+                <h2>响应结果</h2>
+                <div class="result" id="loginout-result">可选接口：确认需要退出当前 uuid 登录态时调用</div>
+            </div>
+            <div class="api-column">
+                <h2>接口路径</h2>
+                <div class="result" style="white-space: normal;">
+                    请求路径：<br>
+                    POST /wx/api/v1/init/loginOut
+                </div>
+            </div>
+        </div>
+            </div>
+            <aside class="flow-sidebar">
+                <div class="flowchart">
+                    <div class="flowchart-title">接口调用流程图</div>
+                    <div class="flow-step">1. 初始化接口<br>获取 uuid</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">3. 获取登录二维码<br>用户扫码</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step">4. 录入登陆授权码<br>提交 code</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step optional">第4步成功后<br>是否提示二次授权？</div>
+                    <div class="flow-branch">
+                        <div>
+                            <div class="flow-arrow">是 ↓</div>
+                            <div class="flow-step optional">5. 调二次扫码授权<br>展示二次二维码</div>
+                        </div>
+                        <div>
+                            <div class="flow-arrow">否 ↓</div>
+                            <div class="flow-step success">跳过第5步<br>直接检查登录</div>
+                        </div>
+                    </div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step success">6. 检查登录成功<br>loginType=2 且 longLinkState=CONNECTED</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step optional">7. 自动登录（可选）<br>有历史 vid 时使用</div>
+                    <div class="flow-arrow">↓</div>
+                    <div class="flow-step optional">8. 退出登录（可选）<br>需要释放当前登录态时使用</div>
+                    <div class="flow-note">第5步不是固定必调；只在第一次登录且第4步成功后返回二次扫码授权要求时调用。</div>
+                </div>
+            </aside>
+        </div>
+        </div>
+        
+        <div class="tab-pane" id="tab-friends">
+            <div class="module-hint">
+                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表或外部群列表；选择好友/群后可发送文本、CDN 图片、CDN 语音和小程序消息。图片、语音、小程序封面会先上传/转换为 CDN 资源后发送。
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>1. 获取外部联系人列表</h2>
+                    <form id="externalcontacts-form">
+                        <div class="form-group">
+                            <label for="externalcontacts-uuid">UUID：</label>
+                            <input type="text" id="externalcontacts-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="externalcontacts-limit">每页数量 limit：</label>
+                            <input type="number" id="externalcontacts-limit" value="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="externalcontacts-cursor">分页游标 seq：</label>
+                            <select id="externalcontacts-cursor" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="0">首页（seq=0）</option>
+                            </select>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>加载好友列表</button>
+                            <button type="button" class="clear-btn" onclick="resetExternalContactsState()">重置游标</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="externalcontacts-result">登录成功后，选择游标加载外部联系人；接口返回 seq 后会自动加入下拉分页选项</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/contact/getExternalContacts</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>2. 单好友发送文本消息</h2>
+                    <form id="sendtext-form">
+                        <div class="form-group">
+                            <label for="sendtext-uuid">UUID：</label>
+                            <input type="text" id="sendtext-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtext-userid">send_userid：</label>
+                            <input type="text" id="sendtext-userid" placeholder="可从好友列表点击“选择发送”自动填入">
+                        </div>
+                        <div class="form-group">
+                            <label>消息类型：</label>
+                            <input type="text" value="单好友文本消息（isRoom=false）" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendtext-content">消息内容 content：</label>
+                            <textarea id="sendtext-content" placeholder="请输入要发送的文本" style="width: 100%; min-height: 90px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"></textarea>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>调用接口</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendtext-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendtext-result">从好友列表选择目标好友，填写消息内容后发送</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendText</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>3. 获取外部群列表</h2>
+                    <form id="chatroommembers-form">
+                        <div class="form-group">
+                            <label for="chatroommembers-uuid">UUID：</label>
+                            <input type="text" id="chatroommembers-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="chatroommembers-limit">每页数量 limit：</label>
+                            <input type="number" id="chatroommembers-limit" value="5" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="chatroommembers-cursor">分页游标 star_index：</label>
+                            <select id="chatroommembers-cursor" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="0">首页（star_index=0）</option>
+                            </select>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>加载外部群列表</button>
+                            <button type="button" class="clear-btn" onclick="resetChatroomMembersState()">重置游标</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="chatroommembers-result">登录成功后，选择 star_index 加载外部群列表；接口返回 next_start 后会自动加入下拉分页选项。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/group/getChatroomMembers</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>4. 发送群文本消息</h2>
+                    <form id="sendgrouptext-form">
+                        <div class="form-group">
+                            <label for="sendgrouptext-uuid">UUID：</label>
+                            <input type="text" id="sendgrouptext-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendgrouptext-userid">send_userid：</label>
+                            <input type="text" id="sendgrouptext-userid" placeholder="可从外部群列表点击“选择群发送”自动填入">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendgrouptext-isroom">是否群消息 isRoom：</label>
+                            <select id="sendgrouptext-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="true">true - 群消息</option>
+                                <option value="false">false - 个人消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendgrouptext-content">消息内容 content：</label>
+                            <textarea id="sendgrouptext-content" placeholder="请输入要发送到群的文本" style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">你好</textarea>
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>发送消息</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendgrouptext-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendgrouptext-result">从外部群列表选择群 ID，确认 isRoom=true 后调用 sendText 发送群文本消息。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/message/sendText</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>5. 图片发送（个人/群）</h2>
+                    <form id="sendimage-form">
+                        <div class="form-group">
+                            <label for="sendimage-uuid">UUID：</label>
+                            <input type="text" id="sendimage-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-userid">send_userid：</label>
+                            <input type="text" id="sendimage-userid" placeholder="从好友或群列表选择，也可手动填写">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-isroom">是否群消息 isRoom：</label>
+                            <select id="sendimage-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-file">图片文件：</label>
+                            <input type="file" id="sendimage-file" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-ishd">is_hd（可选）：</label>
+                            <input type="number" id="sendimage-ishd" placeholder="转发高清图片时填 1 或 2，普通发送留空">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>上传 CDN 并发送</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendimage-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendimage-result">选择目标和图片文件后，页面先调用 CDN 上传，再调用 SendCDNImgMsg 发送。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">1. POST /wx/api/v1/cdn/cdnUploadImg<br>2. POST /wx/api/v1/message/sendImage</div>
+                </div>
+            </div>
+
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>6. 语音发送（个人/群）</h2>
+                    <form id="sendvoice-form">
+                        <div class="form-group">
+                            <label for="sendvoice-uuid">UUID：</label>
+                            <input type="text" id="sendvoice-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-userid">send_userid：</label>
+                            <input type="text" id="sendvoice-userid" placeholder="从好友或群列表选择，也可手动填写">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-isroom">是否群消息 isRoom：</label>
+                            <select id="sendvoice-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-file">语音文件：</label>
+                            <input type="file" id="sendvoice-file" accept="audio/*,.silk,.amr">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-time">voice_time（秒）：</label>
+                            <input type="number" id="sendvoice-time" value="4" min="1">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>上传 CDN 并发送</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendvoice-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendvoice-result">选择目标和语音文件后，页面先调用 CDN 文件上传，再调用 SendCDNVoiceMsg 发送。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">1. POST /wx/api/v1/cdn/cdnUploadFile<br>2. POST /wx/api/v1/message/sendVoice</div>
+                </div>
+            </div>
+
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>7. 小程序发送（个人/群）</h2>
+                    <form id="sendapp-form">
+                        <div class="form-group">
+                            <label for="sendapp-uuid">UUID：</label>
+                            <input type="text" id="sendapp-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-userid">send_userid：</label>
+                            <input type="text" id="sendapp-userid" placeholder="从好友或群列表选择，也可手动填写">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-isroom">是否群消息 isRoom：</label>
+                            <select id="sendapp-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-title">title：</label>
+                            <input type="text" id="sendapp-title" placeholder="小程序标题头像下边的">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-desc">desc：</label>
+                            <textarea id="sendapp-desc" placeholder="小程序描述内容" style="width: 100%; min-height: 70px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-name">appName：</label>
+                            <input type="text" id="sendapp-name" placeholder="小程序名称头像右边的">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-icon">weappIconUrl：</label>
+                            <input type="text" id="sendapp-icon" placeholder="小程序头像 URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-pagepath">pagepath：</label>
+                            <input type="text" id="sendapp-pagepath" placeholder="pages/train/index/index.html">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-username">username：</label>
+                            <input type="text" id="sendapp-username" placeholder="gh_xxx@app">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-appid">appid：</label>
+                            <input type="text" id="sendapp-appid" placeholder="wx45dff5234240ad90">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-coverurl">coverUrl（封面图 URL）：</label>
+                            <input type="text" id="sendapp-coverurl" placeholder="后端会先上传为 CDN 资源再调用 SendAppMsg">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>转 CDN 并发送</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendapp-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendapp-result">填写小程序参数后调用 sendApp；后端参考回调发送实现上传封面图 CDN 后发送。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendApp<br>下游：/wxwork/SendAppMsg</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量，保存UUID、qrcodeKey和secondaryKey
+        let globalUUID = '';
+        let globalQrCodeKey = '';
+        let globalSecondaryKey = '';
+        let externalContactCursorOptions = [{ seq: '0', label: '首页（seq=0）' }];
+        let chatroomMembersCursorOptions = [{ start: '0', label: '首页（star_index=0）' }];
+        
+        // Tab 切换事件
+        document.querySelectorAll('.tab-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                switchTab(button.getAttribute('data-tab'));
+            });
+        });
+        
+        // 初始化接口表单提交事件
+        document.getElementById('init-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callInitApi();
+        });
+        
+        // 设置回调URL接口表单提交事件
+        document.getElementById('callback-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callCallbackApi();
+        });
+        
+        // 获取二维码接口表单提交事件
+        document.getElementById('qrcode-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callQrCodeApi();
+        });
+        
+        // 检查验证码接口表单提交事件
+        document.getElementById('checkcode-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callCheckCodeApi();
+        });
+        
+        // 二次验证二维码接口表单提交事件
+        document.getElementById('secondary-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSecondaryValidationApi();
+        });
+        
+        // 检查用户是否登录成功接口表单提交事件
+        document.getElementById('getrunclientinfo-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callGetRunClientInfoApi();
+        });
+
+        
+        // 自动登录接口表单提交事件
+        document.getElementById('automaticlogin-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callAutomaticLoginApi();
+        });
+        
+        // 退出登录接口表单提交事件
+        document.getElementById('loginout-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callLoginOutApi();
+        });
+
+        
+        // 获取外部联系人列表表单提交事件
+        document.getElementById('externalcontacts-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callExternalContactsApi();
+        });
+        
+        // 发送文本消息表单提交事件
+        document.getElementById('sendtext-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendTextApi();
+        });
+        
+        // 获取外部群列表表单提交事件
+        document.getElementById('chatroommembers-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callChatroomMembersApi();
+        });
+        
+        // 发送群文本消息表单提交事件
+        document.getElementById('sendgrouptext-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendGroupTextApi();
+        });
+        
+        // 图片发送表单提交事件
+        document.getElementById('sendimage-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendImageApi();
+        });
+        
+        // 语音发送表单提交事件
+        document.getElementById('sendvoice-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendVoiceApi();
+        });
+        
+        // 小程序发送表单提交事件
+        document.getElementById('sendapp-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendAppApi();
+        });
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(function(button) {
+                button.classList.toggle('active', button.getAttribute('data-tab') === tabId);
+            });
+            document.querySelectorAll('.tab-pane').forEach(function(pane) {
+                pane.classList.toggle('active', pane.id === tabId);
+            });
+        }
+        
+        async function callExternalContactsApi() {
+            const form = document.getElementById('externalcontacts-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('externalcontacts-result');
+            const payload = {
+                uuid: document.getElementById('externalcontacts-uuid').value.trim(),
+                limit: Number(document.getElementById('externalcontacts-limit').value || 100),
+                seq: Number(document.getElementById('externalcontacts-cursor').value || 0)
+            };
+            if (!payload.uuid) {
+                showLocalError('externalcontacts-result', '错误：请先在登录绑定页初始化并获取 UUID');
+                return;
+            }
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在加载好友列表...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/contact/getExternalContacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const contactData = extractExternalContactData(result);
+                if ((result.errcode === 0 || result.code === 0) && contactData.nextSeq !== null && contactData.nextSeq !== undefined) {
+                    addExternalContactCursor(contactData.nextSeq);
+                }
+                renderExternalContactList(resultDiv, result, contactData, payload.seq);
+            } catch (error) {
+                resultDiv.textContent = '加载好友列表失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function extractExternalContactData(result) {
+            const data = result && result.data ? result.data : {};
+            const list = Array.isArray(data.list) ? data.list : (Array.isArray(data) ? data : []);
+            return {
+                list: list,
+                total: data.total !== undefined ? data.total : (result.total !== undefined ? result.total : list.length),
+                nextSeq: data.seq !== undefined ? data.seq : result.seq
+            };
+        }
+        
+        function addExternalContactCursor(seq) {
+            const normalizedSeq = String(seq);
+            if (!normalizedSeq || normalizedSeq === '0') {
+                return;
+            }
+            if (externalContactCursorOptions.some(function(option) { return option.seq === normalizedSeq; })) {
+                return;
+            }
+            externalContactCursorOptions.push({
+                seq: normalizedSeq,
+                label: '第 ' + (externalContactCursorOptions.length + 1) + ' 页（seq=' + normalizedSeq + '）'
+            });
+            renderExternalContactCursorOptions(normalizedSeq);
+        }
+        
+        function renderExternalContactCursorOptions(selectedSeq) {
+            const select = document.getElementById('externalcontacts-cursor');
+            select.innerHTML = externalContactCursorOptions.map(function(option) {
+                const selected = option.seq === String(selectedSeq) ? ' selected' : '';
+                return '<option value="' + escapeHtml(option.seq) + '"' + selected + '>' + escapeHtml(option.label) + '</option>';
+            }).join('');
+        }
+        
+        function resetExternalContactsState() {
+            externalContactCursorOptions = [{ seq: '0', label: '首页（seq=0）' }];
+            renderExternalContactCursorOptions('0');
+            document.getElementById('externalcontacts-result').textContent = '已重置分页游标，请点击“加载好友列表”从首页开始加载';
+            document.getElementById('externalcontacts-result').className = 'result';
+        }
+        
+        function renderExternalContactList(resultDiv, result, contactData, currentSeq) {
+            const ok = result && (result.errcode === 0 || result.code === 0);
+            resultDiv.className = ok ? 'result success' : 'result error';
+            const rawJson = escapeHtml(JSON.stringify(result, null, 2));
+            if (!ok) {
+                resultDiv.innerHTML = '<div class="contact-summary">接口返回异常：</div><pre>' + rawJson + '</pre>';
+                return;
+            }
+            const rows = contactData.list.map(function(contact, index) {
+                const userId = contact.userId || contact.user_id || contact.vid || '';
+                const nickname = contact.nickname || contact.name || contact.realName || contact.realname || '';
+                const remarks = contact.remarks || contact.remark || contact.realRemarks || contact.real_remarks || '';
+                const corpName = contact.corpName || contact.corp_name || '';
+                const mobile = contact.mobile || '';
+                return '<tr>'
+                    + '<td>' + (index + 1) + '</td>'
+                    + '<td>' + escapeHtml(String(userId)) + '</td>'
+                    + '<td>' + escapeHtml(String(nickname || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(remarks || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(corpName || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(mobile || '-')) + '</td>'
+                    + '<td><button type="button" data-userid="' + escapeHtml(String(userId)) + '" onclick="selectExternalContactForSend(this.dataset.userid)">选择发送</button></td>'
+                    + '</tr>';
+            }).join('');
+            const nextSeqText = contactData.nextSeq !== null && contactData.nextSeq !== undefined ? contactData.nextSeq : '无';
+            resultDiv.innerHTML = '<div class="contact-summary">当前游标 seq=' + escapeHtml(String(currentSeq))
+                + '；本页 ' + contactData.list.length + ' 条；total=' + escapeHtml(String(contactData.total))
+                + '；下一页游标 seq=' + escapeHtml(String(nextSeqText))
+                + '。如需翻页，从“分页游标 seq”下拉框选择新游标后再次加载。</div>'
+                + '<table class="contact-table"><thead><tr><th>#</th><th>userId/vid</th><th>昵称</th><th>备注</th><th>企业</th><th>手机号</th><th>操作</th></tr></thead><tbody>'
+                + (rows || '<tr><td colspan="7">当前页没有好友数据</td></tr>')
+                + '</tbody></table><details style="margin-top: 12px;"><summary>查看原始响应 JSON</summary><pre>' + rawJson + '</pre></details>';
+        }
+        
+        function selectExternalContactForSend(userId) {
+            if (!userId) {
+                showLocalError('sendtext-result', '当前好友缺少 userId/vid，不能发送');
+                return;
+            }
+            document.getElementById('sendtext-userid').value = userId;
+            document.getElementById('sendtext-result').textContent = '已选择好友 userId/vid：' + userId + '，文本、图片、语音、小程序表单已同步为个人目标';
+            document.getElementById('sendtext-result').className = 'result success';
+            fillMediaSendTarget(userId, false);
+            document.getElementById('sendtext-content').focus();
+        }
+        
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+        
+        function escapeAttribute(value) {
+            return escapeHtml(value).replace(/`/g, '&#96;');
+        }
+        
+        async function callSendTextApi() {
+            const uuid = document.getElementById('sendtext-uuid').value.trim();
+            const sendUserid = document.getElementById('sendtext-userid').value.trim();
+            const content = document.getElementById('sendtext-content').value.trim();
+            if (!sendUserid) {
+                showLocalError('sendtext-result', '错误：请填写 send_userid');
+                return;
+            }
+            if (!content) {
+                showLocalError('sendtext-result', '错误：请填写消息内容 content');
+                return;
+            }
+            const payload = {
+                uuid: uuid,
+                send_userid: sendUserid,
+                isRoom: false,
+                content: content
+            };
+            await callJsonApi('sendtext-form', 'sendtext-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', payload, '发送文本消息');
+        }
+        
+        async function callChatroomMembersApi() {
+            const form = document.getElementById('chatroommembers-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('chatroommembers-result');
+            const payload = {
+                uuid: document.getElementById('chatroommembers-uuid').value.trim(),
+                limit: Number(document.getElementById('chatroommembers-limit').value || 5),
+                star_index: Number(document.getElementById('chatroommembers-cursor').value || 0)
+            };
+            if (!payload.uuid) {
+                showLocalError('chatroommembers-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return;
+            }
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在加载外部群列表...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/group/getChatroomMembers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const responseText = await response.text();
+                const result = parseJsonPreservingChatroomIds(responseText);
+                const roomData = extractChatroomMembersData(result);
+                if ((result.errcode === 0 || result.code === 0) && roomData.nextStart !== null && roomData.nextStart !== undefined && Number(roomData.nextStart) >= 0) {
+                    addChatroomMembersCursor(roomData.nextStart);
+                }
+                renderChatroomMembersList(resultDiv, result, roomData, payload.star_index);
+            } catch (error) {
+                resultDiv.textContent = '加载外部群列表失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function parseJsonPreservingChatroomIds(responseText) {
+            return JSON.parse(responseText.replace(/("(?:room_id|roomId)"\s*:\s*)(-?\d{16,})(?=\s*[,}])/g, '$1"$2"'));
+        }
+
+        function extractChatroomMembersData(result) {
+            const data = result && result.data ? result.data : {};
+            return {
+                total: data.total !== undefined ? data.total : 0,
+                nextStart: data.next_start !== undefined ? data.next_start : data.nextStart,
+                roomList: Array.isArray(data.roomList) ? data.roomList : []
+            };
+        }
+        
+        function addChatroomMembersCursor(nextStart) {
+            const normalizedStart = String(nextStart);
+            if (!normalizedStart || normalizedStart === '0' || Number(normalizedStart) < 0) {
+                return;
+            }
+            if (chatroomMembersCursorOptions.some(function(option) { return option.start === normalizedStart; })) {
+                return;
+            }
+            chatroomMembersCursorOptions.push({
+                start: normalizedStart,
+                label: '第 ' + (chatroomMembersCursorOptions.length + 1) + ' 页（star_index=' + normalizedStart + '）'
+            });
+            renderChatroomMembersCursorOptions(normalizedStart);
+        }
+        
+        function renderChatroomMembersCursorOptions(selectedStart) {
+            const select = document.getElementById('chatroommembers-cursor');
+            select.innerHTML = chatroomMembersCursorOptions.map(function(option) {
+                const selected = option.start === String(selectedStart) ? ' selected' : '';
+                return '<option value="' + escapeHtml(option.start) + '"' + selected + '>' + escapeHtml(option.label) + '</option>';
+            }).join('');
+        }
+        
+        function resetChatroomMembersState() {
+            chatroomMembersCursorOptions = [{ start: '0', label: '首页（star_index=0）' }];
+            renderChatroomMembersCursorOptions('0');
+            document.getElementById('chatroommembers-result').textContent = '已重置分页游标，请点击“加载外部群列表”从首页开始加载';
+            document.getElementById('chatroommembers-result').className = 'result';
+        }
+        
+        function renderChatroomMembersList(resultDiv, result, roomData, currentStart) {
+            const ok = result && (result.errcode === 0 || result.code === 0);
+            resultDiv.className = ok ? 'result success' : 'result error';
+            const rawJson = escapeHtml(JSON.stringify(result, null, 2));
+            if (!ok) {
+                resultDiv.innerHTML = '<div class="contact-summary">接口返回异常：</div><pre>' + rawJson + '</pre>';
+                return;
+            }
+            const rows = roomData.roomList.map(function(room, index) {
+                const roomId = room.room_id || room.roomId || '';
+                const nickname = room.nickname || '';
+                const memberTotal = room.total !== undefined ? room.total : '';
+                const updateTime = room.update_time || room.updateTime || '';
+                const createTime = room.create_time || room.createTime || '';
+                return '<tr>'
+                    + '<td>' + (index + 1) + '</td>'
+                    + '<td>' + escapeHtml(String(roomId)) + '</td>'
+                    + '<td>' + escapeHtml(String(nickname || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(memberTotal || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(createTime || '-')) + '</td>'
+                    + '<td>' + escapeHtml(String(updateTime || '-')) + '</td>'
+                    + '<td><button type="button" data-roomid="' + escapeHtml(String(roomId)) + '" onclick="selectChatroomForSend(this.dataset.roomid)">选择群发送</button></td>'
+                    + '</tr>';
+            }).join('');
+            const nextStartText = roomData.nextStart !== null && roomData.nextStart !== undefined ? roomData.nextStart : '无';
+            resultDiv.innerHTML = '<div class="contact-summary">当前游标 star_index=' + escapeHtml(String(currentStart))
+                + '；本页 ' + roomData.roomList.length + ' 个群；total=' + escapeHtml(String(roomData.total))
+                + '；下一页游标 next_start=' + escapeHtml(String(nextStartText))
+                + '。如需翻页，从“分页游标 star_index”下拉框选择新游标后再次加载。</div>'
+                + '<table class="contact-table"><thead><tr><th>#</th><th>room_id</th><th>群名称</th><th>人数</th><th>创建时间</th><th>更新时间</th><th>操作</th></tr></thead><tbody>'
+                + (rows || '<tr><td colspan="7">当前页没有外部群数据</td></tr>')
+                + '</tbody></table><details style="margin-top: 12px;"><summary>查看原始响应 JSON</summary><pre>' + rawJson + '</pre></details>';
+        }
+        
+        function selectChatroomForSend(roomId) {
+            if (!roomId) {
+                showLocalError('sendgrouptext-result', '当前群缺少 room_id，不能发送');
+                return;
+            }
+            document.getElementById('sendgrouptext-userid').value = roomId;
+            document.getElementById('sendgrouptext-isroom').value = 'true';
+            document.getElementById('sendgrouptext-result').textContent = '已选择群 room_id：' + roomId + '，群文本、图片、语音、小程序表单已同步为群目标';
+            document.getElementById('sendgrouptext-result').className = 'result success';
+            fillMediaSendTarget(roomId, true);
+            document.getElementById('sendgrouptext-content').focus();
+        }
+        
+        async function callSendGroupTextApi() {
+            const uuid = document.getElementById('sendgrouptext-uuid').value.trim();
+            const sendUserid = document.getElementById('sendgrouptext-userid').value.trim();
+            const isRoom = document.getElementById('sendgrouptext-isroom').value === 'true';
+            const contentRaw = document.getElementById('sendgrouptext-content').value.trim();
+            if (!uuid) {
+                showLocalError('sendgrouptext-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return;
+            }
+            if (!/^\d+$/.test(sendUserid)) {
+                showLocalError('sendgrouptext-result', '错误：send_userid 必须是数字，可从外部群列表选择 room_id');
+                return;
+            }
+            if (!contentRaw) {
+                showLocalError('sendgrouptext-result', '错误：content 不能为空');
+                return;
+            }
+            const requestBody = JSON.stringify({
+                uuid: uuid,
+                send_userid: sendUserid,
+                isRoom: isRoom,
+                content: contentRaw
+            });
+            const form = document.getElementById('sendgrouptext-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('sendgrouptext-result');
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在发送群文本消息...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: requestBody
+                });
+                const responseText = await response.text();
+                let responsePayload;
+                try {
+                    responsePayload = JSON.parse(responseText);
+                } catch (ignore) {
+                    responsePayload = responseText;
+                }
+                const ok = response.ok && responsePayload && (responsePayload.errcode === 0 || responsePayload.code === 0);
+                resultDiv.textContent = '请求体：\n' + requestBody + '\n\n响应：\n' + (typeof responsePayload === 'string' ? responsePayload : JSON.stringify(responsePayload, null, 2));
+                resultDiv.className = ok ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = '发送群文本消息失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function fillMediaSendTarget(sendUserid, isRoom) {
+            ['sendimage', 'sendvoice', 'sendapp'].forEach(function(prefix) {
+                document.getElementById(prefix + '-userid').value = sendUserid;
+                document.getElementById(prefix + '-isroom').value = isRoom ? 'true' : 'false';
+            });
+        }
+
+        function buildBaseSendPayload(prefix, resultId) {
+            const uuid = document.getElementById(prefix + '-uuid').value.trim();
+            const sendUserid = document.getElementById(prefix + '-userid').value.trim();
+            if (!uuid) {
+                showLocalError(resultId, '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return null;
+            }
+            if (!/^\d+$/.test(sendUserid)) {
+                showLocalError(resultId, '错误：send_userid 必须是数字，可从好友或外部群列表选择');
+                return null;
+            }
+            return {
+                uuid: uuid,
+                send_userid: sendUserid,
+                isRoom: document.getElementById(prefix + '-isroom').value === 'true'
+            };
+        }
+
+        async function callSendImageApi() {
+            const basePayload = buildBaseSendPayload('sendimage', 'sendimage-result');
+            if (!basePayload) {
+                return;
+            }
+            const fileInput = document.getElementById('sendimage-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showLocalError('sendimage-result', '错误：请选择图片文件');
+                return;
+            }
+            await withSubmitState('sendimage-form', 'sendimage-result', '正在上传图片到 CDN...', async function(resultDiv) {
+                const uploadResult = await uploadCdnMultipart(basePayload.uuid, fileInput.files[0], 'http://ai-agent.okgcc.cn/wx/api/v1/cdn/cdnUploadImg');
+                const uploadData = requireSuccessData(uploadResult, '图片 CDN 上传失败');
+                const payload = Object.assign({}, basePayload, {
+                    cdnkey: requireUploadText(uploadData.cdn_key || uploadData.cdnkey || uploadData.fileid, 'cdnkey'),
+                    aeskey: requireUploadText(uploadData.aes_key || uploadData.aeskey, 'aeskey'),
+                    md5: requireUploadText(uploadData.md5, 'md5'),
+                    fileSize: requireUploadNumber(uploadData.size || uploadData.fileSize, 'fileSize'),
+                    width: uploadData.width,
+                    height: uploadData.height,
+                    thumb_image_height: uploadData.thumb_image_height,
+                    thumb_image_width: uploadData.thumb_image_width,
+                    thumb_file_size: uploadData.thumb_file_size,
+                    thumb_file_md5: uploadData.thumb_file_md5
+                });
+                const isHd = document.getElementById('sendimage-ishd').value.trim();
+                if (isHd) {
+                    payload.is_hd = Number(isHd);
+                }
+                const sendResult = await postJson('http://ai-agent.okgcc.cn/wx/api/v1/message/sendImage', payload);
+                renderChainedResult(resultDiv, payload, uploadResult, sendResult);
+            });
+        }
+
+        async function callSendVoiceApi() {
+            const basePayload = buildBaseSendPayload('sendvoice', 'sendvoice-result');
+            if (!basePayload) {
+                return;
+            }
+            const fileInput = document.getElementById('sendvoice-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showLocalError('sendvoice-result', '错误：请选择语音文件');
+                return;
+            }
+            const voiceTime = Number(document.getElementById('sendvoice-time').value || 0);
+            if (!Number.isInteger(voiceTime) || voiceTime <= 0) {
+                showLocalError('sendvoice-result', '错误：voice_time 必须是大于 0 的整数秒');
+                return;
+            }
+            await withSubmitState('sendvoice-form', 'sendvoice-result', '正在上传语音到 CDN...', async function(resultDiv) {
+                const uploadResult = await uploadCdnMultipart(basePayload.uuid, fileInput.files[0], 'http://ai-agent.okgcc.cn/wx/api/v1/cdn/cdnUploadFile');
+                const uploadData = requireSuccessData(uploadResult, '语音 CDN 上传失败');
+                const payload = Object.assign({}, basePayload, {
+                    cdnkey: requireUploadText(uploadData.cdn_key || uploadData.cdnkey || uploadData.fileid, 'cdnkey'),
+                    aeskey: requireUploadText(uploadData.aes_key || uploadData.aeskey, 'aeskey'),
+                    md5: requireUploadText(uploadData.md5, 'md5'),
+                    voice_time: voiceTime,
+                    fileSize: requireUploadNumber(uploadData.size || uploadData.fileSize, 'fileSize')
+                });
+                const sendResult = await postJson('http://ai-agent.okgcc.cn/wx/api/v1/message/sendVoice', payload);
+                renderChainedResult(resultDiv, payload, uploadResult, sendResult);
+            });
+        }
+
+        async function callSendAppApi() {
+            const payload = buildBaseSendPayload('sendapp', 'sendapp-result');
+            if (!payload) {
+                return;
+            }
+            payload.title = document.getElementById('sendapp-title').value.trim();
+            payload.desc = document.getElementById('sendapp-desc').value.trim();
+            payload.appName = document.getElementById('sendapp-name').value.trim();
+            payload.weappIconUrl = document.getElementById('sendapp-icon').value.trim();
+            payload.pagepath = document.getElementById('sendapp-pagepath').value.trim();
+            payload.username = document.getElementById('sendapp-username').value.trim();
+            payload.appid = document.getElementById('sendapp-appid').value.trim();
+            payload.coverUrl = document.getElementById('sendapp-coverurl').value.trim();
+            const missingField = ['title', 'desc', 'appName', 'pagepath', 'username', 'appid', 'coverUrl'].find(function(field) { return !payload[field]; });
+            if (missingField) {
+                showLocalError('sendapp-result', '错误：' + missingField + ' 不能为空');
+                return;
+            }
+            await callJsonApi('sendapp-form', 'sendapp-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendApp', payload, '发送小程序消息');
+        }
+
+        async function uploadCdnMultipart(uuid, file, url) {
+            const formData = new FormData();
+            formData.append('uuid', uuid);
+            formData.append('file', file);
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+            return parseApiResponse(response, await response.text());
+        }
+
+        async function postJson(url, payload) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            return parseApiResponse(response, await response.text());
+        }
+
+        function parseApiResponse(response, responseText) {
+            let payload;
+            try {
+                payload = JSON.parse(responseText);
+            } catch (ignore) {
+                payload = responseText;
+            }
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status + '：' + (typeof payload === 'string' ? payload : JSON.stringify(payload)));
+            }
+            return payload;
+        }
+
+        function requireSuccessData(result, message) {
+            if (!result || (result.errcode !== 0 && result.code !== 0)) {
+                throw new Error(message + '：' + (result && (result.errmsg || result.msg) ? (result.errmsg || result.msg) : JSON.stringify(result)));
+            }
+            if (!result.data) {
+                throw new Error(message + '：响应缺少 data');
+            }
+            return result.data;
+        }
+
+        function requireUploadText(value, fieldName) {
+            if (value === null || value === undefined || String(value).trim() === '') {
+                throw new Error('CDN 上传响应缺少 ' + fieldName);
+            }
+            return String(value);
+        }
+
+        function requireUploadNumber(value, fieldName) {
+            const numberValue = Number(value);
+            if (!Number.isFinite(numberValue) || numberValue <= 0) {
+                throw new Error('CDN 上传响应缺少有效 ' + fieldName);
+            }
+            return numberValue;
+        }
+
+        async function withSubmitState(formId, resultId, loadingText, task) {
+            const form = document.getElementById(formId);
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById(resultId);
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = loadingText;
+            resultDiv.className = 'result';
+            try {
+                await task(resultDiv);
+            } catch (error) {
+                resultDiv.textContent = error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+
+        function renderChainedResult(resultDiv, requestPayload, uploadResult, sendResult) {
+            resultDiv.textContent = 'CDN 上传响应：\n' + JSON.stringify(uploadResult, null, 2)
+                + '\n\n发送请求体：\n' + JSON.stringify(requestPayload, null, 2)
+                + '\n\n发送响应：\n' + JSON.stringify(sendResult, null, 2);
+            resultDiv.className = sendResult && (sendResult.errcode === 0 || sendResult.code === 0) ? 'result success' : 'result error';
+        }
+        
+        async function callJsonApi(formId, resultId, url, payload, actionName) {
+            const form = document.getElementById(formId);
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById(resultId);
+            if (!payload.uuid) {
+                showLocalError(resultId, '错误：请先在登录绑定页初始化并获取 UUID');
+                return;
+            }
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在调用接口...';
+            resultDiv.className = 'result';
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = (result.errcode === 0 || result.code === 0) ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = actionName + '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        function showLocalError(resultId, message) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.textContent = message;
+            resultDiv.className = 'result error';
+        }
+        
+        // 调用初始化接口
+        async function callInitApi() {
+            const form = document.getElementById('init-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('init-result');
+            
+            // 显示加载状态
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            
+            // 获取表单数据
+            const vid = document.getElementById('init-vid').value.trim();
+            
+            // 构建请求数据
+            const requestData = {
+                proxySituation: 0,
+                deverType: 'ipad'
+            };
+            
+            // 如果vid不为空，则添加到请求数据中
+            if (vid) {
+                requestData.vid = vid;
+            }
+            
+            try {
+                // 调用接口
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/init', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                // 解析响应
+                const result = await response.json();
+                
+                // 显示结果
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // 处理成功情况
+                if ((result.errcode === 0 || result.code === 0) && result.data && result.data.uuid) {
+                    resultDiv.className = 'result success';
+                    // 保存UUID到全局变量
+                    globalUUID = result.data.uuid;
+                    // 更新全局UUID显示
+                    document.getElementById('global-uuid').value = globalUUID;
+                    // 自动填充到第二个接口的UUID字段
+                    document.getElementById('callback-uuid').value = globalUUID;
+                    // 自动填充到第三个接口的UUID字段
+                    document.getElementById('qrcode-uuid').value = globalUUID;
+                    // 自动填充到第四个接口的UUID字段
+                    document.getElementById('checkcode-uuid').value = globalUUID;
+                    // 自动填充到第五个接口的UUID字段
+                    document.getElementById('secondary-uuid').value = globalUUID;
+                    // 自动填充到第六个接口的UUID字段
+                    document.getElementById('getrunclientinfo-uuid').value = globalUUID;
+                    document.getElementById('automaticlogin-uuid').value = globalUUID;
+                    document.getElementById('loginout-uuid').value = globalUUID;
+                    document.getElementById('externalcontacts-uuid').value = globalUUID;
+                    document.getElementById('sendtext-uuid').value = globalUUID;
+                    document.getElementById('chatroommembers-uuid').value = globalUUID;
+                    document.getElementById('sendgrouptext-uuid').value = globalUUID;
+                    document.getElementById('sendimage-uuid').value = globalUUID;
+                    document.getElementById('sendvoice-uuid').value = globalUUID;
+                    document.getElementById('sendapp-uuid').value = globalUUID;
+                    // 更新第二个接口的结果提示
+                    const callbackResult = document.getElementById('callback-result');
+                    callbackResult.textContent = 'UUID已获取，可以调用接口';
+                    callbackResult.className = 'result';
+                    // 更新第三个接口的结果提示
+                    const qrcodeResult = document.getElementById('qrcode-result');
+                    qrcodeResult.textContent = 'UUID已获取，可以调用接口';
+                    qrcodeResult.className = 'result';
+                    // 更新第四个接口的结果提示
+                    const checkcodeResult = document.getElementById('checkcode-result');
+                    checkcodeResult.textContent = 'UUID已获取，等待获取qrcodeKey';
+                    checkcodeResult.className = 'result';
+                    // 更新第五个接口的结果提示
+                    const secondaryResult = document.getElementById('secondary-result');
+                    secondaryResult.textContent = 'UUID已获取，可以调用接口';
+                    secondaryResult.className = 'result';
+                    // 更新第六个接口的结果提示
+                    const getRunClientInfoResult = document.getElementById('getrunclientinfo-result');
+                    getRunClientInfoResult.textContent = 'UUID已获取，可以调用接口检查登录状态';
+                    getRunClientInfoResult.className = 'result';
+                } else {
+                    resultDiv.className = 'result error';
+                }
+                
+            } catch (error) {
+                // 处理错误情况
+                resultDiv.textContent = '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                // 隐藏加载状态
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        // 调用设置回调URL接口
+        async function callCallbackApi() {
+            const form = document.getElementById('callback-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('callback-result');
+            
+            // 显示加载状态
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            
+            // 检查UUID是否已获取
+            if (!globalUUID) {
+                resultDiv.textContent = '请先调用初始化接口获取UUID';
+                resultDiv.className = 'result error';
+                loading.style.display = 'none';
+                button.disabled = false;
+                return;
+            }
+            
+            // 获取表单数据
+            const uuid = document.getElementById('callback-uuid').value.trim();
+            const url = document.getElementById('callback-url').value.trim();
+            const callbackType = document.getElementById('callback-callbackType').value.trim();
+            
+            // 构建请求数据
+            const requestData = {
+                uuid: uuid,
+                url: url,
+                callbackType: callbackType
+            };
+            
+            try {
+                // 调用接口
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/setCallbackUrl', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                // 解析响应
+                const result = await response.json();
+                
+                // 显示结果
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // 处理成功情况
+                if (result.errcode === 0 || result.code === 0) {
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.className = 'result error';
+                }
+                
+            } catch (error) {
+                // 处理错误情况
+                resultDiv.textContent = '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                // 隐藏加载状态
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        // 调用获取登录二维码接口
+        async function callQrCodeApi() {
+            const form = document.getElementById('qrcode-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('qrcode-result');
+            const qrcodeImage = document.getElementById('qrcode-image');
+            
+            // 显示加载状态
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            // 隐藏二维码
+            qrcodeImage.style.display = 'none';
+            
+            // 检查UUID是否已获取
+            if (!globalUUID) {
+                resultDiv.textContent = '请先调用初始化接口获取UUID';
+                resultDiv.className = 'result error';
+                loading.style.display = 'none';
+                button.disabled = false;
+                return;
+            }
+            
+            // 获取表单数据
+            const uuid = document.getElementById('qrcode-uuid').value.trim();
+            
+            // 构建请求数据
+            const requestData = {
+                uuid: uuid
+            };
+            
+            try {
+                // 调用接口
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/getQrCode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                // 解析响应
+                const result = await response.json();
+                
+                // 显示结果
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // 处理成功情况
+                if ((result.errcode === 0 || result.code === 0) && result.data) {
+                    resultDiv.className = 'result success';
+                    
+                    // 显示二维码图片
+                    if (result.data.qrcode || result.data.qrCode || result.data.QrCodeUrl) {
+                        // 确保qrcode是字符串类型，并清理多余的空格和引号
+                        let qrcodeData = String(result.data.qrcode || result.data.qrCode || result.data.QrCodeUrl);
+                        // 清理前后空格、反引号和可能的普通引号
+                        qrcodeData = qrcodeData.trim().replace(/^[`'"]+|[`'"]+$/g, '');
+                        console.log('QRCode data type:', typeof qrcodeData, 'content:', qrcodeData.substring(0, 100) + (qrcodeData.length > 100 ? '...' : ''));
+                        
+                        // 如果是base64编码且缺少data URI前缀，自动添加
+                        if (qrcodeData.startsWith('iVBORw0KGgo') || qrcodeData.startsWith('/9j/')) {
+                            // PNG或JPEG的base64编码，添加适当的前缀
+                            const isPNG = qrcodeData.startsWith('iVBORw0KGgo');
+                            qrcodeData = `data:image/${isPNG ? 'png' : 'jpeg'};base64,${qrcodeData}`;
+                            console.log('Added data URI prefix:', qrcodeData.substring(0, 50) + '...');
+                        }
+                        
+                        // 重置图片错误状态
+                        qrcodeImage.onerror = null;
+                        // 使用临时对象预加载图片，确保图片可以正常加载
+                        const tempImage = new Image();
+                        tempImage.onload = function() {
+                            // 图片预加载成功，设置到显示元素
+                            qrcodeImage.src = qrcodeData;
+                            qrcodeImage.style.display = 'block';
+                            console.log('QRCode image loaded successfully');
+                        };
+                        tempImage.onerror = function() {
+                            console.error('Failed to load QRCode image:', qrcodeData);
+                            qrcodeImage.style.display = 'none';
+                            resultDiv.textContent += '\n\n[错误] 二维码图片加载失败，请检查API返回的qrcode格式是否正确';
+                        };
+                        tempImage.src = qrcodeData;
+                    } else {
+                        console.warn('API returned success but no qrcode in data:', result.data);
+                        qrcodeImage.style.display = 'none';
+                        resultDiv.textContent += '\n\n[警告] API返回成功但未包含qrcode数据';
+                    }
+                    
+                    // 保存qrcodeKey到全局变量
+                    if (result.data.Key || result.data.key || result.data.qrcodeKey) {
+                        globalQrCodeKey = result.data.Key || result.data.key || result.data.qrcodeKey;
+                        // 自动填充到第四个接口的qrcodeKey字段
+                        document.getElementById('checkcode-key').value = globalQrCodeKey;
+                        // 更新第四个接口的结果提示
+                        const checkcodeResult = document.getElementById('checkcode-result');
+                        checkcodeResult.textContent = 'qrcodeKey已获取，可以输入验证码调用接口';
+                        checkcodeResult.className = 'result';
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    qrcodeImage.style.display = 'none';
+                }
+                
+            } catch (error) {
+                // 处理错误情况
+                resultDiv.textContent = '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                // 隐藏加载状态
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        // 调用检查验证码接口
+        async function callCheckCodeApi() {
+            const form = document.getElementById('checkcode-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('checkcode-result');
+            
+            // 显示加载状态
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            
+            // 检查UUID和qrcodeKey是否已获取
+            if (!globalUUID) {
+                resultDiv.textContent = '请先调用初始化接口获取UUID';
+                resultDiv.className = 'result error';
+                loading.style.display = 'none';
+                button.disabled = false;
+                return;
+            }
+            
+            if (!globalQrCodeKey) {
+                resultDiv.textContent = '请先调用获取登录二维码接口获取qrcodeKey';
+                resultDiv.className = 'result error';
+                loading.style.display = 'none';
+                button.disabled = false;
+                return;
+            }
+            
+            // 获取表单数据
+            const uuid = document.getElementById('checkcode-uuid').value.trim();
+            const qrcodeKey = document.getElementById('checkcode-key').value.trim();
+            const code = document.getElementById('checkcode-code').value.trim();
+            
+            // 检查验证码是否为空
+            if (!code) {
+                resultDiv.textContent = '请输入验证码';
+                resultDiv.className = 'result error';
+                loading.style.display = 'none';
+                button.disabled = false;
+                return;
+            }
+            
+            // 构建请求数据
+            const requestData = {
+                uuid: uuid,
+                qrcodeKey: qrcodeKey,
+                code: code
+            };
+            
+            try {
+                // 调用接口
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/checkCode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                // 解析响应
+                const result = await response.json();
+                
+                // 显示结果
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // 处理成功情况
+                if (result.errcode === 0 || result.code === 0) {
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.className = 'result error';
+                }
+                
+            } catch (error) {
+                // 处理错误情况
+                resultDiv.textContent = '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                // 隐藏加载状态
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        // 调用获取二次验证二维码接口
+        async function callSecondaryValidationApi() {
+            const form = document.getElementById('secondary-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('secondary-result');
+            const secondaryImage = document.getElementById('secondary-image');
+            
+            // 显示加载状态
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            // 隐藏二维码
+            secondaryImage.style.display = 'none';
+            
+            // 检查UUID是否已获取
+            if (!globalUUID) {
+                resultDiv.textContent = '请先调用初始化接口获取UUID';
+                resultDiv.className = 'result error';
+                loading.style.display = 'none';
+                button.disabled = false;
+                return;
+            }
+            
+            // 获取表单数据
+            const uuid = document.getElementById('secondary-uuid').value.trim();
+            
+            // 构建请求数据
+            const requestData = {
+                uuid: uuid
+            };
+            
+            try {
+                // 调用接口
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/secondaryValidation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                // 解析响应
+                const result = await response.json();
+                
+                // 显示结果
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                
+                // 处理成功情况
+                if ((result.errcode === 0 || result.code === 0) && result.data) {
+                    resultDiv.className = 'result success';
+                    
+                    // 显示二维码图片
+                    if (result.data.qrcode || result.data.qrCode || result.data.QrCodeUrl) {
+                        // 确保qrcode是字符串类型，并清理多余的空格和引号
+                        let qrcodeData = String(result.data.qrcode || result.data.qrCode || result.data.QrCodeUrl);
+                        // 清理前后空格、反引号和可能的普通引号
+                        qrcodeData = qrcodeData.trim().replace(/^[`'"]+|[`'"]+$/g, '');
+                        console.log('Secondary QRCode data type:', typeof qrcodeData, 'content:', qrcodeData.substring(0, 100) + (qrcodeData.length > 100 ? '...' : ''));
+                        
+                        // 如果是base64编码且缺少data URI前缀，自动添加
+                        if (qrcodeData.startsWith('iVBORw0KGgo') || qrcodeData.startsWith('/9j/')) {
+                            // PNG或JPEG的base64编码，添加适当的前缀
+                            const isPNG = qrcodeData.startsWith('iVBORw0KGgo');
+                            qrcodeData = `data:image/${isPNG ? 'png' : 'jpeg'};base64,${qrcodeData}`;
+                            console.log('Added data URI prefix:', qrcodeData.substring(0, 50) + '...');
+                        }
+                        
+                        // 重置图片错误状态
+                        secondaryImage.onerror = null;
+                        // 使用临时对象预加载图片，确保图片可以正常加载
+                        const tempImage = new Image();
+                        tempImage.onload = function() {
+                            // 图片预加载成功，设置到显示元素
+                            secondaryImage.src = qrcodeData;
+                            secondaryImage.style.display = 'block';
+                            console.log('Secondary QRCode image loaded successfully');
+                        };
+                        tempImage.onerror = function() {
+                            console.error('Failed to load secondary QRCode image:', qrcodeData);
+                            secondaryImage.style.display = 'none';
+                            resultDiv.textContent += '\n\n[错误] 二次验证二维码图片加载失败，请检查API返回的qrcode格式是否正确';
+                        };
+                        tempImage.src = qrcodeData;
+                    } else {
+                        console.warn('API returned success but no qrcode in data:', result.data);
+                        secondaryImage.style.display = 'none';
+                        resultDiv.textContent += '\n\n[警告] API返回成功但未包含qrcode数据';
+                    }
+                    
+                    // 保存secondaryKey到全局变量
+                    if (result.data.Key) {
+                        globalSecondaryKey = result.data.Key;
+                    }
+                } else {
+                    resultDiv.className = 'result error';
+                    secondaryImage.style.display = 'none';
+                }
+                
+            } catch (error) {
+                // 处理错误情况
+                resultDiv.textContent = '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                // 隐藏加载状态
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        // 调用检查用户是否登录成功接口
+        async function callGetRunClientInfoApi() {
+            const form = document.getElementById('getrunclientinfo-form');
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById('getrunclientinfo-result');
+            const summaryDiv = document.getElementById('login-summary');
+            const uuid = document.getElementById('getrunclientinfo-uuid').value.trim();
+            
+            if (!uuid) {
+                resultDiv.textContent = '错误：请先调用初始化接口获取UUID';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在调用接口...';
+            resultDiv.className = 'result';
+            summaryDiv.textContent = '正在查询...';
+            
+            const requestData = {
+                uuid: uuid
+            };
+            
+            try {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/getRunClientByUuid', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                
+                if ((result.errcode === 0 || result.code === 0) && result.data) {
+                    const loginType = result.data.loginType;
+                    const longLinkState = result.data.longLinkState || '未知';
+                    const userInfo = result.data.userInfo || {};
+                    const callbackConfig = result.data.clientCallbackConfig || {};
+                    const loginText = loginType === 2 ? '已登录' : (loginType === 1 ? '已初始化未登录' : '未初始化');
+                    resultDiv.className = loginType === 2 && longLinkState === 'CONNECTED' ? 'result success' : 'result error';
+                    summaryDiv.className = resultDiv.className;
+                    summaryDiv.textContent = [
+                        'loginType：' + loginType + '（' + loginText + '）',
+                        'longLinkState：' + longLinkState,
+                        'uuid：' + (result.data.uuid || uuid),
+                        '昵称：' + (userInfo.nickname || '-'),
+                        '姓名：' + (userInfo.realname || '-'),
+                        '企业：' + (userInfo.corpName || userInfo.corpFullName || '-'),
+                        '回调类型：' + (callbackConfig.callbackType || '-'),
+                        '回调URL：' + (callbackConfig.url || '-')
+                    ].join('\n');
+                } else {
+                    resultDiv.className = 'result error';
+                    summaryDiv.className = 'result error';
+                    summaryDiv.textContent = '查询失败：' + (result.errmsg || result.msg || '未知错误');
+                }
+            } catch (error) {
+                resultDiv.textContent = '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+                summaryDiv.className = 'result error';
+                summaryDiv.textContent = '调用失败：' + error.message;
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+
+        // 调用自动登录接口
+        async function callAutomaticLoginApi() {
+            await callUuidOnlyApi(
+                'automaticlogin-form',
+                'automaticlogin-uuid',
+                'automaticlogin-result',
+                'http://ai-agent.okgcc.cn/wx/api/v1/init/automaticLogin',
+                '自动登录'
+            );
+        }
+        
+        // 调用退出登录接口
+        async function callLoginOutApi() {
+            await callUuidOnlyApi(
+                'loginout-form',
+                'loginout-uuid',
+                'loginout-result',
+                'http://ai-agent.okgcc.cn/wx/api/v1/init/loginOut',
+                '退出登录'
+            );
+        }
+        
+        async function callUuidOnlyApi(formId, uuidInputId, resultId, url, actionName) {
+            const form = document.getElementById(formId);
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById(resultId);
+            const uuid = document.getElementById(uuidInputId).value.trim();
+            
+            if (!uuid) {
+                resultDiv.textContent = '错误：请先调用初始化接口获取UUID';
+                resultDiv.className = 'result error';
+                return;
+            }
+            
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在调用接口...';
+            resultDiv.className = 'result';
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ uuid: uuid })
+                });
+                const result = await response.json();
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.className = (result.errcode === 0 || result.code === 0) ? 'result success' : 'result error';
+            } catch (error) {
+                resultDiv.textContent = actionName + '调用失败：' + error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+        
+        // 清空结果函数
+        function clearResult(resultId) {
+            const resultDiv = document.getElementById(resultId);
+            resultDiv.textContent = '请点击"调用接口"按钮开始调用';
+            resultDiv.className = 'result';
+        }
+        
+        // 清空二维码结果函数
+        function clearQrCodeResult() {
+            const resultDiv = document.getElementById('qrcode-result');
+            const qrcodeImage = document.getElementById('qrcode-image');
+            
+            resultDiv.textContent = '请先调用初始化接口获取UUID，然后点击"调用接口"按钮';
+            resultDiv.className = 'result';
+            qrcodeImage.style.display = 'none';
+        }
+        
+        // 清空二次验证结果函数
+        function clearSecondaryResult() {
+            const resultDiv = document.getElementById('secondary-result');
+            const secondaryImage = document.getElementById('secondary-image');
+            
+            resultDiv.textContent = '请先调用初始化接口获取UUID，然后点击"调用接口"按钮';
+            resultDiv.className = 'result';
+            secondaryImage.style.display = 'none';
+        }
+        
+        // 更新全局UUID
+        function updateGlobalUUID() {
+            // 从输入框获取UUID
+            const uuidInput = document.getElementById('global-uuid');
+            const newUUID = uuidInput.value.trim();
+            
+            if (newUUID) {
+                // 更新全局变量
+                globalUUID = newUUID;
+                console.log('Global UUID updated to:', newUUID);
+                
+                // 更新所有接口的UUID输入框
+                document.getElementById('callback-uuid').value = newUUID;
+                document.getElementById('qrcode-uuid').value = newUUID;
+                document.getElementById('checkcode-uuid').value = newUUID;
+                document.getElementById('secondary-uuid').value = newUUID;
+                document.getElementById('getrunclientinfo-uuid').value = newUUID;
+                document.getElementById('automaticlogin-uuid').value = newUUID;
+                document.getElementById('loginout-uuid').value = newUUID;
+                document.getElementById('externalcontacts-uuid').value = newUUID;
+                document.getElementById('sendtext-uuid').value = newUUID;
+                document.getElementById('chatroommembers-uuid').value = newUUID;
+                document.getElementById('sendgrouptext-uuid').value = newUUID;
+                
+                // 显示更新成功提示
+                alert('UUID已更新并同步到所有接口');
+            } else {
+                alert('请输入有效的UUID');
+            }
+        }
+        
+        // 从结果中渲染二维码图片
+        function renderQrCodeFromResult() {
+            const resultDiv = document.getElementById('qrcode-result');
+            const qrcodeImage = document.getElementById('qrcode-image');
+            
+            try {
+                // 解析响应结果
+                const resultText = resultDiv.textContent;
+                const result = JSON.parse(resultText);
+                
+                // 检查结果是否成功且包含qrcode
+                if (result.errcode === 0 && result.data && result.data.qrcode) {
+                    // 确保qrcode是字符串类型，并清理多余的空格和引号
+                    let qrcodeData = String(result.data.qrcode);
+                    // 清理前后空格、反引号和可能的普通引号
+                    qrcodeData = qrcodeData.trim().replace(/^[`'"]+|[`'"]+$/g, '');
+                    console.log('QRCode from result - type:', typeof qrcodeData, 'content:', qrcodeData.substring(0, 100) + (qrcodeData.length > 100 ? '...' : ''));
+                    
+                    // 如果是base64编码且缺少data URI前缀，自动添加
+                    if (qrcodeData.startsWith('iVBORw0KGgo') || qrcodeData.startsWith('/9j/')) {
+                        const isPNG = qrcodeData.startsWith('iVBORw0KGgo');
+                        qrcodeData = `data:image/${isPNG ? 'png' : 'jpeg'};base64,${qrcodeData}`;
+                        console.log('Added data URI prefix:', qrcodeData.substring(0, 50) + '...');
+                    }
+                    
+                    // 重置图片错误状态
+                    qrcodeImage.onerror = null;
+                    // 使用临时对象预加载图片
+                    const tempImage = new Image();
+                    tempImage.onload = function() {
+                        qrcodeImage.src = qrcodeData;
+                        qrcodeImage.style.display = 'block';
+                        console.log('QRCode image rendered successfully from result');
+                    };
+                    tempImage.onerror = function() {
+                        console.error('Failed to render QRCode image from result:', qrcodeData);
+                        qrcodeImage.style.display = 'none';
+                        alert('二维码图片渲染失败，请检查API返回的qrcode格式是否正确');
+                    };
+                    tempImage.src = qrcodeData;
+                } else {
+                    console.warn('Result does not contain valid qrcode:', result);
+                    alert('响应结果中未包含有效的qrcode数据，请先确保接口调用成功');
+                }
+            } catch (error) {
+                console.error('Error parsing result:', error);
+                alert('解析响应结果失败，请确保接口已调用成功且返回正确的JSON格式');
+            }
+        }
+    </script>
+</body>
+</html>
