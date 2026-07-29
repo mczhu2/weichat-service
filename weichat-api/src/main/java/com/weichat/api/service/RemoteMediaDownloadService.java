@@ -68,13 +68,14 @@ public class RemoteMediaDownloadService {
                                    String url,
                                    String contentType,
                                    String defaultFilenamePrefix) {
+        String extension = resolveExtension(contentType);
         if (StringUtils.hasText(preferredFilename)) {
-            return preferredFilename;
+            return ensureFilenameExtension(preferredFilename.trim(), extension);
         }
 
         String headerFilename = headers.getContentDisposition() == null ? null : headers.getContentDisposition().getFilename();
         if (StringUtils.hasText(headerFilename)) {
-            return headerFilename;
+            return ensureFilenameExtension(headerFilename.trim(), extension);
         }
 
         try {
@@ -82,17 +83,26 @@ public class RemoteMediaDownloadService {
             String path = uri.getPath();
             String pathFilename = StringUtils.getFilename(path);
             if (StringUtils.hasText(pathFilename)) {
-                return pathFilename;
+                return ensureFilenameExtension(pathFilename, extension);
             }
         } catch (Exception ignored) {
         }
 
         String prefix = StringUtils.hasText(defaultFilenamePrefix) ? defaultFilenamePrefix : "download";
-        String extension = resolveExtension(contentType);
         if (!StringUtils.hasText(extension)) {
             extension = "bin";
         }
         return prefix + "-" + UUID.randomUUID().toString().replace("-", "") + "." + extension;
+    }
+
+    private String ensureFilenameExtension(String filename, String extension) {
+        if (!StringUtils.hasText(filename) || filename.contains(".")) {
+            return filename;
+        }
+        if (!StringUtils.hasText(extension)) {
+            return filename;
+        }
+        return filename + "." + extension;
     }
 
     private String resolveExtension(String contentType) {
@@ -101,6 +111,10 @@ public class RemoteMediaDownloadService {
         }
 
         String normalized = contentType.trim().toLowerCase(Locale.ROOT);
+        int semicolonIndex = normalized.indexOf(';');
+        if (semicolonIndex >= 0) {
+            normalized = normalized.substring(0, semicolonIndex).trim();
+        }
         if ("image/jpeg".equals(normalized) || "image/jpg".equals(normalized) || "image/pjpeg".equals(normalized)) {
             return "jpg";
         }

@@ -95,7 +95,7 @@ public class CdnFileService {
         RemoteMediaResource fileResource = remoteMediaDownloadService.download(
                 fileUrl,
                 fileName,
-                StringUtils.hasText(contentType) ? contentType : "application/octet-stream",
+                StringUtils.hasText(contentType) ? contentType : "image/png",
                 "file"
         );
         JSONObject response = client.postMultipart(
