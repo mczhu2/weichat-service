@@ -351,6 +351,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/SendMsgApiResult'
 
+  /api/v1/cdn/cdnUploadImg:
+    post:
+      tags: [Message]
+      summary: 上传图片到 CDN
+      description: wecom-api-call-service.html 图片发送链路的第 1 步。请求使用 multipart/form-data 上传原始图片文件，响应 data 中的 CDN 元数据会被用于 /api/v1/message/sendImage。
+      x-called-by:
+        - wecom-api-call-service.html#callSendImageApi
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CdnMultipartUploadRequest'
+      responses:
+        '200':
+          description: 图片 CDN 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CdnUploadApiResult'
+
+  /api/v1/message/sendImage:
+    post:
+      tags: [Message]
+      summary: 发送图片消息
+      description: wecom-api-call-service.html 图片发送链路的第 2 步。页面先调用 /api/v1/cdn/cdnUploadImg，再把 CDN 响应字段组装为本接口请求体。
+      x-called-by:
+        - wecom-api-call-service.html#callSendImageApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendImageRequest'
+      responses:
+        '200':
+          description: 发送结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMsgApiResult'
+
+  /api/v1/cdn/cdnUploadFile:
+    post:
+      tags: [Message]
+      summary: 上传文件到 CDN
+      description: wecom-api-call-service.html 语音发送链路的第 1 步。请求使用 multipart/form-data 上传 .silk 语音文件，响应 data 中的 CDN 元数据会被用于 /api/v1/message/sendVoice。
+      x-called-by:
+        - wecom-api-call-service.html#callSendVoiceApi
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CdnMultipartUploadRequest'
+      responses:
+        '200':
+          description: 文件 CDN 上传结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CdnUploadApiResult'
+
+  /api/v1/message/sendVoice:
+    post:
+      tags: [Message]
+      summary: 发送语音消息
+      description: wecom-api-call-service.html 语音发送链路的第 2 步。页面只允许选择 .silk 文件，先调用 /api/v1/cdn/cdnUploadFile，再把 CDN 响应字段和 voice_time 组装为本接口请求体。
+      x-called-by:
+        - wecom-api-call-service.html#callSendVoiceApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendVoiceRequest'
+      responses:
+        '200':
+          description: 发送结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMsgApiResult'
+
   /api/v1/message/sendLink:
     post:
       tags: [Message]
@@ -380,6 +464,7 @@ paths:
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendApp
         - recruit-agent/wecom-bridge.js#sendApp
+        - wecom-api-call-service.html#callSendAppApi
       requestBody:
         required: true
         content:
@@ -1045,7 +1130,7 @@ components:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
           required: [send_userid, title, appName, appid, username, pagepath]
-          description: 发送企业微信小程序卡片消息；OpenAPI 仅展示服务端标注的必填字段，isRoom、desc、图标、封面等非必填扩展参数隐藏。
+          description: 发送企业微信小程序卡片消息。wecom-api-call-service.html 会传 isRoom、desc、weappIconUrl、coverUrl 等字段；coverUrl 非空时服务端会先上传封面图 CDN 后再发送。
           properties:
             send_userid:
               oneOf:
@@ -1054,10 +1139,25 @@ components:
                   format: int64
               description: 接收人 ID；单聊填好友 userId/vid，群聊填群 ID。
               example: '7881301772935700'
+            isRoom:
+              type: boolean
+              description: 是否群消息。false=单好友小程序消息；true=外部群小程序消息。
+              example: false
+            kf_id:
+              type: integer
+              format: int64
+              nullable: true
+              description: 客服 ID；页面当前不填写，业务需要指定客服上下文时可传。
+              example: 987654321
             title:
               type: string
               description: 小程序卡片标题。
               example: 候选人详情
+            desc:
+              type: string
+              nullable: true
+              description: 小程序卡片描述文本；页面 desc 输入框对应字段，可为空。
+              example: 请查看候选人资料
             appName:
               type: string
               description: 小程序展示名称。
@@ -1074,14 +1174,30 @@ components:
               type: string
               description: 小程序页面路径。
               example: pages/candidate/detail?id=123
+            weappIconUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: 小程序头像 URL；页面 weappIconUrl 输入框对应字段。
+              example: https://example.com/icon.png
+            coverUrl:
+              type: string
+              format: uri
+              nullable: true
+              description: 小程序封面图 URL；为空时不上传封面，非空时后端先转 CDN 再发送。
+              example: https://example.com/cover.png
       example:
         uuid: 0190-example-uuid
         send_userid: '7881301772935700'
+        isRoom: false
         title: 候选人详情
+        desc: 请查看候选人资料
         appName: 招聘助手
         appid: wx1234567890abcdef
         username: gh_abcdef123456
         pagepath: pages/candidate/detail?id=123
+        weappIconUrl: https://example.com/icon.png
+        coverUrl: https://example.com/cover.png
 
     SendMsgResponse:
       type: object
@@ -1113,6 +1229,228 @@ components:
           properties:
             data:
               $ref: '#/components/schemas/SendMsgResponse'
+
+    CdnMultipartUploadRequest:
+      type: object
+      required: [uuid, file]
+      description: CDN multipart 上传请求体。H5 demo 使用 FormData，字段名固定为 uuid 和 file。
+      properties:
+        uuid:
+          type: string
+          description: /api/v1/init/init 返回的客户端实例 ID。
+          example: 0190-example-uuid
+        file:
+          type: string
+          format: binary
+          description: 要上传到 CDN 的文件。图片发送使用图片文件；语音发送只允许 .silk 文件。
+
+    CdnUploadResponse:
+      type: object
+      description: CDN 上传响应数据。H5 demo 会读取 cdn_key/fileid、aes_key、md5、size、图片宽高和缩略图字段，组装后续发送图片或语音的请求体。
+      properties:
+        cdn_key:
+          type: string
+          description: CDN Key；发送图片/语音时作为 cdnkey 使用。部分下游可能返回 fileid，页面会兼容读取。
+          example: cdn_key_xxx
+        fileid:
+          type: string
+          description: 文件 ID；当 cdn_key 为空时，页面会兼容作为 cdnkey 使用。
+          example: fileid_xxx
+        aes_key:
+          type: string
+          description: AES Key；发送图片/语音时作为 aeskey 使用。
+          example: 1691E8F3D57F652AF9A26ABD26C2DB8E
+        md5:
+          type: string
+          description: 文件 MD5；发送图片/语音时原样透传。
+          example: 00dd41b689a291dbe885035a5fbdcb39
+        size:
+          type: integer
+          description: 文件大小，单位字节；发送图片/语音时作为 fileSize 使用。
+          example: 118466
+        width:
+          type: integer
+          nullable: true
+          description: 图片宽度；图片发送时透传，语音上传通常为空。
+          example: 2196
+        height:
+          type: integer
+          nullable: true
+          description: 图片高度；图片发送时透传，语音上传通常为空。
+          example: 1289
+        thumb_image_height:
+          type: integer
+          nullable: true
+          description: 缩略图高度；图片发送时透传。
+          example: 387
+        thumb_image_width:
+          type: integer
+          nullable: true
+          description: 缩略图宽度；图片发送时透传。
+          example: 659
+        thumb_file_size:
+          type: integer
+          nullable: true
+          description: 缩略图文件大小；图片发送时透传。
+          example: 16599
+        thumb_file_md5:
+          type: string
+          nullable: true
+          description: 缩略图 MD5；图片发送时透传。
+          example: 7b96dd982d40484a7fb79489caca4444
+        retcode:
+          type: string
+          nullable: true
+          description: 底层 CDN 返回码；0 通常表示成功，业务判断仍以 ApiResult.code/errcode 为准。
+          example: '0'
+
+    CdnUploadApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CdnUploadResponse'
+
+    SendImageRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [send_userid, isRoom, cdnkey, aeskey, md5, fileSize]
+          description: 发送图片消息。H5 demo 先上传图片到 CDN，再把上传响应字段映射到本请求。
+          properties:
+            send_userid:
+              oneOf:
+                - type: string
+                - type: integer
+                  format: int64
+              description: 接收目标 ID。isRoom=false 时填外部联系人的 userId/vid；isRoom=true 时填外部群的 room_id。浏览器/JS 客户端建议按十进制字符串传递。
+              example: '7881301772935700'
+            isRoom:
+              type: boolean
+              description: 目标是否为群。false=单好友图片；true=外部群图片。
+              example: false
+            kf_id:
+              type: integer
+              format: int64
+              nullable: true
+              description: 客服 ID；页面当前不填写，业务需要指定客服上下文时可传。
+              example: 987654321
+            cdnkey:
+              type: string
+              description: CDN Key，来自 cdnUploadImg 响应 data.cdn_key；若下游只返回 fileid，页面会兼容作为 cdnkey。
+              example: cdn_key_xxx
+            aeskey:
+              type: string
+              description: AES Key，来自 cdnUploadImg 响应 data.aes_key。
+              example: 1691E8F3D57F652AF9A26ABD26C2DB8E
+            md5:
+              type: string
+              description: 图片文件 MD5，来自 cdnUploadImg 响应 data.md5。
+              example: 00dd41b689a291dbe885035a5fbdcb39
+            fileSize:
+              type: integer
+              description: 图片文件大小，来自 cdnUploadImg 响应 data.size 或 data.fileSize。
+              example: 118466
+            width:
+              type: integer
+              nullable: true
+              description: 图片宽度，来自 cdnUploadImg 响应 data.width。
+              example: 2196
+            height:
+              type: integer
+              nullable: true
+              description: 图片高度，来自 cdnUploadImg 响应 data.height。
+              example: 1289
+            thumb_image_height:
+              type: integer
+              nullable: true
+              description: 缩略图高度，来自 cdnUploadImg 响应 data.thumb_image_height。
+              example: 387
+            thumb_image_width:
+              type: integer
+              nullable: true
+              description: 缩略图宽度，来自 cdnUploadImg 响应 data.thumb_image_width。
+              example: 659
+            thumb_file_size:
+              type: integer
+              nullable: true
+              description: 缩略图文件大小，来自 cdnUploadImg 响应 data.thumb_file_size。
+              example: 16599
+            thumb_file_md5:
+              type: string
+              nullable: true
+              description: 缩略图 MD5，来自 cdnUploadImg 响应 data.thumb_file_md5。
+              example: 7b96dd982d40484a7fb79489caca4444
+            is_hd:
+              type: integer
+              nullable: true
+              description: 高清图片标记；页面 is_hd 可选输入框对应字段，普通发送留空。
+              example: 1
+      example:
+        uuid: 0190-example-uuid
+        send_userid: '7881301772935700'
+        isRoom: false
+        cdnkey: cdn_key_xxx
+        aeskey: 1691E8F3D57F652AF9A26ABD26C2DB8E
+        md5: 00dd41b689a291dbe885035a5fbdcb39
+        fileSize: 118466
+        width: 2196
+        height: 1289
+
+    SendVoiceRequest:
+      allOf:
+        - $ref: '#/components/schemas/BaseRequest'
+        - type: object
+          required: [send_userid, isRoom, cdnkey, aeskey, md5, voice_time, fileSize]
+          description: 发送语音消息。H5 demo 只允许上传 .silk 文件，先调用 cdnUploadFile，再把上传响应字段和 voice_time 组装为本请求。
+          properties:
+            send_userid:
+              oneOf:
+                - type: string
+                - type: integer
+                  format: int64
+              description: 接收目标 ID。isRoom=false 时填外部联系人的 userId/vid；isRoom=true 时填外部群的 room_id。浏览器/JS 客户端建议按十进制字符串传递。
+              example: '7881301772935700'
+            isRoom:
+              type: boolean
+              description: 目标是否为群。false=单好友语音；true=外部群语音。
+              example: false
+            kf_id:
+              type: integer
+              format: int64
+              nullable: true
+              description: 客服 ID；页面当前不填写，业务需要指定客服上下文时可传。
+              example: 987654321
+            cdnkey:
+              type: string
+              description: CDN Key，来自 cdnUploadFile 响应 data.cdn_key；若下游只返回 fileid，页面会兼容作为 cdnkey。
+              example: cdn_key_xxx
+            aeskey:
+              type: string
+              description: AES Key，来自 cdnUploadFile 响应 data.aes_key。
+              example: 1691E8F3D57F652AF9A26ABD26C2DB8E
+            md5:
+              type: string
+              description: 语音文件 MD5，来自 cdnUploadFile 响应 data.md5。
+              example: 00dd41b689a291dbe885035a5fbdcb39
+            voice_time:
+              type: integer
+              description: 语音时长，单位秒；页面要求大于 0 的整数。
+              example: 4
+            fileSize:
+              type: integer
+              description: 语音文件大小，来自 cdnUploadFile 响应 data.size 或 data.fileSize。
+              example: 118466
+      example:
+        uuid: 0190-example-uuid
+        send_userid: '7881301772935700'
+        isRoom: false
+        cdnkey: cdn_key_xxx
+        aeskey: 1691E8F3D57F652AF9A26ABD26C2DB8E
+        md5: 00dd41b689a291dbe885035a5fbdcb39
+        voice_time: 4
+        fileSize: 118466
 
     SpeechToTextRequest:
       allOf:
