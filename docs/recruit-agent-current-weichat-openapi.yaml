@@ -72,23 +72,23 @@ servers:
     description: recruit-agent legacy configured data plane
 
 tags:
-  - name: LoginAttach
+  - name: 登录挂靠
     description: 登录挂靠与客户端状态
-  - name: Contact
+  - name: 联系人查询
     description: 联系人/会话/群查询
-  - name: Message
+  - name: 消息发送
     description: agent 当前发送/语音转文字相关接口
-  - name: Tag
+  - name: 标签管理
     description: 标签接口，legacy wecom-bridge 当前调用
-  - name: CallbackRoute
+  - name: 回调路由
     description: 业务系统回调路由配置
-  - name: LocalData
+  - name: 本地数据
     description: legacy wecom-bridge 当前写入本地消息数据接口
 
 paths:
   /api/v1/init/init:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 初始化企微客户端
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#init
@@ -114,7 +114,7 @@ paths:
 
   /api/v1/init/getRunClientByUuid:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 根据 uuid 查询客户端状态
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getRunClientByUuid
@@ -139,7 +139,7 @@ paths:
 
   /api/v1/init/getRunClient:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 查询运行客户端
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getRunClient
@@ -163,7 +163,7 @@ paths:
 
   /api/v1/init/getQrCode:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 获取登录二维码
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getQrCode
@@ -188,7 +188,7 @@ paths:
 
   /api/v1/init/checkCode:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 校验二维码/设备验证码
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#checkCode
@@ -215,7 +215,7 @@ paths:
 
   /api/v1/init/secondaryValidation:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 二次验证
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#secondaryValidation
@@ -241,7 +241,7 @@ paths:
 
   /api/v1/init/automaticLogin:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 自动登录企微客户端
       description: api-call-service.html 的可选接口；初始化时传过 vid 且账号有历史登录态时，按 uuid 触发自动登录。
       x-called-by:
@@ -267,7 +267,7 @@ paths:
 
   /api/v1/init/loginOut:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 登出企微客户端
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#loginOut
@@ -292,7 +292,7 @@ paths:
 
   /api/v1/init/closeConnect:
     post:
-      tags: [LoginAttach]
+      tags: [登录挂靠]
       summary: 关闭连接
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#closeConnect
@@ -316,7 +316,7 @@ paths:
 
   /api/v1/message/sendText:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 发送文本消息
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendText
@@ -353,7 +353,7 @@ paths:
 
   /api/v1/cdn/cdnUploadImg:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 上传图片到 CDN
       description: wecom-api-call-service.html 图片发送链路的第 1 步。请求使用 multipart/form-data 上传原始图片文件，响应 data 中的 CDN 元数据会被用于 /api/v1/message/sendImage。
       x-called-by:
@@ -374,7 +374,7 @@ paths:
 
   /api/v1/message/sendImage:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 发送图片消息
       description: wecom-api-call-service.html 图片发送链路的第 2 步。页面先调用 /api/v1/cdn/cdnUploadImg，再把 CDN 响应字段组装为本接口请求体。
       x-called-by:
@@ -395,7 +395,7 @@ paths:
 
   /api/v1/cdn/cdnUploadFile:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 上传文件到 CDN
       description: wecom-api-call-service.html 语音发送链路的第 1 步。请求使用 multipart/form-data 上传 .silk 语音文件，响应 data 中的 CDN 元数据会被用于 /api/v1/message/sendVoice。
       x-called-by:
@@ -416,7 +416,7 @@ paths:
 
   /api/v1/message/sendVoice:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 发送语音消息
       description: wecom-api-call-service.html 语音发送链路的第 2 步。页面只允许选择 .silk 文件，先调用 /api/v1/cdn/cdnUploadFile，再把 CDN 响应字段和 voice_time 组装为本接口请求体。
       x-called-by:
@@ -437,7 +437,7 @@ paths:
 
   /api/v1/message/sendLink:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 发送链接消息
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendLink
@@ -459,7 +459,7 @@ paths:
 
   /api/v1/message/sendApp:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 发送小程序消息
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#sendApp
@@ -481,7 +481,7 @@ paths:
 
   /api/v1/message/speechToText:
     post:
-      tags: [Message]
+      tags: [消息发送]
       summary: 语音转文字
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#speechToText
@@ -503,7 +503,7 @@ paths:
 
   /api/v1/contact/getExternalContacts:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 获取外部联系人列表
       description: recruit-agent 用该接口同步企微联系人，并自行维护 vid 与业务 worker/manager 绑定关系。
       x-called-by:
@@ -539,7 +539,7 @@ paths:
 
   /api/v1/contact/getInnerContacts:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 获取内部联系人列表
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getInnerContacts
@@ -559,7 +559,7 @@ paths:
 
   /api/v1/contact/getUserInfoByVids:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 根据 vids 查询联系人详情
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getUserInfoByVids
@@ -579,7 +579,7 @@ paths:
 
   /api/v1/contact/getSessionList:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 获取会话列表
       x-called-by:
         - recruit-agent/wecom-bridge.js#getSessionList
@@ -599,7 +599,7 @@ paths:
 
   /api/v1/contact/searchContact:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 搜索联系人
       x-called-by:
         - recruit-agent/wecom-bridge.js#searchContact
@@ -619,7 +619,7 @@ paths:
 
   /api/v1/group/getSessionRoomList:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 获取会话群列表
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getSessionRoomList
@@ -639,7 +639,7 @@ paths:
 
   /api/v1/group/getChatroomMembers:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 获取外部群列表
       description: api-call-service.html 用该接口按 star_index 分页加载外部群，选择返回的 room_id 后调用 sendText 发送群文本。
       x-called-by:
@@ -673,7 +673,7 @@ paths:
 
   /api/v1/group/getRoomUserList:
     post:
-      tags: [Contact]
+      tags: [联系人查询]
       summary: 获取群成员列表
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getRoomUserList
@@ -693,7 +693,7 @@ paths:
 
   /api/v1/tag/addLabel:
     post:
-      tags: [Tag]
+      tags: [标签管理]
       summary: 添加标签
       x-called-by:
         - recruit-agent/wecom-bridge.js#addLabel
@@ -713,7 +713,7 @@ paths:
 
   /api/v1/tag/getLabelList:
     post:
-      tags: [Tag]
+      tags: [标签管理]
       summary: 获取标签列表
       x-called-by:
         - recruit-agent/wecom-bridge.js#getLabelList
@@ -733,7 +733,7 @@ paths:
 
   /api/v1/tag/labelAddUser:
     post:
-      tags: [Tag]
+      tags: [标签管理]
       summary: 标签添加用户
       x-called-by:
         - recruit-agent/wecom-bridge.js#labelAddUser
@@ -753,7 +753,7 @@ paths:
 
   /api/v1/wx/message:
     post:
-      tags: [LocalData]
+      tags: [本地数据]
       summary: 新增微信消息信息
       description: legacy wecom-bridge 当前调用 addWxMessage，用于写入 WxMessageInfo。该接口返回 text/plain 字符串，不是 ApiResult。
       x-called-by:
@@ -782,7 +782,7 @@ paths:
 
   /api/v2/callback/routes:
     post:
-      tags: [CallbackRoute]
+      tags: [回调路由]
       summary: 保存业务系统回调路由并注册企微平台回调入口
       description: |
         调用方只传当前企微运行实例 uuid 和自己的业务系统回调 URL。
