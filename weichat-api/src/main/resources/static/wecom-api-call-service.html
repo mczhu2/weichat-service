@@ -193,6 +193,64 @@
             font-size: 12px;
         }
         
+        .callback-doc-card {
+            text-align: left;
+            font-size: 13px;
+            color: #34495e;
+        }
+        
+        .callback-doc-card .callback-url {
+            margin: 8px 0 12px;
+            padding: 8px;
+            background-color: #fff;
+            border: 1px solid #e1e8ed;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            word-break: break-all;
+        }
+        
+        .callback-doc-card .method-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            margin: 0 0 10px;
+            border-radius: 12px;
+            background-color: #27ae60;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        
+        .callback-doc-card details {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #e1e8ed;
+            border-radius: 4px;
+        }
+        
+        .callback-doc-card summary {
+            cursor: pointer;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .callback-doc-card ul {
+            margin: 10px 0 0 18px;
+            padding: 0;
+        }
+        
+        .callback-doc-card li {
+            margin-bottom: 6px;
+            line-height: 1.5;
+        }
+        
+        .callback-doc-card code {
+            padding: 1px 4px;
+            background-color: #f1f3f5;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
         .loading {
             display: inline-block;
             width: 16px;
@@ -471,9 +529,34 @@
                 <h2>响应结果</h2>
                 <div class="result" id="callback-result">请先调用初始化接口获取 UUID，然后填写业务系统回调 URL。</div>
             </div>
-            <!-- 第三列：图片展示 -->
+            <!-- 第三列：业务回调请求说明 -->
             <div class="api-column">
-                <!-- 无图片 -->
+                <h2>业务回调请求方式</h2>
+                <div class="callback-doc-card">
+                    <div>业务系统需要接收当前配置的回调地址：</div>
+                    <div class="callback-url">https://customer.example.com/wecom/callback</div>
+                    <div class="method-badge">POST</div>
+                    <div>请求头：<code>Content-Type: application/json</code></div>
+                    <details>
+                        <summary>展开/收起参数清单</summary>
+                        <ul>
+                            <li><code>fromVid</code>：客户/消息发送方 vid，字符串。</li>
+                            <li><code>content</code>：消息文本或解析后的内容。</li>
+                            <li><code>medias</code>：媒体附件数组；无附件时为空或空数组。</li>
+                            <li><code>uuid</code>：当前企微运行实例 UUID。</li>
+                            <li><code>msgType</code>：消息类型编码。</li>
+                            <li><code>nickname</code> / <code>fromName</code>：发送方昵称。</li>
+                            <li><code>replySender</code>：企微员工 userId，用于业务侧回复链路。</li>
+                            <li><code>replyReceiver</code>：客户/发送方 userId，用于业务侧回复链路。</li>
+                            <li><code>replyAccountUserId</code>：承接回复的企微员工 userId。</li>
+                            <li><code>kfId</code>：客服 ID，原消息存在时透传。</li>
+                            <li><code>isRoom</code>：是否群消息。</li>
+                            <li><code>roomId</code>：群 ID；单聊为空。</li>
+                            <li><code>replyModalities</code>：期望回复类型，文本消息为 <code>["text"]</code>，语音消息为 <code>["audio"]</code>。</li>
+                            <li><code>replyCallbackUrl</code>：业务系统异步回复时回调 weichat-service 的地址。</li>
+                        </ul>
+                    </details>
+                </div>
             </div>
         </div>
         
