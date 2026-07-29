@@ -98,6 +98,16 @@ public class CdnController {
         return ApiResult.from(client.post("/wxwork/CdnUploadFile", toJson(request)), CdnUploadResponse.class);
     }
 
+    @ApiOperation("上传文件到CDN")
+    @PostMapping(value = "/cdnUploadFile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ApiResult<CdnUploadResponse> cdnUploadFile(@RequestParam("uuid") String uuid,
+                                                      @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ApiResult.fail("file must not be empty");
+        }
+        return ApiResult.from(client.postMultipart("/wxwork/CdnUploadFile", uuid, file, "file"), CdnUploadResponse.class);
+    }
+
     @ApiOperation("下载文件")
     @PostMapping("/downloadFile")
     public ApiResult<CdnDownloadResponse> downloadFile(@RequestBody DownloadFileRequest request) {

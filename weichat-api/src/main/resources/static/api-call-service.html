@@ -731,7 +731,7 @@
         
         <div class="tab-pane" id="tab-friends">
             <div class="module-hint">
-                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表或外部群列表；选择好友可单发文本，选择群可发送文本/表情消息。
+                <strong>好友列表-消息发送模块：</strong>先使用当前 uuid 加载好友列表或外部群列表；选择好友/群后可发送文本、CDN 图片、CDN 语音和小程序消息。图片、语音、小程序封面会先上传/转换为 CDN 资源后发送。
             </div>
             
             <div class="api-row">
@@ -840,49 +840,193 @@
             
             <div class="api-row">
                 <div class="api-column">
-                    <h2>4. 发送文本/表情消息</h2>
-                    <form id="sendtextandexp-form">
+                    <h2>4. 发送群文本消息</h2>
+                    <form id="sendgrouptext-form">
                         <div class="form-group">
-                            <label for="sendtextandexp-uuid">UUID：</label>
-                            <input type="text" id="sendtextandexp-uuid" placeholder="自动填充" readonly>
+                            <label for="sendgrouptext-uuid">UUID：</label>
+                            <input type="text" id="sendgrouptext-uuid" placeholder="自动填充" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="sendtextandexp-userid">send_userid：</label>
-                            <input type="text" id="sendtextandexp-userid" placeholder="可从外部群列表点击“选择群发送”自动填入">
+                            <label for="sendgrouptext-userid">send_userid：</label>
+                            <input type="text" id="sendgrouptext-userid" placeholder="可从外部群列表点击“选择群发送”自动填入">
                         </div>
                         <div class="form-group">
-                            <label for="sendtextandexp-isroom">是否群消息 isRoom：</label>
-                            <select id="sendtextandexp-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                            <label for="sendgrouptext-isroom">是否群消息 isRoom：</label>
+                            <select id="sendgrouptext-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                                 <option value="true">true - 群消息</option>
                                 <option value="false">false - 个人消息</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="sendtextandexp-content">content：</label>
-                            <textarea id="sendtextandexp-content" placeholder="请输入文本/表情消息数组" style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">[
-  {
-    "msgtype": 0,
-    "msg": "你好"
-  },
-  {
-    "msgtype": 3,
-    "msg": "[微笑]"
-  }
-]</textarea>
+                            <label for="sendgrouptext-content">消息内容 content：</label>
+                            <textarea id="sendgrouptext-content" placeholder="请输入要发送到群的文本" style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">你好</textarea>
                         </div>
                         <div class="button-group">
                             <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>发送消息</button>
-                            <button type="button" class="clear-btn" onclick="clearResult('sendtextandexp-result')">清空结果</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendgrouptext-result')">清空结果</button>
                         </div>
                     </form>
                 </div>
                 <div class="api-column">
                     <h2>响应结果</h2>
-                    <div class="result" id="sendtextandexp-result">从外部群列表选择群 ID，确认 isRoom=true 后发送文本/表情消息。</div>
+                    <div class="result" id="sendgrouptext-result">从外部群列表选择群 ID，确认 isRoom=true 后调用 sendText 发送群文本消息。</div>
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
-                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/message/sendTextAndExp</div>
+                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/message/sendText</div>
+                </div>
+            </div>
+            
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>5. 图片发送（个人/群）</h2>
+                    <form id="sendimage-form">
+                        <div class="form-group">
+                            <label for="sendimage-uuid">UUID：</label>
+                            <input type="text" id="sendimage-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-userid">send_userid：</label>
+                            <input type="text" id="sendimage-userid" placeholder="从好友或群列表选择，也可手动填写">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-isroom">是否群消息 isRoom：</label>
+                            <select id="sendimage-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-file">图片文件：</label>
+                            <input type="file" id="sendimage-file" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendimage-ishd">is_hd（可选）：</label>
+                            <input type="number" id="sendimage-ishd" placeholder="转发高清图片时填 1 或 2，普通发送留空">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>上传 CDN 并发送</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendimage-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendimage-result">选择目标和图片文件后，页面先调用 CDN 上传，再调用 SendCDNImgMsg 发送。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">1. POST /wx/api/v1/cdn/cdnUploadImg<br>2. POST /wx/api/v1/message/sendImage</div>
+                </div>
+            </div>
+
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>6. 语音发送（个人/群）</h2>
+                    <form id="sendvoice-form">
+                        <div class="form-group">
+                            <label for="sendvoice-uuid">UUID：</label>
+                            <input type="text" id="sendvoice-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-userid">send_userid：</label>
+                            <input type="text" id="sendvoice-userid" placeholder="从好友或群列表选择，也可手动填写">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-isroom">是否群消息 isRoom：</label>
+                            <select id="sendvoice-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-file">语音文件：</label>
+                            <input type="file" id="sendvoice-file" accept="audio/*,.silk,.amr">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendvoice-time">voice_time（秒）：</label>
+                            <input type="number" id="sendvoice-time" value="4" min="1">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>上传 CDN 并发送</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendvoice-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendvoice-result">选择目标和语音文件后，页面先调用 CDN 文件上传，再调用 SendCDNVoiceMsg 发送。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">1. POST /wx/api/v1/cdn/cdnUploadFile<br>2. POST /wx/api/v1/message/sendVoice</div>
+                </div>
+            </div>
+
+            <div class="api-row">
+                <div class="api-column">
+                    <h2>7. 小程序发送（个人/群）</h2>
+                    <form id="sendapp-form">
+                        <div class="form-group">
+                            <label for="sendapp-uuid">UUID：</label>
+                            <input type="text" id="sendapp-uuid" placeholder="自动填充" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-userid">send_userid：</label>
+                            <input type="text" id="sendapp-userid" placeholder="从好友或群列表选择，也可手动填写">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-isroom">是否群消息 isRoom：</label>
+                            <select id="sendapp-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-title">title：</label>
+                            <input type="text" id="sendapp-title" placeholder="小程序标题头像下边的">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-desc">desc：</label>
+                            <textarea id="sendapp-desc" placeholder="小程序描述内容" style="width: 100%; min-height: 70px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-name">appName：</label>
+                            <input type="text" id="sendapp-name" placeholder="小程序名称头像右边的">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-icon">weappIconUrl：</label>
+                            <input type="text" id="sendapp-icon" placeholder="小程序头像 URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-pagepath">pagepath：</label>
+                            <input type="text" id="sendapp-pagepath" placeholder="pages/train/index/index.html">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-username">username：</label>
+                            <input type="text" id="sendapp-username" placeholder="gh_xxx@app">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-appid">appid：</label>
+                            <input type="text" id="sendapp-appid" placeholder="wx45dff5234240ad90">
+                        </div>
+                        <div class="form-group">
+                            <label for="sendapp-coverurl">coverUrl（封面图 URL）：</label>
+                            <input type="text" id="sendapp-coverurl" placeholder="后端会先上传为 CDN 资源再调用 SendAppMsg">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>转 CDN 并发送</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendapp-result')">清空结果</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="api-column">
+                    <h2>响应结果</h2>
+                    <div class="result" id="sendapp-result">填写小程序参数后调用 sendApp；后端参考回调发送实现上传封面图 CDN 后发送。</div>
+                </div>
+                <div class="api-column">
+                    <h2>接口路径</h2>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendApp<br>下游：/wxwork/SendAppMsg</div>
                 </div>
             </div>
         </div>
@@ -971,10 +1115,28 @@
             callChatroomMembersApi();
         });
         
-        // 发送文本/表情消息表单提交事件
-        document.getElementById('sendtextandexp-form').addEventListener('submit', function(e) {
+        // 发送群文本消息表单提交事件
+        document.getElementById('sendgrouptext-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            callSendTextAndExpApi();
+            callSendGroupTextApi();
+        });
+        
+        // 图片发送表单提交事件
+        document.getElementById('sendimage-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendImageApi();
+        });
+        
+        // 语音发送表单提交事件
+        document.getElementById('sendvoice-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendVoiceApi();
+        });
+        
+        // 小程序发送表单提交事件
+        document.getElementById('sendapp-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            callSendAppApi();
         });
         
         function switchTab(tabId) {
@@ -1107,8 +1269,9 @@
                 return;
             }
             document.getElementById('sendtext-userid').value = userId;
-            document.getElementById('sendtext-result').textContent = '已选择好友 userId/vid：' + userId + '，请填写消息内容后发送';
+            document.getElementById('sendtext-result').textContent = '已选择好友 userId/vid：' + userId + '，文本、图片、语音、小程序表单已同步为个人目标';
             document.getElementById('sendtext-result').className = 'result success';
+            fillMediaSendTarget(userId, false);
             document.getElementById('sendtext-content').focus();
         }
         
@@ -1172,7 +1335,8 @@
                     },
                     body: JSON.stringify(payload)
                 });
-                const result = await response.json();
+                const responseText = await response.text();
+                const result = parseJsonPreservingChatroomIds(responseText);
                 const roomData = extractChatroomMembersData(result);
                 if ((result.errcode === 0 || result.code === 0) && roomData.nextStart !== null && roomData.nextStart !== undefined && Number(roomData.nextStart) >= 0) {
                     addChatroomMembersCursor(roomData.nextStart);
@@ -1187,6 +1351,10 @@
             }
         }
         
+        function parseJsonPreservingChatroomIds(responseText) {
+            return JSON.parse(responseText.replace(/("(?:room_id|roomId)"\s*:\s*)(-?\d{16,})(?=\s*[,}])/g, '$1"$2"'));
+        }
+
         function extractChatroomMembersData(result) {
             const data = result && result.data ? result.data : {};
             return {
@@ -1262,51 +1430,50 @@
         
         function selectChatroomForSend(roomId) {
             if (!roomId) {
-                showLocalError('sendtextandexp-result', '当前群缺少 room_id，不能发送');
+                showLocalError('sendgrouptext-result', '当前群缺少 room_id，不能发送');
                 return;
             }
-            document.getElementById('sendtextandexp-userid').value = roomId;
-            document.getElementById('sendtextandexp-isroom').value = 'true';
-            document.getElementById('sendtextandexp-result').textContent = '已选择群 room_id：' + roomId + '，请确认 content 后发送';
-            document.getElementById('sendtextandexp-result').className = 'result success';
-            document.getElementById('sendtextandexp-content').focus();
+            document.getElementById('sendgrouptext-userid').value = roomId;
+            document.getElementById('sendgrouptext-isroom').value = 'true';
+            document.getElementById('sendgrouptext-result').textContent = '已选择群 room_id：' + roomId + '，群文本、图片、语音、小程序表单已同步为群目标';
+            document.getElementById('sendgrouptext-result').className = 'result success';
+            fillMediaSendTarget(roomId, true);
+            document.getElementById('sendgrouptext-content').focus();
         }
         
-        async function callSendTextAndExpApi() {
-            const uuid = document.getElementById('sendtextandexp-uuid').value.trim();
-            const sendUserid = document.getElementById('sendtextandexp-userid').value.trim();
-            const isRoom = document.getElementById('sendtextandexp-isroom').value === 'true';
-            const contentRaw = document.getElementById('sendtextandexp-content').value.trim();
+        async function callSendGroupTextApi() {
+            const uuid = document.getElementById('sendgrouptext-uuid').value.trim();
+            const sendUserid = document.getElementById('sendgrouptext-userid').value.trim();
+            const isRoom = document.getElementById('sendgrouptext-isroom').value === 'true';
+            const contentRaw = document.getElementById('sendgrouptext-content').value.trim();
             if (!uuid) {
-                showLocalError('sendtextandexp-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
+                showLocalError('sendgrouptext-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
                 return;
             }
             if (!/^\d+$/.test(sendUserid)) {
-                showLocalError('sendtextandexp-result', '错误：send_userid 必须是数字，可从外部群列表选择 room_id');
+                showLocalError('sendgrouptext-result', '错误：send_userid 必须是数字，可从外部群列表选择 room_id');
                 return;
             }
-            let contentJson;
-            try {
-                const parsed = JSON.parse(contentRaw);
-                if (!Array.isArray(parsed)) {
-                    throw new Error('content must be array');
-                }
-                contentJson = JSON.stringify(parsed);
-            } catch (error) {
-                showLocalError('sendtextandexp-result', '错误：content 必须是 JSON 数组，例如 [{"msgtype":0,"msg":"你好"}]');
+            if (!contentRaw) {
+                showLocalError('sendgrouptext-result', '错误：content 不能为空');
                 return;
             }
-            const requestBody = '{"uuid":' + JSON.stringify(uuid) + ',"send_userid":' + sendUserid + ',"isRoom":' + isRoom + ',"content":' + contentJson + '}';
-            const form = document.getElementById('sendtextandexp-form');
+            const requestBody = JSON.stringify({
+                uuid: uuid,
+                send_userid: sendUserid,
+                isRoom: isRoom,
+                content: contentRaw
+            });
+            const form = document.getElementById('sendgrouptext-form');
             const loading = form.querySelector('.loading');
             const button = form.querySelector('button[type="submit"]');
-            const resultDiv = document.getElementById('sendtextandexp-result');
+            const resultDiv = document.getElementById('sendgrouptext-result');
             loading.style.display = 'inline-block';
             button.disabled = true;
-            resultDiv.textContent = '正在发送文本/表情消息...';
+            resultDiv.textContent = '正在发送群文本消息...';
             resultDiv.className = 'result';
             try {
-                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/message/sendTextAndExp', {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1324,12 +1491,209 @@
                 resultDiv.textContent = '请求体：\n' + requestBody + '\n\n响应：\n' + (typeof responsePayload === 'string' ? responsePayload : JSON.stringify(responsePayload, null, 2));
                 resultDiv.className = ok ? 'result success' : 'result error';
             } catch (error) {
-                resultDiv.textContent = '发送文本/表情消息失败：' + error.message;
+                resultDiv.textContent = '发送群文本消息失败：' + error.message;
                 resultDiv.className = 'result error';
             } finally {
                 loading.style.display = 'none';
                 button.disabled = false;
             }
+        }
+        
+        function fillMediaSendTarget(sendUserid, isRoom) {
+            ['sendimage', 'sendvoice', 'sendapp'].forEach(function(prefix) {
+                document.getElementById(prefix + '-userid').value = sendUserid;
+                document.getElementById(prefix + '-isroom').value = isRoom ? 'true' : 'false';
+            });
+        }
+
+        function buildBaseSendPayload(prefix, resultId) {
+            const uuid = document.getElementById(prefix + '-uuid').value.trim();
+            const sendUserid = document.getElementById(prefix + '-userid').value.trim();
+            if (!uuid) {
+                showLocalError(resultId, '错误：请先在登录绑定页初始化并保存全局 UUID');
+                return null;
+            }
+            if (!/^\d+$/.test(sendUserid)) {
+                showLocalError(resultId, '错误：send_userid 必须是数字，可从好友或外部群列表选择');
+                return null;
+            }
+            return {
+                uuid: uuid,
+                send_userid: sendUserid,
+                isRoom: document.getElementById(prefix + '-isroom').value === 'true'
+            };
+        }
+
+        async function callSendImageApi() {
+            const basePayload = buildBaseSendPayload('sendimage', 'sendimage-result');
+            if (!basePayload) {
+                return;
+            }
+            const fileInput = document.getElementById('sendimage-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showLocalError('sendimage-result', '错误：请选择图片文件');
+                return;
+            }
+            await withSubmitState('sendimage-form', 'sendimage-result', '正在上传图片到 CDN...', async function(resultDiv) {
+                const uploadResult = await uploadCdnMultipart(basePayload.uuid, fileInput.files[0], 'http://ai-agent.okgcc.cn/wx/api/v1/cdn/cdnUploadImg');
+                const uploadData = requireSuccessData(uploadResult, '图片 CDN 上传失败');
+                const payload = Object.assign({}, basePayload, {
+                    cdnkey: requireUploadText(uploadData.cdn_key || uploadData.cdnkey || uploadData.fileid, 'cdnkey'),
+                    aeskey: requireUploadText(uploadData.aes_key || uploadData.aeskey, 'aeskey'),
+                    md5: requireUploadText(uploadData.md5, 'md5'),
+                    fileSize: requireUploadNumber(uploadData.size || uploadData.fileSize, 'fileSize'),
+                    width: uploadData.width,
+                    height: uploadData.height,
+                    thumb_image_height: uploadData.thumb_image_height,
+                    thumb_image_width: uploadData.thumb_image_width,
+                    thumb_file_size: uploadData.thumb_file_size,
+                    thumb_file_md5: uploadData.thumb_file_md5
+                });
+                const isHd = document.getElementById('sendimage-ishd').value.trim();
+                if (isHd) {
+                    payload.is_hd = Number(isHd);
+                }
+                const sendResult = await postJson('http://ai-agent.okgcc.cn/wx/api/v1/message/sendImage', payload);
+                renderChainedResult(resultDiv, payload, uploadResult, sendResult);
+            });
+        }
+
+        async function callSendVoiceApi() {
+            const basePayload = buildBaseSendPayload('sendvoice', 'sendvoice-result');
+            if (!basePayload) {
+                return;
+            }
+            const fileInput = document.getElementById('sendvoice-file');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showLocalError('sendvoice-result', '错误：请选择语音文件');
+                return;
+            }
+            const voiceTime = Number(document.getElementById('sendvoice-time').value || 0);
+            if (!Number.isInteger(voiceTime) || voiceTime <= 0) {
+                showLocalError('sendvoice-result', '错误：voice_time 必须是大于 0 的整数秒');
+                return;
+            }
+            await withSubmitState('sendvoice-form', 'sendvoice-result', '正在上传语音到 CDN...', async function(resultDiv) {
+                const uploadResult = await uploadCdnMultipart(basePayload.uuid, fileInput.files[0], 'http://ai-agent.okgcc.cn/wx/api/v1/cdn/cdnUploadFile');
+                const uploadData = requireSuccessData(uploadResult, '语音 CDN 上传失败');
+                const payload = Object.assign({}, basePayload, {
+                    cdnkey: requireUploadText(uploadData.cdn_key || uploadData.cdnkey || uploadData.fileid, 'cdnkey'),
+                    aeskey: requireUploadText(uploadData.aes_key || uploadData.aeskey, 'aeskey'),
+                    md5: requireUploadText(uploadData.md5, 'md5'),
+                    voice_time: voiceTime,
+                    fileSize: requireUploadNumber(uploadData.size || uploadData.fileSize, 'fileSize')
+                });
+                const sendResult = await postJson('http://ai-agent.okgcc.cn/wx/api/v1/message/sendVoice', payload);
+                renderChainedResult(resultDiv, payload, uploadResult, sendResult);
+            });
+        }
+
+        async function callSendAppApi() {
+            const payload = buildBaseSendPayload('sendapp', 'sendapp-result');
+            if (!payload) {
+                return;
+            }
+            payload.title = document.getElementById('sendapp-title').value.trim();
+            payload.desc = document.getElementById('sendapp-desc').value.trim();
+            payload.appName = document.getElementById('sendapp-name').value.trim();
+            payload.weappIconUrl = document.getElementById('sendapp-icon').value.trim();
+            payload.pagepath = document.getElementById('sendapp-pagepath').value.trim();
+            payload.username = document.getElementById('sendapp-username').value.trim();
+            payload.appid = document.getElementById('sendapp-appid').value.trim();
+            payload.coverUrl = document.getElementById('sendapp-coverurl').value.trim();
+            const missingField = ['title', 'desc', 'appName', 'pagepath', 'username', 'appid', 'coverUrl'].find(function(field) { return !payload[field]; });
+            if (missingField) {
+                showLocalError('sendapp-result', '错误：' + missingField + ' 不能为空');
+                return;
+            }
+            await callJsonApi('sendapp-form', 'sendapp-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendApp', payload, '发送小程序消息');
+        }
+
+        async function uploadCdnMultipart(uuid, file, url) {
+            const formData = new FormData();
+            formData.append('uuid', uuid);
+            formData.append('file', file);
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+            return parseApiResponse(response, await response.text());
+        }
+
+        async function postJson(url, payload) {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            return parseApiResponse(response, await response.text());
+        }
+
+        function parseApiResponse(response, responseText) {
+            let payload;
+            try {
+                payload = JSON.parse(responseText);
+            } catch (ignore) {
+                payload = responseText;
+            }
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status + '：' + (typeof payload === 'string' ? payload : JSON.stringify(payload)));
+            }
+            return payload;
+        }
+
+        function requireSuccessData(result, message) {
+            if (!result || (result.errcode !== 0 && result.code !== 0)) {
+                throw new Error(message + '：' + (result && (result.errmsg || result.msg) ? (result.errmsg || result.msg) : JSON.stringify(result)));
+            }
+            if (!result.data) {
+                throw new Error(message + '：响应缺少 data');
+            }
+            return result.data;
+        }
+
+        function requireUploadText(value, fieldName) {
+            if (value === null || value === undefined || String(value).trim() === '') {
+                throw new Error('CDN 上传响应缺少 ' + fieldName);
+            }
+            return String(value);
+        }
+
+        function requireUploadNumber(value, fieldName) {
+            const numberValue = Number(value);
+            if (!Number.isFinite(numberValue) || numberValue <= 0) {
+                throw new Error('CDN 上传响应缺少有效 ' + fieldName);
+            }
+            return numberValue;
+        }
+
+        async function withSubmitState(formId, resultId, loadingText, task) {
+            const form = document.getElementById(formId);
+            const loading = form.querySelector('.loading');
+            const button = form.querySelector('button[type="submit"]');
+            const resultDiv = document.getElementById(resultId);
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = loadingText;
+            resultDiv.className = 'result';
+            try {
+                await task(resultDiv);
+            } catch (error) {
+                resultDiv.textContent = error.message;
+                resultDiv.className = 'result error';
+            } finally {
+                loading.style.display = 'none';
+                button.disabled = false;
+            }
+        }
+
+        function renderChainedResult(resultDiv, requestPayload, uploadResult, sendResult) {
+            resultDiv.textContent = 'CDN 上传响应：\n' + JSON.stringify(uploadResult, null, 2)
+                + '\n\n发送请求体：\n' + JSON.stringify(requestPayload, null, 2)
+                + '\n\n发送响应：\n' + JSON.stringify(sendResult, null, 2);
+            resultDiv.className = sendResult && (sendResult.errcode === 0 || sendResult.code === 0) ? 'result success' : 'result error';
         }
         
         async function callJsonApi(formId, resultId, url, payload, actionName) {
@@ -1434,7 +1798,10 @@
                     document.getElementById('externalcontacts-uuid').value = globalUUID;
                     document.getElementById('sendtext-uuid').value = globalUUID;
                     document.getElementById('chatroommembers-uuid').value = globalUUID;
-                    document.getElementById('sendtextandexp-uuid').value = globalUUID;
+                    document.getElementById('sendgrouptext-uuid').value = globalUUID;
+                    document.getElementById('sendimage-uuid').value = globalUUID;
+                    document.getElementById('sendvoice-uuid').value = globalUUID;
+                    document.getElementById('sendapp-uuid').value = globalUUID;
                     // 更新第二个接口的结果提示
                     const callbackResult = document.getElementById('callback-result');
                     callbackResult.textContent = 'UUID已获取，可以调用接口';
@@ -2024,7 +2391,7 @@
                 document.getElementById('externalcontacts-uuid').value = newUUID;
                 document.getElementById('sendtext-uuid').value = newUUID;
                 document.getElementById('chatroommembers-uuid').value = newUUID;
-                document.getElementById('sendtextandexp-uuid').value = newUUID;
+                document.getElementById('sendgrouptext-uuid').value = newUUID;
                 
                 // 显示更新成功提示
                 alert('UUID已更新并同步到所有接口');
