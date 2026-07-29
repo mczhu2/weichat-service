@@ -450,18 +450,17 @@
                         <label for="callback-uuid">UUID：</label>
                         <input type="text" id="callback-uuid" placeholder="自动填充" readonly>
                     </div>
-                    <div class="form-group">
-                        <label for="callback-url">回调URL：</label>
-                        <input type="text" id="callback-url" value="http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl">
+                    <div class="module-hint" style="margin-bottom: 12px;">
+                        <strong>说明：</strong>系统会自动把企微平台回调入口注册为 http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl。这里只需要填写当前 UUID 对应企微员工收到客户消息后，要转发到的业务系统回调地址。
                     </div>
                     <div class="form-group">
-                        <label for="callback-callbackType">回调类型（callbackType）：</label>
-                        <input type="text" id="callback-callbackType" value="HTTP">
+                        <label for="callback-url">业务系统回调 URL：</label>
+                        <input type="text" id="callback-url" placeholder="https://customer.example.com/wecom/callback">
                     </div>
                     <div class="button-group">
                         <button type="submit" class="submit-btn">
                             <span class="loading" style="display: none;"></span>
-                            调用接口
+                            保存业务回调配置并注册企微回调
                         </button>
                         <button type="button" class="clear-btn" onclick="clearResult('callback-result')">清空结果</button>
                     </div>
@@ -470,7 +469,7 @@
             <!-- 第二列：响应结果 -->
             <div class="api-column">
                 <h2>响应结果</h2>
-                <div class="result" id="callback-result">请先调用初始化接口获取UUID，然后点击"调用接口"按钮</div>
+                <div class="result" id="callback-result">请先调用初始化接口获取 UUID，然后填写业务系统回调 URL。</div>
             </div>
             <!-- 第三列：图片展示 -->
             <div class="api-column">
@@ -1741,41 +1740,36 @@
             }
         }
         
-        // 调用设置回调URL接口
+        // 保存业务系统回调配置，并静默注册企微平台回调入口
         async function callCallbackApi() {
             const form = document.getElementById('callback-form');
             const loading = form.querySelector('.loading');
             const button = form.querySelector('button[type="submit"]');
             const resultDiv = document.getElementById('callback-result');
-            
-            // 显示加载状态
-            loading.style.display = 'inline-block';
-            button.disabled = true;
-            
-            // 检查UUID是否已获取
-            if (!globalUUID) {
-                resultDiv.textContent = '请先调用初始化接口获取UUID';
-                resultDiv.className = 'result error';
-                loading.style.display = 'none';
-                button.disabled = false;
+            const uuid = document.getElementById('callback-uuid').value.trim();
+            const callbackUrl = document.getElementById('callback-url').value.trim();
+
+            if (!globalUUID || !uuid) {
+                showLocalError('callback-result', '请先调用初始化接口获取 UUID');
                 return;
             }
-            
-            // 获取表单数据
-            const uuid = document.getElementById('callback-uuid').value.trim();
-            const url = document.getElementById('callback-url').value.trim();
-            const callbackType = document.getElementById('callback-callbackType').value.trim();
-            
-            // 构建请求数据
+            if (!/^https?:\/\/.+/.test(callbackUrl)) {
+                showLocalError('callback-result', '业务系统回调 URL 必须以 http:// 或 https:// 开头');
+                return;
+            }
+
             const requestData = {
                 uuid: uuid,
-                url: url,
-                callbackType: callbackType
+                callbackUrl: callbackUrl
             };
-            
+
+            loading.style.display = 'inline-block';
+            button.disabled = true;
+            resultDiv.textContent = '正在保存业务回调配置并注册企微回调入口...';
+            resultDiv.className = 'result';
+
             try {
-                // 调用接口
-                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/init/setCallbackUrl', {
+                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v2/callback/routes', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

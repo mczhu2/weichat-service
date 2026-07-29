@@ -2,9 +2,11 @@ package com.weichat.api.service;
 
 import com.weichat.api.vo.callback.DownstreamCallbackPayload;
 import com.weichat.api.vo.callback.DownstreamMediaVo;
+import com.weichat.common.entity.WxCallbackRoute;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
 import com.weichat.common.service.WxUserInfoService;
+import com.weichat.common.service.WxCallbackRouteService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,11 +40,94 @@ class AsyncWecomCallbackServiceTest {
     private DownstreamMessageContentService downstreamMessageContentService;
 
     @Mock
+    private WxCallbackRouteService wxCallbackRouteService;
+
+    @Mock
     private CustomerReplyService customerReplyService;
 
     @InjectMocks
     private AsyncWecomCallbackService asyncWecomCallbackService;
 
+
+    @Test
+    void shouldDispatchToCustomRouteWhenCallbackRouteExists() {
+        WxMessageInfo wxMessageInfo = new WxMessageInfo();
+        wxMessageInfo.setMsgId(303030L);
+        wxMessageInfo.setReceiver(1688856528881593L);
+        wxMessageInfo.setSender(7881301772935700L);
+        wxMessageInfo.setSenderName("route-sender");
+        wxMessageInfo.setMsgtype(1);
+
+        WxUserInfo receiverUser = new WxUserInfo();
+        receiverUser.setUserId(wxMessageInfo.getReceiver());
+        receiverUser.setUuid("uuid-custom-route");
+
+        WxCallbackRoute callbackRoute = new WxCallbackRoute();
+        callbackRoute.setUuid(receiverUser.getUuid());
+        callbackRoute.setCallbackUrl("https://tenant.example.com/wecom/callback");
+
+        DownstreamCallbackPayload payload = new DownstreamCallbackPayload();
+        payload.setContent("custom route payload");
+
+        ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomCallbackUrl", "http://fallback.example.com/callback");
+        ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomReplyCallbackUrl", "http://example.com/reply-callback");
+
+        when(wxUserInfoService.selectByUserId(wxMessageInfo.getReceiver())).thenReturn(receiverUser);
+        when(downstreamMessageContentService.resolveCallbackPayload(wxMessageInfo, receiverUser.getUuid())).thenReturn(payload);
+        when(wxCallbackRouteService.selectByUuid(receiverUser.getUuid())).thenReturn(callbackRoute);
+        when(restTemplate.postForEntity(
+                eq(callbackRoute.getCallbackUrl()),
+                any(HttpEntity.class),
+                eq(String.class))
+        ).thenReturn(ResponseEntity.ok("{\"ok\":true}"));
+
+        asyncWecomCallbackService.dispatch(wxMessageInfo);
+
+        ArgumentCaptor<HttpEntity> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(wxCallbackRouteService).selectByUuid(receiverUser.getUuid());
+        verify(restTemplate).postForEntity(eq(callbackRoute.getCallbackUrl()), entityCaptor.capture(), eq(String.class));
+        String requestBody = entityCaptor.getValue().getBody().toString();
+        assertTrue(requestBody.contains("\"uuid\":\"uuid-custom-route\""));
+        assertTrue(requestBody.contains("\"content\":\"custom route payload\""));
+    }
+
+    @Test
+    void shouldDispatchToFallbackCallbackUrlWhenCallbackRouteMissing() {
+        WxMessageInfo wxMessageInfo = new WxMessageInfo();
+        wxMessageInfo.setMsgId(404040L);
+        wxMessageInfo.setReceiver(1688856528881593L);
+        wxMessageInfo.setSender(7881301772935700L);
+        wxMessageInfo.setSenderName("fallback-sender");
+        wxMessageInfo.setMsgtype(1);
+
+        WxUserInfo receiverUser = new WxUserInfo();
+        receiverUser.setUserId(wxMessageInfo.getReceiver());
+        receiverUser.setUuid("uuid-fallback-route");
+
+        DownstreamCallbackPayload payload = new DownstreamCallbackPayload();
+        payload.setContent("fallback payload");
+
+        ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomCallbackUrl", "http://fallback.example.com/callback");
+        ReflectionTestUtils.setField(asyncWecomCallbackService, "wecomReplyCallbackUrl", "http://example.com/reply-callback");
+
+        when(wxUserInfoService.selectByUserId(wxMessageInfo.getReceiver())).thenReturn(receiverUser);
+        when(downstreamMessageContentService.resolveCallbackPayload(wxMessageInfo, receiverUser.getUuid())).thenReturn(payload);
+        when(wxCallbackRouteService.selectByUuid(receiverUser.getUuid())).thenReturn(null);
+        when(restTemplate.postForEntity(
+                eq("http://fallback.example.com/callback"),
+                any(HttpEntity.class),
+                eq(String.class))
+        ).thenReturn(ResponseEntity.ok("{\"ok\":true}"));
+
+        asyncWecomCallbackService.dispatch(wxMessageInfo);
+
+        ArgumentCaptor<HttpEntity> entityCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(wxCallbackRouteService).selectByUuid(receiverUser.getUuid());
+        verify(restTemplate).postForEntity(eq("http://fallback.example.com/callback"), entityCaptor.capture(), eq(String.class));
+        String requestBody = entityCaptor.getValue().getBody().toString();
+        assertTrue(requestBody.contains("\"uuid\":\"uuid-fallback-route\""));
+        assertTrue(requestBody.contains("\"content\":\"fallback payload\""));
+    }
     @Test
     void shouldDispatchCallbackWithoutConsumingSyncResponseBody() {
         WxMessageInfo wxMessageInfo = new WxMessageInfo();

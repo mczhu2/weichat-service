@@ -80,6 +80,8 @@ tags:
     description: agent 当前发送/语音转文字相关接口
   - name: Tag
     description: 标签接口，legacy wecom-bridge 当前调用
+  - name: CallbackRoute
+    description: 业务系统回调路由配置
   - name: LocalData
     description: legacy wecom-bridge 当前写入本地消息数据接口
 
@@ -693,6 +695,35 @@ paths:
               schema:
                 type: string
 
+  /api/v2/callback/routes:
+    post:
+      tags: [CallbackRoute]
+      summary: 保存业务系统回调路由并注册企微平台回调入口
+      description: |
+        调用方只传当前企微运行实例 uuid 和自己的业务系统回调 URL。
+        weichat-service 会静默把固定企微平台回调入口 `http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl` 注册到底层企微服务，
+        然后保存 `uuid -> callbackUrl` 路由。后续企微消息优先按该路由分发；未配置路由的老用户继续走 `bizSystem.wecom.callback.url` 兜底。
+      x-called-by:
+        - wecom-api-call-service.html#callCallbackApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CallbackRouteUpsertRequest'
+            examples:
+              callbackRoute:
+                value:
+                  uuid: 0190-example-uuid
+                  callbackUrl: https://customer.example.com/wecom/callback
+      responses:
+        '200':
+          description: 路由保存与企微平台回调注册结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallbackRouteUpsertApiResult'
+
 components:
   schemas:
     ApiResult:
@@ -733,6 +764,53 @@ components:
           type: string
           description: /api/v1/init/init 返回的客户端实例 ID。后续二维码、状态查询、联系人、群、消息发送、退出登录接口必须复用同一个 uuid；不要放 query/header。
           example: 0190-example-uuid
+
+    CallbackRouteUpsertRequest:
+      type: object
+      required: [uuid, callbackUrl]
+      description: 保存当前 uuid 对应的业务系统回调地址；企微平台固定回调入口由服务端静默注册。
+      properties:
+        uuid:
+          type: string
+          description: /api/v1/init/init 返回的企微运行实例 ID。
+          example: 0190-example-uuid
+        callbackUrl:
+          type: string
+          format: uri
+          description: 当前 uuid 对应企微员工收到客户消息后，weichat-service 转发到的业务系统回调 URL；必须是 http:// 或 https://。
+          example: https://customer.example.com/wecom/callback
+      example:
+        uuid: 0190-example-uuid
+        callbackUrl: https://customer.example.com/wecom/callback
+
+    CallbackRouteUpsertResponse:
+      type: object
+      description: 业务系统回调路由保存结果。
+      properties:
+        uuid:
+          type: string
+          description: 企微运行实例 ID。
+          example: 0190-example-uuid
+        callbackUrl:
+          type: string
+          description: 已保存的业务系统回调 URL。
+          example: https://customer.example.com/wecom/callback
+        platformCallbackUrl:
+          type: string
+          description: 服务端静默注册到底层企微服务的固定平台回调入口。
+          example: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
+        platformCallbackRegistered:
+          type: boolean
+          description: 是否已完成企微平台回调入口注册。
+          example: true
+
+    CallbackRouteUpsertApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CallbackRouteUpsertResponse'
 
     InitRequest:
       type: object

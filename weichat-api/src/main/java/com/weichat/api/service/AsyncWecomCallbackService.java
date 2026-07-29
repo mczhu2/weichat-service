@@ -4,8 +4,10 @@ import com.alibaba.fastjson.JSON;
 import com.weichat.api.enums.CallbackMessageTypeEnum;
 import com.weichat.api.enums.ReplyModalityEnum;
 import com.weichat.api.vo.callback.DownstreamCallbackPayload;
+import com.weichat.common.entity.WxCallbackRoute;
 import com.weichat.common.entity.WxMessageInfo;
 import com.weichat.common.entity.WxUserInfo;
+import com.weichat.common.service.WxCallbackRouteService;
 import com.weichat.common.service.WxUserInfoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +41,8 @@ public class AsyncWecomCallbackService {
     private DownstreamMessageContentService downstreamMessageContentService;
 
     @Autowired
-    private CustomerReplyService customerReplyService;
+    private WxCallbackRouteService wxCallbackRouteService;
+
 
     @Value("${bizSystem.wecom.callback.url:http://115.190.61.17:8081/api/wecom/callback}")
     private String wecomCallbackUrl;
@@ -73,8 +76,13 @@ public class AsyncWecomCallbackService {
                     wxMessageInfo.getReceiver(),
                     JSON.toJSONString(callbackPayload));
 
+            String callbackUrl = resolveCallbackUrl(receiverUser, wxMessageInfo);
+            if (!StringUtils.hasText(callbackUrl)) {
+                return;
+            }
+
             ResponseEntity<String> responseEntity = restTemplate.postForEntity(
-                    wecomCallbackUrl,
+                    callbackUrl,
                     buildCallbackEntity(wxMessageInfo, receiverUser, callbackPayload),
                     String.class
             );
@@ -86,10 +94,11 @@ public class AsyncWecomCallbackService {
             // from /api/v1/message/wecomAgentReplyCallback.
 
             logger.info(
-                    "Downstream callback accepted. msgId={}, receiver={}, sender={}, status={}, body={}",
+                    "Downstream callback accepted. msgId={}, receiver={}, sender={}, callbackUrl={}, status={}, body={}",
                     wxMessageInfo.getMsgId(),
                     wxMessageInfo.getReceiver(),
                     wxMessageInfo.getSender(),
+                    callbackUrl,
                     responseEntity.getStatusCodeValue(),
                     responseBody
             );
@@ -102,6 +111,46 @@ public class AsyncWecomCallbackService {
                     e
             );
         }
+    }
+
+    private String resolveCallbackUrl(WxUserInfo receiverUser, WxMessageInfo wxMessageInfo) {
+        WxCallbackRoute route = null;
+        try {
+            route = wxCallbackRouteService.selectByUuid(receiverUser.getUuid());
+        } catch (Exception e) {
+            logger.error(
+                    "Failed to query downstream callback route, fallback url will be used. msgId={}, uuid={}",
+                    wxMessageInfo.getMsgId(),
+                    receiverUser.getUuid(),
+                    e
+            );
+        }
+        if (route != null && StringUtils.hasText(route.getCallbackUrl())) {
+            logger.info(
+                    "Use custom downstream callback route. msgId={}, uuid={}, callbackUrl={}",
+                    wxMessageInfo.getMsgId(),
+                    receiverUser.getUuid(),
+                    route.getCallbackUrl()
+            );
+            return route.getCallbackUrl();
+        }
+
+        if (StringUtils.hasText(wecomCallbackUrl)) {
+            logger.info(
+                    "Use fallback downstream callback url because route is missing. msgId={}, uuid={}, fallbackUrl={}",
+                    wxMessageInfo.getMsgId(),
+                    receiverUser.getUuid(),
+                    wecomCallbackUrl
+            );
+            return wecomCallbackUrl;
+        }
+
+        logger.warn(
+                "Skip downstream callback because route and fallback url are both empty. msgId={}, uuid={}",
+                wxMessageInfo.getMsgId(),
+                receiverUser.getUuid()
+        );
+        return null;
     }
 
     private boolean isValidReceiver(WxUserInfo receiverUser, WxMessageInfo wxMessageInfo) {
