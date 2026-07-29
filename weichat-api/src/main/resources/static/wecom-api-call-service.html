@@ -770,43 +770,7 @@
             
             <div class="api-row">
                 <div class="api-column">
-                    <h2>2. 单好友发送文本消息</h2>
-                    <form id="sendtext-form">
-                        <div class="form-group">
-                            <label for="sendtext-uuid">UUID：</label>
-                            <input type="text" id="sendtext-uuid" placeholder="自动填充" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label for="sendtext-userid">send_userid：</label>
-                            <input type="text" id="sendtext-userid" placeholder="可从好友列表点击“选择发送”自动填入">
-                        </div>
-                        <div class="form-group">
-                            <label>消息类型：</label>
-                            <input type="text" value="单好友文本消息（isRoom=false）" readonly>
-                        </div>
-                        <div class="form-group">
-                            <label for="sendtext-content">消息内容 content：</label>
-                            <textarea id="sendtext-content" placeholder="请输入要发送的文本" style="width: 100%; min-height: 90px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"></textarea>
-                        </div>
-                        <div class="button-group">
-                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>调用接口</button>
-                            <button type="button" class="clear-btn" onclick="clearResult('sendtext-result')">清空结果</button>
-                        </div>
-                    </form>
-                </div>
-                <div class="api-column">
-                    <h2>响应结果</h2>
-                    <div class="result" id="sendtext-result">从好友列表选择目标好友，填写消息内容后发送</div>
-                </div>
-                <div class="api-column">
-                    <h2>接口路径</h2>
-                    <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendText</div>
-                </div>
-            </div>
-            
-            <div class="api-row">
-                <div class="api-column">
-                    <h2>3. 获取外部群列表</h2>
+                    <h2>2. 获取外部群列表</h2>
                     <form id="chatroommembers-form">
                         <div class="form-group">
                             <label for="chatroommembers-uuid">UUID：</label>
@@ -837,49 +801,49 @@
                     <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/group/getChatroomMembers</div>
                 </div>
             </div>
-            
+
             <div class="api-row">
                 <div class="api-column">
-                    <h2>4. 发送群文本消息</h2>
-                    <form id="sendgrouptext-form">
+                    <h2>3. 文本消息发送（个人/群）</h2>
+                    <form id="sendtext-form">
                         <div class="form-group">
-                            <label for="sendgrouptext-uuid">UUID：</label>
-                            <input type="text" id="sendgrouptext-uuid" placeholder="自动填充" readonly>
+                            <label for="sendtext-uuid">UUID：</label>
+                            <input type="text" id="sendtext-uuid" placeholder="自动填充" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="sendgrouptext-userid">send_userid：</label>
-                            <input type="text" id="sendgrouptext-userid" placeholder="可从外部群列表点击“选择群发送”自动填入">
+                            <label for="sendtext-userid">send_userid：</label>
+                            <input type="text" id="sendtext-userid" placeholder="可从好友列表或外部群列表点击选择自动填入">
                         </div>
                         <div class="form-group">
-                            <label for="sendgrouptext-isroom">是否群消息 isRoom：</label>
-                            <select id="sendgrouptext-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                                <option value="true">true - 群消息</option>
+                            <label for="sendtext-isroom">是否群消息 isRoom：</label>
+                            <select id="sendtext-isroom" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
                                 <option value="false">false - 个人消息</option>
+                                <option value="true">true - 群消息</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="sendgrouptext-content">消息内容 content：</label>
-                            <textarea id="sendgrouptext-content" placeholder="请输入要发送到群的文本" style="width: 100%; min-height: 120px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">你好</textarea>
+                            <label for="sendtext-content">消息内容 content：</label>
+                            <textarea id="sendtext-content" placeholder="请输入要发送的文本" style="width: 100%; min-height: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"></textarea>
                         </div>
                         <div class="button-group">
-                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>发送消息</button>
-                            <button type="button" class="clear-btn" onclick="clearResult('sendgrouptext-result')">清空结果</button>
+                            <button type="submit" class="submit-btn"><span class="loading" style="display: none;"></span>发送文本消息</button>
+                            <button type="button" class="clear-btn" onclick="clearResult('sendtext-result')">清空结果</button>
                         </div>
                     </form>
                 </div>
                 <div class="api-column">
                     <h2>响应结果</h2>
-                    <div class="result" id="sendgrouptext-result">从外部群列表选择群 ID，确认 isRoom=true 后调用 sendText 发送群文本消息。</div>
+                    <div class="result" id="sendtext-result">从好友或外部群列表选择目标，确认 isRoom 后调用 sendText 发送文本消息。</div>
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
-                    <div class="result" style="white-space: normal;">POST http://ai-agent.okgcc.cn/wx/api/v1/message/sendText</div>
+                    <div class="result" style="white-space: normal;">POST /wx/api/v1/message/sendText</div>
                 </div>
             </div>
             
             <div class="api-row">
                 <div class="api-column">
-                    <h2>5. 图片发送（个人/群）</h2>
+                    <h2>4. 图片发送（个人/群）</h2>
                     <form id="sendimage-form">
                         <div class="form-group">
                             <label for="sendimage-uuid">UUID：</label>
@@ -922,7 +886,7 @@
 
             <div class="api-row">
                 <div class="api-column">
-                    <h2>6. 语音发送（个人/群）</h2>
+                    <h2>5. 语音发送（个人/群）</h2>
                     <form id="sendvoice-form">
                         <div class="form-group">
                             <label for="sendvoice-uuid">UUID：</label>
@@ -965,7 +929,7 @@
 
             <div class="api-row">
                 <div class="api-column">
-                    <h2>7. 小程序发送（个人/群）</h2>
+                    <h2>6. 小程序发送（个人/群）</h2>
                     <form id="sendapp-form">
                         <div class="form-group">
                             <label for="sendapp-uuid">UUID：</label>
@@ -1115,11 +1079,6 @@
             callChatroomMembersApi();
         });
         
-        // 发送群文本消息表单提交事件
-        document.getElementById('sendgrouptext-form').addEventListener('submit', function(e) {
-            e.preventDefault();
-            callSendGroupTextApi();
-        });
         
         // 图片发送表单提交事件
         document.getElementById('sendimage-form').addEventListener('submit', function(e) {
@@ -1269,6 +1228,7 @@
                 return;
             }
             document.getElementById('sendtext-userid').value = userId;
+            document.getElementById('sendtext-isroom').value = 'false';
             document.getElementById('sendtext-result').textContent = '已选择好友 userId/vid：' + userId + '，文本、图片、语音、小程序表单已同步为个人目标';
             document.getElementById('sendtext-result').className = 'result success';
             fillMediaSendTarget(userId, false);
@@ -1289,23 +1249,16 @@
         }
         
         async function callSendTextApi() {
-            const uuid = document.getElementById('sendtext-uuid').value.trim();
-            const sendUserid = document.getElementById('sendtext-userid').value.trim();
-            const content = document.getElementById('sendtext-content').value.trim();
-            if (!sendUserid) {
-                showLocalError('sendtext-result', '错误：请填写 send_userid');
+            const payload = buildBaseSendPayload('sendtext', 'sendtext-result');
+            if (!payload) {
                 return;
             }
+            const content = document.getElementById('sendtext-content').value.trim();
             if (!content) {
                 showLocalError('sendtext-result', '错误：请填写消息内容 content');
                 return;
             }
-            const payload = {
-                uuid: uuid,
-                send_userid: sendUserid,
-                isRoom: false,
-                content: content
-            };
+            payload.content = content;
             await callJsonApi('sendtext-form', 'sendtext-result', 'http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', payload, '发送文本消息');
         }
         
@@ -1430,74 +1383,17 @@
         
         function selectChatroomForSend(roomId) {
             if (!roomId) {
-                showLocalError('sendgrouptext-result', '当前群缺少 room_id，不能发送');
+                showLocalError('sendtext-result', '当前群缺少 room_id，不能发送');
                 return;
             }
-            document.getElementById('sendgrouptext-userid').value = roomId;
-            document.getElementById('sendgrouptext-isroom').value = 'true';
-            document.getElementById('sendgrouptext-result').textContent = '已选择群 room_id：' + roomId + '，群文本、图片、语音、小程序表单已同步为群目标';
-            document.getElementById('sendgrouptext-result').className = 'result success';
+            document.getElementById('sendtext-userid').value = roomId;
+            document.getElementById('sendtext-isroom').value = 'true';
+            document.getElementById('sendtext-result').textContent = '已选择群 room_id：' + roomId + '，文本、图片、语音、小程序表单已同步为群目标';
+            document.getElementById('sendtext-result').className = 'result success';
             fillMediaSendTarget(roomId, true);
-            document.getElementById('sendgrouptext-content').focus();
+            document.getElementById('sendtext-content').focus();
         }
         
-        async function callSendGroupTextApi() {
-            const uuid = document.getElementById('sendgrouptext-uuid').value.trim();
-            const sendUserid = document.getElementById('sendgrouptext-userid').value.trim();
-            const isRoom = document.getElementById('sendgrouptext-isroom').value === 'true';
-            const contentRaw = document.getElementById('sendgrouptext-content').value.trim();
-            if (!uuid) {
-                showLocalError('sendgrouptext-result', '错误：请先在登录绑定页初始化并保存全局 UUID');
-                return;
-            }
-            if (!/^\d+$/.test(sendUserid)) {
-                showLocalError('sendgrouptext-result', '错误：send_userid 必须是数字，可从外部群列表选择 room_id');
-                return;
-            }
-            if (!contentRaw) {
-                showLocalError('sendgrouptext-result', '错误：content 不能为空');
-                return;
-            }
-            const requestBody = JSON.stringify({
-                uuid: uuid,
-                send_userid: sendUserid,
-                isRoom: isRoom,
-                content: contentRaw
-            });
-            const form = document.getElementById('sendgrouptext-form');
-            const loading = form.querySelector('.loading');
-            const button = form.querySelector('button[type="submit"]');
-            const resultDiv = document.getElementById('sendgrouptext-result');
-            loading.style.display = 'inline-block';
-            button.disabled = true;
-            resultDiv.textContent = '正在发送群文本消息...';
-            resultDiv.className = 'result';
-            try {
-                const response = await fetch('http://ai-agent.okgcc.cn/wx/api/v1/message/sendText', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: requestBody
-                });
-                const responseText = await response.text();
-                let responsePayload;
-                try {
-                    responsePayload = JSON.parse(responseText);
-                } catch (ignore) {
-                    responsePayload = responseText;
-                }
-                const ok = response.ok && responsePayload && (responsePayload.errcode === 0 || responsePayload.code === 0);
-                resultDiv.textContent = '请求体：\n' + requestBody + '\n\n响应：\n' + (typeof responsePayload === 'string' ? responsePayload : JSON.stringify(responsePayload, null, 2));
-                resultDiv.className = ok ? 'result success' : 'result error';
-            } catch (error) {
-                resultDiv.textContent = '发送群文本消息失败：' + error.message;
-                resultDiv.className = 'result error';
-            } finally {
-                loading.style.display = 'none';
-                button.disabled = false;
-            }
-        }
         
         function fillMediaSendTarget(sendUserid, isRoom) {
             ['sendimage', 'sendvoice', 'sendapp'].forEach(function(prefix) {
@@ -1798,7 +1694,6 @@
                     document.getElementById('externalcontacts-uuid').value = globalUUID;
                     document.getElementById('sendtext-uuid').value = globalUUID;
                     document.getElementById('chatroommembers-uuid').value = globalUUID;
-                    document.getElementById('sendgrouptext-uuid').value = globalUUID;
                     document.getElementById('sendimage-uuid').value = globalUUID;
                     document.getElementById('sendvoice-uuid').value = globalUUID;
                     document.getElementById('sendapp-uuid').value = globalUUID;
@@ -1960,14 +1855,12 @@
                         let qrcodeData = String(result.data.qrcode || result.data.qrCode || result.data.QrCodeUrl);
                         // 清理前后空格、反引号和可能的普通引号
                         qrcodeData = qrcodeData.trim().replace(/^[`'"]+|[`'"]+$/g, '');
-                        console.log('QRCode data type:', typeof qrcodeData, 'content:', qrcodeData.substring(0, 100) + (qrcodeData.length > 100 ? '...' : ''));
                         
                         // 如果是base64编码且缺少data URI前缀，自动添加
                         if (qrcodeData.startsWith('iVBORw0KGgo') || qrcodeData.startsWith('/9j/')) {
                             // PNG或JPEG的base64编码，添加适当的前缀
                             const isPNG = qrcodeData.startsWith('iVBORw0KGgo');
                             qrcodeData = `data:image/${isPNG ? 'png' : 'jpeg'};base64,${qrcodeData}`;
-                            console.log('Added data URI prefix:', qrcodeData.substring(0, 50) + '...');
                         }
                         
                         // 重置图片错误状态
@@ -1978,16 +1871,13 @@
                             // 图片预加载成功，设置到显示元素
                             qrcodeImage.src = qrcodeData;
                             qrcodeImage.style.display = 'block';
-                            console.log('QRCode image loaded successfully');
                         };
                         tempImage.onerror = function() {
-                            console.error('Failed to load QRCode image:', qrcodeData);
                             qrcodeImage.style.display = 'none';
                             resultDiv.textContent += '\n\n[错误] 二维码图片加载失败，请检查API返回的qrcode格式是否正确';
                         };
                         tempImage.src = qrcodeData;
                     } else {
-                        console.warn('API returned success but no qrcode in data:', result.data);
                         qrcodeImage.style.display = 'none';
                         resultDiv.textContent += '\n\n[警告] API返回成功但未包含qrcode数据';
                     }
@@ -2158,14 +2048,12 @@
                         let qrcodeData = String(result.data.qrcode || result.data.qrCode || result.data.QrCodeUrl);
                         // 清理前后空格、反引号和可能的普通引号
                         qrcodeData = qrcodeData.trim().replace(/^[`'"]+|[`'"]+$/g, '');
-                        console.log('Secondary QRCode data type:', typeof qrcodeData, 'content:', qrcodeData.substring(0, 100) + (qrcodeData.length > 100 ? '...' : ''));
                         
                         // 如果是base64编码且缺少data URI前缀，自动添加
                         if (qrcodeData.startsWith('iVBORw0KGgo') || qrcodeData.startsWith('/9j/')) {
                             // PNG或JPEG的base64编码，添加适当的前缀
                             const isPNG = qrcodeData.startsWith('iVBORw0KGgo');
                             qrcodeData = `data:image/${isPNG ? 'png' : 'jpeg'};base64,${qrcodeData}`;
-                            console.log('Added data URI prefix:', qrcodeData.substring(0, 50) + '...');
                         }
                         
                         // 重置图片错误状态
@@ -2176,16 +2064,13 @@
                             // 图片预加载成功，设置到显示元素
                             secondaryImage.src = qrcodeData;
                             secondaryImage.style.display = 'block';
-                            console.log('Secondary QRCode image loaded successfully');
                         };
                         tempImage.onerror = function() {
-                            console.error('Failed to load secondary QRCode image:', qrcodeData);
                             secondaryImage.style.display = 'none';
                             resultDiv.textContent += '\n\n[错误] 二次验证二维码图片加载失败，请检查API返回的qrcode格式是否正确';
                         };
                         tempImage.src = qrcodeData;
                     } else {
-                        console.warn('API returned success but no qrcode in data:', result.data);
                         secondaryImage.style.display = 'none';
                         resultDiv.textContent += '\n\n[警告] API返回成功但未包含qrcode数据';
                     }
@@ -2378,7 +2263,6 @@
             if (newUUID) {
                 // 更新全局变量
                 globalUUID = newUUID;
-                console.log('Global UUID updated to:', newUUID);
                 
                 // 更新所有接口的UUID输入框
                 document.getElementById('callback-uuid').value = newUUID;
@@ -2391,7 +2275,9 @@
                 document.getElementById('externalcontacts-uuid').value = newUUID;
                 document.getElementById('sendtext-uuid').value = newUUID;
                 document.getElementById('chatroommembers-uuid').value = newUUID;
-                document.getElementById('sendgrouptext-uuid').value = newUUID;
+                document.getElementById('sendimage-uuid').value = newUUID;
+                document.getElementById('sendvoice-uuid').value = newUUID;
+                document.getElementById('sendapp-uuid').value = newUUID;
                 
                 // 显示更新成功提示
                 alert('UUID已更新并同步到所有接口');
@@ -2416,13 +2302,11 @@
                     let qrcodeData = String(result.data.qrcode);
                     // 清理前后空格、反引号和可能的普通引号
                     qrcodeData = qrcodeData.trim().replace(/^[`'"]+|[`'"]+$/g, '');
-                    console.log('QRCode from result - type:', typeof qrcodeData, 'content:', qrcodeData.substring(0, 100) + (qrcodeData.length > 100 ? '...' : ''));
                     
                     // 如果是base64编码且缺少data URI前缀，自动添加
                     if (qrcodeData.startsWith('iVBORw0KGgo') || qrcodeData.startsWith('/9j/')) {
                         const isPNG = qrcodeData.startsWith('iVBORw0KGgo');
                         qrcodeData = `data:image/${isPNG ? 'png' : 'jpeg'};base64,${qrcodeData}`;
-                        console.log('Added data URI prefix:', qrcodeData.substring(0, 50) + '...');
                     }
                     
                     // 重置图片错误状态
@@ -2432,20 +2316,16 @@
                     tempImage.onload = function() {
                         qrcodeImage.src = qrcodeData;
                         qrcodeImage.style.display = 'block';
-                        console.log('QRCode image rendered successfully from result');
                     };
                     tempImage.onerror = function() {
-                        console.error('Failed to render QRCode image from result:', qrcodeData);
                         qrcodeImage.style.display = 'none';
                         alert('二维码图片渲染失败，请检查API返回的qrcode格式是否正确');
                     };
                     tempImage.src = qrcodeData;
                 } else {
-                    console.warn('Result does not contain valid qrcode:', result);
                     alert('响应结果中未包含有效的qrcode数据，请先确保接口调用成功');
                 }
             } catch (error) {
-                console.error('Error parsing result:', error);
                 alert('解析响应结果失败，请确保接口已调用成功且返回正确的JSON格式');
             }
         }

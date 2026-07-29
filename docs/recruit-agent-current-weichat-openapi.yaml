@@ -9,7 +9,60 @@ info:
     - wecom-bridge.js
     - server.js 回调/发送链路
 
-    未纳入 47.94.7.218:9952 控制面 /wxwork/* 直连接口；这里只描述 weichat-service 的 8066 数据面与回调入口。
+    未纳入 47.94.7.218:9952 控制面 /wxwork/* 直连接口；这里只描述 weichat-service 的 8066 数据面。
+
+    ## 集成必读
+
+    ### 1. uuid 生命周期与传参位置
+    - `uuid` 是 weichat-service 为一个企微运行客户端分配的实例标识，不是业务会话 ID。
+    - 除 `/api/v1/init/init` 外，本文档里的业务接口都在 JSON body 中传 `uuid`；不要放 query，也不要放 header。
+    - 调用方必须复用同一个 `uuid` 完成二维码登录、状态查询、联系人分页、消息发送、退出登录等后续链路。
+    - 服务未在接口中暴露固定过期秒数；调用方应以 `/api/v1/init/getRunClientByUuid` 返回为准。`loginType=2` 且 `longLinkState=CONNECTED` 才按“可发消息”处理；失联、登出或查不到客户端时重新 `/api/v1/init/init`。
+
+    ### 2. vid 与 automaticLogin
+    - `vid` 是企微账号 ID，用于尝试复用已登录/已绑定账号；首次扫码登录成功后由服务端响应/状态数据返回，调用方可按业务需要持久化。
+    - `/api/v1/init/init` 可不传 `vid`，表示创建新的登录客户端；传 `vid` 时表示希望复用该账号相关的客户端/登录态。
+    - `/api/v1/init/automaticLogin` 只接收 body 中的 `uuid`，不是 query 参数。是否能自动登录取决于该 `uuid` 或服务端历史状态是否已有可复用登录态；没有历史登录态时按失败结果处理，再走普通二维码登录流程。
+
+    ### 3. 登录状态判断
+    - `loginState` 是初始化/旧协议返回的兼容字段，不能单独作为“可发消息”的最终判断。
+    - `loginType` 是当前推荐的登录阶段字段：`0/空` 可视为未初始化或未知，`1` 可视为已初始化但未完成登录，`2` 表示已登录。
+    - `longLinkState` 是长连接状态；`CONNECTED` 表示连接正常。
+    - 调用方的就绪条件使用 AND：`loginType == 2 && longLinkState == 'CONNECTED'`。
+
+    ### 4. 二维码、授权码与二次验证
+    - `/api/v1/init/getQrCode` 返回的二维码字段可能是 `data.qrcode`、`data.qrCode` 或 `data.QrCodeUrl`；值可能是可直接展示的 URL/data URI，也可能是不带前缀的 base64 图片字符串。
+    - 如果是裸 base64，前端需按图片类型补 `data:image/png;base64,` 或 `data:image/jpeg;base64,` 后再用于 `<img src>`。
+    - `qrcodeKey` 来源于二维码响应里的 `data.Key`、`data.key` 或 `data.qrcodeKey`，后续 `/api/v1/init/checkCode` 需要带回。
+    - `code`/授权码不是回调字段；H5 demo 设计为用户扫码后手动录入设备/页面展示的授权码。
+    - 二次验证不是每次登录都触发。仅当扫码/授权后返回结果或提示明确要求二次授权时调用 `/api/v1/init/secondaryValidation`，否则继续轮询 `/api/v1/init/getRunClientByUuid`。
+    - 二维码有效期未在 weichat-service 接口中稳定暴露；过期、扫码失败或授权码失效时重新获取二维码。
+
+    ### 5. 联系人与群边界
+    - `/api/v1/contact/getExternalContacts` 返回外部联系人/客户；单好友发文本时使用列表里的 `userId` 或兼容字段 `vid` 作为 `sendText.send_userid`。
+    - `/api/v1/contact/getInnerContacts` 返回企业内部通讯录成员；它不是外部联系人列表。
+    - `/api/v1/group/getChatroomMembers` 名称容易误解：该接口实际返回“外部客户群列表”，不是某个群的成员列表。要查某个群成员，用 `/api/v1/group/getRoomUserList`。
+    - `room_id` 是外部群 ID，可能超过 JS 安全整数。浏览器/JS 客户端必须按字符串处理，再作为 `sendText.send_userid`。
+
+    ### 6. 游标分页
+    - 外部联系人：首次请求 `seq=0`；下一页请求使用上次响应 `data.seq`。没有新游标或接口返回失败时停止翻页。
+    - 内部联系人：首次请求 `strSeq=''`；下一页请求使用上次响应中的字符串游标。
+    - 外部群列表：首次请求 `star_index=0`；下一页请求使用上次响应 `data.next_start`。字段名是 `star_index`，不是 `start_index`。
+
+    ### 7. sendText 发送规则
+    - 单好友文本和外部群文本共用 `/api/v1/message/sendText`。
+    - 单好友：`isRoom=false`，`send_userid` 填外部联系人的 `userId/vid`。
+    - 外部群：`isRoom=true`，`send_userid` 填外部群列表返回的 `room_id`。
+    - `send_userid` 后端字段是 Java `Long`；JS 客户端建议按十进制字符串传递，避免超过 `Number.MAX_SAFE_INTEGER` 后丢精度。
+    - 本接口只发送纯文本；如需 @ 人或混合文本/表情，应使用对应扩展接口，本文档当前不把这些扩展参数暴露为最小集成路径。
+
+    ### 8. 错误处理
+    | 场景 | 判断 | 调用方处理 |
+    | --- | --- | --- |
+    | 成功 | HTTP 2xx 且响应体 `code=0` | 读取 `data`。 |
+    | 业务/协议失败 | HTTP 2xx 但 `code!=0` | 展示/记录 `msg`，不要依赖固定文案做程序分支。 |
+    | 网络/服务异常 | HTTP 非 2xx、超时或无法解析响应 | 按可重试失败处理，并保留请求参数和响应体用于排查。 |
+    - 当前服务未提供稳定错误码枚举表；失败后建议先调用 `/api/v1/init/getRunClientByUuid` 复查客户端状态，再决定重试、重新扫码或提示人工处理。
 servers:
   - url: http://localhost:8066
     description: local weichat-api
@@ -27,8 +80,6 @@ tags:
     description: agent 当前发送/语音转文字相关接口
   - name: Tag
     description: 标签接口，legacy wecom-bridge 当前调用
-  - name: CallbackIngress
-    description: 企微回调接收入口
   - name: LocalData
     description: legacy wecom-bridge 当前写入本地消息数据接口
 
@@ -39,6 +90,7 @@ paths:
       summary: 初始化企微客户端
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#init
+        - api-call-service.html#callInitApi
       requestBody:
         required: true
         content:
@@ -46,10 +98,9 @@ paths:
             schema:
               $ref: '#/components/schemas/InitRequest'
             examples:
-              ipadDefault:
-                value:
-                  proxySituation: 0
-                  deverType: ipad
+              emptyInit:
+                summary: 最小初始化请求；可传空对象
+                value: {}
       responses:
         '200':
           description: 初始化结果
@@ -58,30 +109,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/InitApiResult'
 
-  /api/v1/init/setCallbackUrl:
-    post:
-      tags: [LoginAttach]
-      summary: 设置企微消息回调 URL
-      x-called-by:
-        - recruit-agent/src/packages/channel-core/src/wecom-client.ts#setCallbackUrl
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SetCallbackUrlRequest'
-            examples:
-              basic:
-                value:
-                  uuid: 0190-example-uuid
-                  url: https://agent.example.com/api/wecom/callback
-      responses:
-        '200':
-          description: 设置结果
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiVoidResult'
 
   /api/v1/init/getRunClientByUuid:
     post:
@@ -138,6 +165,7 @@ paths:
       summary: 获取登录二维码
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getQrCode
+        - api-call-service.html#callQrCodeApi
       requestBody:
         required: true
         content:
@@ -162,6 +190,7 @@ paths:
       summary: 校验二维码/设备验证码
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#checkCode
+        - api-call-service.html#callCheckCodeApi
       requestBody:
         required: true
         content:
@@ -188,17 +217,18 @@ paths:
       summary: 二次验证
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#secondaryValidation
+        - api-call-service.html#callSecondaryValidationApi
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SecondaryValidationRequest'
+              $ref: '#/components/schemas/BaseRequest'
             examples:
               whenRequired:
+                summary: api-call-service.html 二次验证最小请求；仅传 uuid
                 value:
                   uuid: 0190-example-uuid
-                  qrcodeKey: 114A2A26E50DE4BC
       responses:
         '200':
           description: 验证结果
@@ -207,12 +237,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiVoidResult'
 
+  /api/v1/init/automaticLogin:
+    post:
+      tags: [LoginAttach]
+      summary: 自动登录企微客户端
+      description: api-call-service.html 的可选接口；初始化时传过 vid 且账号有历史登录态时，按 uuid 触发自动登录。
+      x-called-by:
+        - api-call-service.html#callAutomaticLoginApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseRequest'
+            examples:
+              byUuid:
+                summary: H5 demo 最小请求
+                value:
+                  uuid: 0190-example-uuid
+      responses:
+        '200':
+          description: 自动登录结果；成功时 data 结构与初始化接口一致
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitApiResult'
+
   /api/v1/init/loginOut:
     post:
       tags: [LoginAttach]
       summary: 登出企微客户端
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#loginOut
+        - api-call-service.html#callLoginOutApi
       requestBody:
         required: true
         content:
@@ -278,12 +335,12 @@ paths:
                   isRoom: false
                   content: 你好，这是一条测试消息
               groupText:
-                summary: 群文本发送；当前 H5 demo 不开放该入口
+                summary: api-call-service.html 外部群文本发送；send_userid 使用外部群列表返回的 room_id
                 value:
                   uuid: 0190-example-uuid
                   send_userid: '189000000001'
                   isRoom: true
-                  content: 群消息测试
+                  content: 你好
       responses:
         '200':
           description: 发送结果
@@ -365,6 +422,7 @@ paths:
       x-called-by:
         - recruit-agent/src/packages/channel-core/src/wecom-client.ts#getExternalContacts
         - recruit-agent/wecom-bridge.js#getExternalContacts
+        - api-call-service.html#callExternalContactsApi
       requestBody:
         required: true
         content:
@@ -492,6 +550,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/RoomListApiResult'
 
+  /api/v1/group/getChatroomMembers:
+    post:
+      tags: [Contact]
+      summary: 获取外部群列表
+      description: api-call-service.html 用该接口按 star_index 分页加载外部群，选择返回的 room_id 后调用 sendText 发送群文本。
+      x-called-by:
+        - api-call-service.html#callChatroomMembersApi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetChatroomMembersRequest'
+            examples:
+              firstPage:
+                summary: 首次加载外部群列表
+                value:
+                  uuid: 0190-example-uuid
+                  limit: 5
+                  star_index: 0
+              nextPage:
+                summary: 使用上次响应 data.next_start 继续分页
+                value:
+                  uuid: 0190-example-uuid
+                  limit: 5
+                  star_index: 5
+      responses:
+        '200':
+          description: 外部群列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatroomMembersApiResult'
+
   /api/v1/group/getRoomUserList:
     post:
       tags: [Contact]
@@ -601,34 +693,6 @@ paths:
               schema:
                 type: string
 
-  /wxwork/SetCallbackUrl:
-    post:
-      tags: [CallbackIngress]
-      summary: 企微底层回调入口
-      description: 设置回调后，企微底层组件向该入口推送 callback；服务端落库为 WxCallbackTask。
-      x-called-by:
-        - configured by /api/v1/init/setCallbackUrl or legacy control-plane callback URL
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CallbackIngressRequest'
-      responses:
-        '200':
-          description: 接收成功
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  message:
-                    type: string
-                    example: 请求已接收，正在处理
-
 components:
   schemas:
     ApiResult:
@@ -663,16 +727,16 @@ components:
     BaseRequest:
       type: object
       required: [uuid]
-      description: 需要绑定到某个企微运行客户端的通用请求体。
+      description: 需要绑定到某个企微运行客户端的通用请求体；uuid 始终放在 JSON body 中传递。
       properties:
         uuid:
           type: string
-          description: 账号初始化接口返回的客户端唯一标识。api-call-service.html 中初始化成功后需要保存到页面顶部“全局UUID”，后续接口复用该值。
+          description: /api/v1/init/init 返回的客户端实例 ID。后续二维码、状态查询、联系人、群、消息发送、退出登录接口必须复用同一个 uuid；不要放 query/header。
           example: 0190-example-uuid
 
     InitRequest:
       type: object
-      description: 初始化企微客户端。api-call-service.html 默认只传 proxySituation=0、deverType=ipad；vid 可选。
+      description: 初始化企微客户端。最小请求体可以为空；如需复用指定企微用户，可传 vid。
       properties:
         vid:
           type: integer
@@ -680,66 +744,30 @@ components:
           nullable: true
           description: 可选的企微用户 vid；为空时由服务侧创建/分配客户端。
           example: 7881301772935700
-        ip:
-          type: string
-          nullable: true
-          description: 代理服务器 IP；proxySituation=0 时通常不传。
-          example: 127.0.0.1
-        port:
-          type: string
-          nullable: true
-          description: 代理端口；proxySituation=0 时通常不传。
-          example: '8080'
-        proxyType:
-          type: string
-          nullable: true
-          description: 代理类型；按下游协议服务约定填写。
-          example: HTTP
-        userName:
-          type: string
-          nullable: true
-          description: 代理用户名；无认证代理不传。
-          example: proxy-user
-        passward:
-          type: string
-          nullable: true
-          description: 代理密码。源码字段名为 passward，不是 password。
-          example: proxy-pass
-        proxySituation:
-          type: integer
-          description: 代理使用状态；api-call-service.html 默认 0，表示不使用代理。
-          example: 0
-        deverType:
-          type: string
-          description: 登录设备类型；api-call-service.html 默认 ipad。
-          example: ipad
-      example:
-        proxySituation: 0
-        deverType: ipad
-
+      example: {}
     InitResponse:
       type: object
-      description: 初始化结果。uuid 是后续登录绑定、联系人、消息发送接口的核心入参。
+      description: 初始化结果。uuid 是后续登录绑定、联系人、群列表、消息发送接口的核心入参；vid 是可选复用凭据。
       properties:
         uuid:
           type: string
-          description: 客户端唯一标识；初始化成功后保存到页面顶部“全局UUID”。
+          description: 客户端实例 ID；初始化成功后保存，后续接口在 body 中复用。
           example: 0190-example-uuid
         vid:
           type: integer
           format: int64
           nullable: true
-          description: 已绑定企微用户 vid；未登录前可能为空。
+          description: 企微账号 ID；首次登录成功后可从初始化/状态数据中取得并按业务需要持久化，用于后续复用账号。
           example: 7881301772935700
         loginState:
           type: integer
           nullable: true
-          description: 登录状态枚举值；以实际下游返回为准。
+          description: 初始化阶段/旧协议兼容登录状态字段；不要单独用它判断可发消息。最终以 getRunClientByUuid 的 loginType=2 且 longLinkState=CONNECTED 为准。
           example: 0
         qrCode:
           type: string
           nullable: true
-          description: 初始化阶段如直接返回二维码，则为二维码内容或图片数据。
+          description: 初始化阶段如直接返回二维码，则为二维码 URL、data URI 或 base64 字符串；常规流程仍建议调用 getQrCode。
           example: data:image/png;base64,iVBORw0KGgo...
 
     InitApiResult:
@@ -750,51 +778,16 @@ components:
             data:
               $ref: '#/components/schemas/InitResponse'
 
-    SetCallbackUrlRequest:
-      allOf:
-        - $ref: '#/components/schemas/BaseRequest'
-        - type: object
-          required: [url]
-          description: 设置当前 uuid 对应客户端的消息回调地址。
-          properties:
-            url:
-              type: string
-              format: uri
-              description: 下游消息回调接收地址。service demo 使用 http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl。
-              example: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
-            callbackType:
-              type: string
-              description: 回调类型；H5 demo 按下游要求固定 HTTP。
-              example: HTTP
-            mqExchange:
-              type: string
-              nullable: true
-              description: MQ 回调模式下的 exchange；HTTP 回调通常不传。
-              example: weichat.callback.exchange
-            mqRoutingKey:
-              type: string
-              nullable: true
-              description: MQ 回调模式下的 routing key；HTTP 回调通常不传。
-              example: weichat.callback.routing
-            extraContent:
-              type: string
-              nullable: true
-              description: 附加透传内容；无附加信息时不传。
-              example: recruit-agent
-      example:
-        uuid: 0190-example-uuid
-        url: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
-        callbackType: HTTP
-
     CheckCodeRequest:
       allOf:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
+          required: [qrcodeKey, code]
           description: 录入登录授权码。先 getQrCode 并扫码，再把授权码提交到该接口。
           properties:
             qrcodeKey:
               type: string
-              description: getQrCode 返回的二维码 key；部分下游流程可能要求带回。
+              description: getQrCode 返回的二维码 key；api-call-service.html 从二维码响应自动填充。
               example: 114A2A26E50DE4BC
             code:
               type: string
@@ -805,39 +798,26 @@ components:
         qrcodeKey: 114A2A26E50DE4BC
         code: '123456'
 
-    SecondaryValidationRequest:
-      allOf:
-        - $ref: '#/components/schemas/BaseRequest'
-        - type: object
-          description: 二次扫码授权。不是每次登录都需要；仅在 checkCode 返回需要二次验证时调用。
-          properties:
-            qrcodeKey:
-              type: string
-              description: 二次验证二维码 key；来自前置登录/授权响应。
-              example: 114A2A26E50DE4BC
-      example:
-        uuid: 0190-example-uuid
-        qrcodeKey: 114A2A26E50DE4BC
 
     QrCodeResponse:
       type: object
-      description: 登录二维码响应。
+      description: 登录二维码响应。调用方展示二维码后，用户扫码并在页面/设备获得授权码，再把 qrcodeKey 和授权码提交到 checkCode。
       properties:
         qrCode:
           type: string
-          description: 二维码图片内容、URL 或 base64 字符串，按下游实际返回展示。
+          description: 二维码图片内容。可能是 URL、完整 data URI，或不带 data:image 前缀的 base64 字符串；裸 base64 需补前缀后再用于 img src。
           example: data:image/png;base64,iVBORw0KGgo...
         Key:
           type: string
-          description: weichat-service 源码字段名为 Key；后续 checkCode/secondaryValidation 可能需要。
+          description: 二维码 key；checkCode 请求中的 qrcodeKey 应使用该值。部分下游也可能返回 key/qrcodeKey 兼容字段。
           example: 114A2A26E50DE4BC
         status:
           type: integer
-          description: 二维码状态码；以协议服务返回为准。
+          description: 二维码状态码；以协议服务返回为准，调用方不要用该字段替代 checkCode/getRunClientByUuid 流程判断。
           example: 0
         expireTime:
           type: integer
-          description: 二维码过期时间或剩余秒数；以协议服务返回为准。
+          description: 二维码过期时间或剩余秒数；该字段不稳定时，过期/扫码失败后重新 getQrCode。
           example: 300
 
     QrCodeApiResult:
@@ -850,7 +830,7 @@ components:
 
     RunClientResponse:
       type: object
-      additionalProperties: true
+      additionalProperties: false
       description: 当前 uuid 对应企微客户端运行状态。api-call-service.html 以 loginType=2 且 longLinkState=CONNECTED 判断登录和长连接正常。
       properties:
         uuid:
@@ -880,32 +860,32 @@ components:
           example: 测试企业
         loginState:
           type: integer
-          description: 登录状态码；旧字段，按下游实际返回解释。
+          description: 旧协议兼容登录状态字段；不要单独作为可发消息判断。
           example: 1
         onlineState:
           type: integer
-          description: 在线状态码；旧字段，按下游实际返回解释。
+          description: 旧协议兼容在线状态字段；最终以 longLinkState 为准。
           example: 1
         loginType:
           type: integer
-          description: 登录类型/状态；api-call-service.html 将 2 视为登录成功。
+          description: 登录阶段字段；0/空表示未初始化或未知，1 表示已初始化未完成登录，2 表示已登录。可发消息还必须同时满足 longLinkState=CONNECTED。
           example: 2
         longLinkState:
           type: string
-          description: 长连接状态；CONNECTED 表示连接正常。
+          description: 长连接状态；CONNECTED 表示连接正常。调用方应使用 loginType=2 AND longLinkState=CONNECTED 判断登录链路可用。
           example: CONNECTED
         isLogin:
           type: boolean
           description: 是否已登录；部分响应可能返回该兼容字段。
           example: true
-        callbackType:
-          type: string
-          description: 当前客户端回调类型。
-          example: HTTP
-        callbackUrl:
-          type: string
-          description: 当前客户端回调 URL。
-          example: http://ai-agent.okgcc.cn/wx/wxwork/SetCallbackUrl
+      example:
+        uuid: 0190-example-uuid
+        vid: 7881301772935700
+        nickname: 张三
+        corpName: 测试企业
+        loginType: 2
+        longLinkState: CONNECTED
+        isLogin: true
 
     RunClientApiResult:
       allOf:
@@ -919,33 +899,24 @@ components:
       allOf:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
-          required: [send_userid, content]
-          description: 发送文本消息。api-call-service.html 的好友发送模块固定 isRoom=false，用外部联系人 userId/vid 填充 send_userid。
+          required: [send_userid, isRoom, content]
+          description: 发送纯文本消息。单好友和外部群共用该接口，通过 isRoom 区分目标类型；不支持 @ 人或混合表情扩展。
           properties:
             send_userid:
               oneOf:
                 - type: string
                 - type: integer
                   format: int64
-              description: 接收人 ID。单好友消息填外部联系人列表返回的 userId/vid；recruit-agent 当前以字符串发送，weichat-service VO 为 Long。
+              description: 接收目标 ID。isRoom=false 时填外部联系人的 userId/vid；isRoom=true 时填外部群的 room_id。后端字段类型是 Java Long；浏览器/JS 客户端建议按十进制字符串传递，避免超过 Number.MAX_SAFE_INTEGER 后发生精度丢失。
               example: '7881301772935700'
             isRoom:
               type: boolean
-              description: 是否群消息；单好友发送固定 false。
-              default: false
+              description: 目标是否为群。false=单好友文本；true=外部群文本。
               example: false
             content:
               type: string
-              description: 要发送的文本内容。
-              example: 你好，这是一条测试消息
-            kf_id:
-              oneOf:
-                - type: string
-                - type: integer
-                  format: int64
-              nullable: true
-              description: 客服消息回复时使用的客服 ID；普通单聊文本可不传或为空。
-              example: ''
+              description: 要发送的纯文本内容；H5 demo 按最小参数只传文本，不传 JSON 数组。
+              example: 你好
       example:
         uuid: 0190-example-uuid
         send_userid: '7881301772935700'
@@ -956,8 +927,8 @@ components:
       allOf:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
-          required: [send_userid, title, content, url]
-          description: 发送链接卡片消息。
+          required: [send_userid, isRoom, title, content, url]
+          description: 发送链接卡片消息；OpenAPI 仅展示必填字段，封面图等非必填扩展参数隐藏。
           properties:
             send_userid:
               oneOf:
@@ -969,7 +940,6 @@ components:
             isRoom:
               type: boolean
               description: 是否群消息。
-              default: false
               example: false
             title:
               type: string
@@ -984,12 +954,6 @@ components:
               format: uri
               description: 点击卡片打开的链接。
               example: https://agent.example.com/interview/123
-            imgurl:
-              type: string
-              format: uri
-              nullable: true
-              description: 卡片封面图 URL。
-              example: https://agent.example.com/static/card.png
       example:
         uuid: 0190-example-uuid
         send_userid: '7881301772935700'
@@ -997,14 +961,13 @@ components:
         title: 面试安排确认
         content: 请点击查看本次面试安排
         url: https://agent.example.com/interview/123
-        imgurl: https://agent.example.com/static/card.png
 
     SendAppMessageRequest:
       allOf:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
-          required: [send_userid]
-          description: 发送企业微信小程序卡片消息。
+          required: [send_userid, title, appName, appid, username, pagepath]
+          description: 发送企业微信小程序卡片消息；OpenAPI 仅展示服务端标注的必填字段，isRoom、desc、图标、封面等非必填扩展参数隐藏。
           properties:
             send_userid:
               oneOf:
@@ -1013,11 +976,10 @@ components:
                   format: int64
               description: 接收人 ID；单聊填好友 userId/vid，群聊填群 ID。
               example: '7881301772935700'
-            isRoom:
-              type: boolean
-              description: 是否群消息。
-              default: false
-              example: false
+            title:
+              type: string
+              description: 小程序卡片标题。
+              example: 候选人详情
             appName:
               type: string
               description: 小程序展示名称。
@@ -1026,44 +988,22 @@ components:
               type: string
               description: 小程序 appid。
               example: wx1234567890abcdef
-            title:
-              type: string
-              description: 小程序卡片标题。
-              example: 候选人详情
-            desc:
-              type: string
-              description: 小程序卡片描述。
-              example: 点击查看候选人简历与沟通记录
-            pagepath:
-              type: string
-              description: 小程序页面路径。
-              example: pages/candidate/detail?id=123
             username:
               type: string
               description: 小程序原始 ID 或 username。
               example: gh_abcdef123456
-            weappIconUrl:
+            pagepath:
               type: string
-              format: uri
-              description: 小程序图标 URL。
-              example: https://agent.example.com/weapp-icon.png
-            coverUrl:
-              type: string
-              format: uri
-              description: 小程序卡片封面图 URL。
-              example: https://agent.example.com/weapp-cover.png
+              description: 小程序页面路径。
+              example: pages/candidate/detail?id=123
       example:
         uuid: 0190-example-uuid
         send_userid: '7881301772935700'
-        isRoom: false
+        title: 候选人详情
         appName: 招聘助手
         appid: wx1234567890abcdef
-        title: 候选人详情
-        desc: 点击查看候选人简历与沟通记录
-        pagepath: pages/candidate/detail?id=123
         username: gh_abcdef123456
-        weappIconUrl: https://agent.example.com/weapp-icon.png
-        coverUrl: https://agent.example.com/weapp-cover.png
+        pagepath: pages/candidate/detail?id=123
 
     SendMsgResponse:
       type: object
@@ -1101,27 +1041,15 @@ components:
         - $ref: '#/components/schemas/BaseRequest'
         - type: object
           required: [msgId]
-          description: 将语音消息转换为文本。recruit-agent 在处理语音回调时使用。
+          description: 将语音消息转换为文本。recruit-agent 在处理语音回调时使用；OpenAPI 仅展示必填 msgId，语音路径/URL 等非必填扩展参数隐藏。
           properties:
             msgId:
               type: string
               description: 语音消息 ID。
               example: '189000000001'
-            voicePath:
-              type: string
-              nullable: true
-              description: 语音文件本地路径；与 voiceUrl 至少按服务端要求提供一种。
-              example: /data/wecom/voice/189000000001.amr
-            voiceUrl:
-              type: string
-              format: uri
-              nullable: true
-              description: 语音文件 URL；与 voicePath 至少按服务端要求提供一种。
-              example: https://agent.example.com/voice/189000000001.amr
       example:
         uuid: 0190-example-uuid
         msgId: '189000000001'
-        voiceUrl: https://agent.example.com/voice/189000000001.amr
 
     SpeechToTextApiResult:
       allOf:
@@ -1130,14 +1058,17 @@ components:
           properties:
             data:
               type: object
-              additionalProperties: true
+              additionalProperties: false
               properties:
                 text:
                   type: string
-
+                  description: 语音识别后的文本内容。
+                  example: 你好，请问还在吗
+              example:
+                text: 你好，请问还在吗
     GetExternalContactsRequest:
       type: object
-      required: [uuid]
+      required: [uuid, limit, seq]
       description: 获取外部联系人列表。该接口使用游标分页：首次 seq=0；响应 data.seq 是下一页游标，前端应放入下拉框供用户继续加载。
       properties:
         uuid:
@@ -1162,7 +1093,7 @@ components:
 
     GetInnerContactsRequest:
       type: object
-      required: [uuid]
+      required: [uuid, limit, strSeq]
       description: 获取内部联系人列表。内部通讯录使用字符串游标 strSeq。
       properties:
         uuid:
@@ -1172,12 +1103,10 @@ components:
         limit:
           type: integer
           description: 每页数量。
-          default: 200
           example: 200
         strSeq:
           type: string
           description: 字符串分页游标；首次传空字符串，后续传响应中的下一页游标。
-          default: ''
           example: ''
       example:
         uuid: 0190-example-uuid
@@ -1219,7 +1148,7 @@ components:
 
     ContactInfo:
       type: object
-      additionalProperties: true
+      additionalProperties: false
       description: 联系人信息。外部联系人列表中用于发送单好友文本消息的关键字段是 userId/vid。
       properties:
         userId:
@@ -1355,6 +1284,14 @@ components:
           description: 当前页内部联系人列表。
           items:
             $ref: '#/components/schemas/ContactInfo'
+      example:
+        total: 80
+        seq: next-page-token
+        list:
+          - userId: 7881301772935700
+            nickname: 张三
+            corpName: 测试企业
+            mobile: '13800138000'
 
     ContactListApiResult:
       allOf:
@@ -1440,6 +1377,110 @@ components:
               items:
                 $ref: '#/components/schemas/SessionInfo'
 
+    GetChatroomMembersRequest:
+      type: object
+      required: [uuid, limit, star_index]
+      description: 获取外部客户群列表。api-call-service.html 首次传 star_index=0；响应 data.next_start 大于等于 0 时放入下拉框用于下一页。
+      properties:
+        uuid:
+          type: string
+          description: 账号初始化得到并保存的全局 UUID。
+          example: 0190-example-uuid
+        limit:
+          type: integer
+          description: 每页数量；api-call-service.html 默认 5。
+          default: 5
+          example: 5
+        star_index:
+          type: integer
+          description: 分页起始下标。首次传 0；后续传上一次响应 data.next_start。字段名来自服务端 VO，使用 star_index，不是 start_index。
+          default: 0
+          example: 0
+      example:
+        uuid: 0190-example-uuid
+        limit: 5
+        star_index: 0
+
+    ChatroomInfo:
+      type: object
+      additionalProperties: false
+      description: 外部客户群信息。api-call-service.html 用 room_id 作为 sendText 的 send_userid，nickname/total/create_time/update_time 只用于列表展示。
+      properties:
+        room_id:
+          oneOf:
+            - type: string
+            - type: integer
+              format: int64
+          description: 外部群 ID；服务端 VO 为 Java Long。浏览器/JS 客户端应按字符串处理该字段，再填入 SendTextRequest.send_userid，避免 room_id 超过 Number.MAX_SAFE_INTEGER 后渲染/选择时丢失精度。
+          example: '189000000001'
+        create_user_id:
+          type: integer
+          format: int64
+          description: 创建人 ID；按协议服务返回展示。
+          example: 0
+        infoticket:
+          type: string
+          description: 群信息票据；H5 demo 不参与后续最小发送请求。
+          example: 9FE241BC08F50F9A2FCBA692759B6FD8A5EA88B107787838
+        update_time:
+          type: integer
+          format: int64
+          description: 更新时间，通常为 Unix 时间戳。
+          example: 1650135314
+        total:
+          type: integer
+          description: 群成员数量。
+          example: 4
+        create_time:
+          type: integer
+          format: int64
+          description: 创建时间，通常为 Unix 时间戳。
+          example: 1648889598
+        nickname:
+          type: string
+          description: 群名称；H5 demo 列表展示字段。
+          example: 客户沟通群
+        roomurl:
+          type: string
+          format: uri
+          description: 群头像 URL；H5 demo 当前不展示。
+          example: https://wework.qpic.cn/wwpic/699045_06DbkaBSSVeLfTg_1652088785/0
+
+    ChatroomMembersResponse:
+      type: object
+      description: 外部客户群列表响应。分页方式为 star_index/next_start：下一页请求传上一次响应的 next_start。
+      properties:
+        total:
+          type: integer
+          description: 外部群总数。
+          example: 7
+        next_start:
+          type: integer
+          description: 下一次查询起始下标；大于等于 0 时可继续分页。
+          example: 5
+        roomList:
+          type: array
+          description: 当前页外部群列表。
+          items:
+            $ref: '#/components/schemas/ChatroomInfo'
+      example:
+        total: 7
+        next_start: 5
+        roomList:
+          - room_id: '189000000001'
+            nickname: 客户沟通群
+            total: 4
+            create_time: 1648889598
+            update_time: 1650135314
+
+    ChatroomMembersApiResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResult'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ChatroomMembersResponse'
+
     RoomIdRequest:
       allOf:
         - $ref: '#/components/schemas/BaseRequest'
@@ -1451,12 +1492,6 @@ components:
               type: integer
               format: int64
               description: weichat-service VO 字段名为 roomid；查询群成员时必须使用该字段。
-              example: 189000000001
-            roomId:
-              type: integer
-              format: int64
-              deprecated: true
-              description: recruit-agent 当前字段名；若服务端未做别名兼容，会无法绑定到 RoomIdRequest.roomid。
               example: 189000000001
       example:
         uuid: 0190-example-uuid
@@ -1675,33 +1710,3 @@ components:
             data:
               $ref: '#/components/schemas/LabelListResponse'
 
-    CallbackIngressRequest:
-      type: object
-      required: [uuid]
-      description: 下游企微组件推送到 weichat-service 的回调入口请求体。CallbackRequest.json 已兼容字符串和对象两种形态。
-      properties:
-        uuid:
-          type: string
-          description: 回调归属客户端 UUID。
-          example: 0190-example-uuid
-        type:
-          type: string
-          description: 回调类型；如消息、好友变更、群事件等，具体值以协议服务推送为准。
-          example: Message
-        json:
-          oneOf:
-            - type: string
-            - type: object
-              additionalProperties: true
-          description: 原始回调 JSON；可为 JSON 字符串，也可为对象。
-          example:
-            msgId: '189000000001'
-            fromUserId: 7881301772935700
-            content: 你好
-      example:
-        uuid: 0190-example-uuid
-        type: Message
-        json:
-          msgId: '189000000001'
-          fromUserId: 7881301772935700
-          content: 你好
