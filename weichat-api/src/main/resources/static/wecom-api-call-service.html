@@ -904,8 +904,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="sendvoice-file">语音文件：</label>
-                            <input type="file" id="sendvoice-file" accept="audio/*,.silk,.amr">
+                            <label for="sendvoice-file">语音文件（仅支持 .silk）：</label>
+                            <input type="file" id="sendvoice-file" accept=".silk">
                         </div>
                         <div class="form-group">
                             <label for="sendvoice-time">voice_time（秒）：</label>
@@ -919,7 +919,7 @@
                 </div>
                 <div class="api-column">
                     <h2>响应结果</h2>
-                    <div class="result" id="sendvoice-result">选择目标和语音文件后，页面先调用 CDN 文件上传，再调用 SendCDNVoiceMsg 发送。</div>
+                    <div class="result" id="sendvoice-result">选择 .silk 语音文件后，页面先调用 CDN 文件上传，再调用 SendCDNVoiceMsg 发送。</div>
                 </div>
                 <div class="api-column">
                     <h2>接口路径</h2>
@@ -1464,13 +1464,18 @@
                 showLocalError('sendvoice-result', '错误：请选择语音文件');
                 return;
             }
+            const voiceFile = fileInput.files[0];
+            if (!isSilkVoiceFile(voiceFile)) {
+                showLocalError('sendvoice-result', '错误：语音文件仅支持 .silk 格式');
+                return;
+            }
             const voiceTime = Number(document.getElementById('sendvoice-time').value || 0);
             if (!Number.isInteger(voiceTime) || voiceTime <= 0) {
                 showLocalError('sendvoice-result', '错误：voice_time 必须是大于 0 的整数秒');
                 return;
             }
             await withSubmitState('sendvoice-form', 'sendvoice-result', '正在上传语音到 CDN...', async function(resultDiv) {
-                const uploadResult = await uploadCdnMultipart(basePayload.uuid, fileInput.files[0], 'http://ai-agent.okgcc.cn/wx/api/v1/cdn/cdnUploadFile');
+                const uploadResult = await uploadCdnMultipart(basePayload.uuid, voiceFile, 'http://ai-agent.okgcc.cn/wx/api/v1/cdn/cdnUploadFile');
                 const uploadData = requireSuccessData(uploadResult, '语音 CDN 上传失败');
                 const payload = Object.assign({}, basePayload, {
                     cdnkey: requireUploadText(uploadData.cdn_key || uploadData.cdnkey || uploadData.fileid, 'cdnkey'),
@@ -1482,6 +1487,10 @@
                 const sendResult = await postJson('http://ai-agent.okgcc.cn/wx/api/v1/message/sendVoice', payload);
                 renderChainedResult(resultDiv, payload, uploadResult, sendResult);
             });
+        }
+
+        function isSilkVoiceFile(file) {
+            return file && typeof file.name === 'string' && file.name.toLowerCase().endsWith('.silk');
         }
 
         async function callSendAppApi() {
