@@ -45,12 +45,14 @@ public class WxCallbackRouteOnlineMonitorService {
      * 检查已配置回调路由的最新绑定设备在线状态，并将离线账号合并发送飞书告警。
      */
     public void checkAndNotifyOfflineRoutes() {
+        // 候选集已在 SQL 层完成：存在回调路由、按 userId 取最新绑定设备、且未被停用在线检查。
         List<WxCallbackRouteMonitorTarget> targets = wxUserInfoService.selectCallbackRouteMonitorTargets();
         if (targets.isEmpty()) {
             log.info("callback route online monitor found no targets");
             return;
         }
 
+        // 逐个调用企微运行客户端状态接口；失败或非登录状态都按离线处理，确保告警不漏发。
         List<WxCallbackRouteMonitorTarget> offlineTargets = new ArrayList<>(targets.size());
         for (WxCallbackRouteMonitorTarget target : targets) {
             if (!isOnline(target.getUuid())) {
@@ -63,6 +65,7 @@ public class WxCallbackRouteOnlineMonitorService {
             return;
         }
 
+        // 多个离线账号合并成一条飞书消息，避免每 5 分钟刷屏。
         sendFeishuNotification(offlineTargets);
         log.warn("callback route online monitor detected offline routes, targets={}, offline={}", targets.size(), offlineTargets.size());
     }
@@ -80,6 +83,7 @@ public class WxCallbackRouteOnlineMonitorService {
         JSONObject body = new JSONObject();
         body.put("uuid", uuid);
         try {
+            // 复用项目统一企微 HTTP 客户端，域名和超时配置由 WxWorkApiClient/ApiConfig 管理。
             JSONObject response = wxWorkApiClient.post(RUN_CLIENT_PATH, body);
             return parseOnlineState(response);
         } catch (Exception e) {
@@ -88,6 +92,10 @@ public class WxCallbackRouteOnlineMonitorService {
         }
     }
 
+    /**
+     * 解析企微运行客户端状态响应。
+     * <p>只有业务成功、登录阶段为已登录、且用户信息明确 isLogin=true 时才视为在线。</p>
+     */
     private boolean parseOnlineState(JSONObject response) {
         if (response == null || response.getIntValue("code") != SUCCESS_CODE) {
             return false;
@@ -129,6 +137,9 @@ public class WxCallbackRouteOnlineMonitorService {
         return headers;
     }
 
+    /**
+     * 构建飞书告警正文，按“用户 + UUID”逐行展示，便于值班人员直接定位需要修复的设备。
+     */
     private String buildNotificationText(List<WxCallbackRouteMonitorTarget> offlineTargets) {
         StringBuilder builder = new StringBuilder(offlineTargets.size() * 96);
         builder.append("【企微回调路由离线告警】\n")

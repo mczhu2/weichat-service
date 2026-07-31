@@ -42,6 +42,7 @@ public class WxCallbackRouteOnlineMonitorJob {
     @Scheduled(fixedRate = 300000)
     public void checkCallbackRouteOnlineState() {
         try {
+            // 定时任务部署多实例时只允许 0 号分片执行，避免同一批离线账号重复通知飞书。
             JobShardingInfo shardingInfo = jobShardingService.getShardingInfo(JOB_NAME, nodeId);
             if (!shardingInfo.isValid()) {
                 log.warn("callback route online monitor shard invalid node={}", nodeId);

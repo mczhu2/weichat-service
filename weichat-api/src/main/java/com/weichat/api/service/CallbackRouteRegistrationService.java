@@ -47,12 +47,14 @@ public class CallbackRouteRegistrationService {
 
         String uuid = request.getUuid().trim();
         String callbackUrl = request.getCallbackUrl().trim();
+        // 保存业务回调路由前，先确保该 uuid 在企微侧统一回调到本服务入口。
         JSONObject registerResult = registerPlatformCallback(uuid);
         ApiResult<Void> platformResult = ApiResult.from(registerResult);
         if (platformResult.getCode() != 0) {
             return ApiResult.fail("企微平台回调入口注册失败：" + platformResult.getMsg());
         }
 
+        // 企微侧入口固定，业务侧 callbackUrl 按 uuid 存库，消息分发时再动态选择下游系统。
         WxCallbackRoute route = new WxCallbackRoute();
         route.setUuid(uuid);
         route.setCallbackUrl(callbackUrl);

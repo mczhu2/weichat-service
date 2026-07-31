@@ -76,6 +76,7 @@ public class AsyncWecomCallbackService {
                     wxMessageInfo.getReceiver(),
                     JSON.toJSONString(callbackPayload));
 
+            // 优先使用 uuid 对应的业务系统回调路由；未配置时才退回全局兜底地址，兼容老接入方。
             String callbackUrl = resolveCallbackUrl(receiverUser, wxMessageInfo);
             if (!StringUtils.hasText(callbackUrl)) {
                 return;
@@ -87,6 +88,7 @@ public class AsyncWecomCallbackService {
                     String.class
             );
             String responseBody = responseEntity.getBody();
+            // 这里不消费同步响应生成回复，避免和 replyCallbackUrl 异步回复链路重复发送。
             // Intentionally do not consume the synchronous response body for user delivery.
             // User-facing replies must flow only through replyCallbackUrl so text / image /
             // voice dispatch stays single-sourced. Reintroducing sendReplyToCustomer(...)
